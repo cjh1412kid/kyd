@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.nuite.modules.erp.bserp.dao.ShangPinDao">
+
+  <resultMap id="goodsMap" type="com.nuite.modules.erp.bserp.entity.ShangPin">
+    <result property="code" column="SPDM"></result>
+    <result property="name" column="SPMC"></result>
+    <result property="salePrice" column="BZSJ"></result>
+    <result property="sj1" column="SJ1"></result>
+    <result property="sj2" column="SJ2"></result>
+    <result property="sj4" column="SJ4"></result>
+    <result property="categoryCode" column="BYZD4"></result>
+    <result property="seasonCode" column="BYZD5"></result>
+    <result property="year" column="BYZD8"></result>
+    <result property="sx1" column="FJSX1"></result>
+    <result property="sx2" column="FJSX2"></result>
+    <result property="sx3" column="FJSX3"></result>
+    <result property="sx4" column="FJSX4"></result>
+    <result property="sx5" column="FJSX5"></result>
+    <result property="sx6" column="FJSX6"></result>
+    <result property="sx7" column="FJSX7"></result>
+    <result property="sx8" column="FJSX8"></result>
+    <result property="sx9" column="FJSX9"></result>
+    <result property="sx10" column="FJSX10"></result>
+    <result property="sx11" column="FJSX11"></result>
+    <result property="sx12" column="FJSX12"></result>
+    <result property="sx13" column="FJSX13"></result>
+    <result property="sx14" column="FJSX14"></result>
+    <result property="sx15" column="FJSX15"></result>
+    <result property="sx16" column="FJSX16"></result>
+  </resultMap>
+
+  <select id="selectOnCurrYear" resultMap="goodsMap">
+    SELECT *
+    FROM SHANGPIN
+    WHERE BYZD8 >= CONVERT(varchar(4) , getdate(), 112 )
+  </select>
+
+  <select id="selectGoodsCodeBeforeCurrYear" resultType="java.lang.String">
+    SELECT SPDM
+    FROM SHANGPIN
+    WHERE BYZD8 &lt; CONVERT(varchar(4) , getdate(), 112 )
+  </select>
+
+  <select id="selectByGoodsCodes" resultMap="goodsMap">
+    SELECT *
+    FROM SHANGPIN
+    WHERE SPDM in
+    <foreach collection="codes" open="(" separator="," close=")" item="code">
+      #{code}
+    </foreach>
+  </select>
+</mapper>

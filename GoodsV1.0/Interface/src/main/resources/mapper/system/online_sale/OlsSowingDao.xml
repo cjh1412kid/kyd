@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="io.nuite.modules.system.dao.online_sale.OlsSowingDao">
+  <select id="selectOlsGoodsList" resultType="java.util.Map">
+    select
+    ygs.Seq as seq,ygs.GoodID as goodID,ygs.Introduce as introduce,ygs.Img1 as img1
+    from [YHSROnlineSales].[dbo].[YHSR_OLS_ShoesInfo] yos
+    left join [YHSmartRetail].[dbo].[YHSR_Goods_Shoes] ygs on yos.Shoes_Seq=ygs.Seq
+    left join [YHSmartRetail].[dbo].[YHSR_Goods_Period] ygp on ygs.Period_Seq=ygp.Seq
+    where yos.Del=0 and ygs.Del=0 and yos.OnSale=1 and ygp.Brand_Seq=#{brandSeq}
+  </select>
+</mapper>

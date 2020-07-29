@@ -1,0 +1,35 @@
+<!--pages/myself/address/list/list.wxml-->
+<view class='top'></view>
+<view class='address_container' wx:if="{{addressData.length > 0}}">
+  <view class='top_tips' wx:if='{{!selectModel}}'>向左滑动删除</view>
+  <view class='address_detail' wx:for="{{addressData}}" wx:key="index">
+    <view style="{{item.txtStyle}}" bindtouchstart="touchS" bindtouchmove="touchM" bindtouchend="touchE" data-index="{{index}}" class="address_detail_inner address_detail_top" bindtap='selectModelClick'>
+      <view class='address_default_select'  catchtap='setDefaultClick' data-seq='{{item.seq}}' data-old='{{item.default}}'>
+        <view class='icon iconfont icon-xuanzhong {{item.default?"icon_select":"icon_de_select"}}'></view>
+      </view>
+      <view class='address_detail_content'>
+        <view class='name'>收货人：{{item.recipientsName}}
+          <text class='phone'>{{item.telephone}}</text>
+        </view>
+        <view class='address'>收货地址：{{item.address}}</view>
+      </view>
+    </view>
+
+    <!--这里是左滑按钮部分----start-->
+    <view bindtap="delItem" class="address_detail_inner address_detail_menu">
+      <view class='edit button' data-address-id='{{item.seq}}' catchtap='editAddress'>编辑</view>
+      <view class='del button' data-address-id='{{item.seq}}' catchtap="delAddress">删除</view>
+    </view>
+    <!--这里是左滑按钮部分----end-->
+  </view>
+  <!--列表底部占位-->
+  <view class='address_bottom'></view>
+</view>
+<view class='address_container' wx:else>
+  <view class='no_address_title'>暂无地址请添加</view>
+</view>
+
+<!--固定底部结算按钮-->
+<view class='button_group'>
+  <view class='button add' bindtap='addAddress'>新 增</view>
+</view>

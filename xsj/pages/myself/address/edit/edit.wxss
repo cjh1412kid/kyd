@@ -1,0 +1,115 @@
+/* pages/myself/address/edit/edit.wxss */
+
+.top {
+  border-top: solid 1px #d6d6d6;
+  height: 1rpx;
+}
+
+.content {
+  margin-top: 9rpx;
+  width: 750rpx;
+  background-color: #fff;
+  overflow: hidden;
+}
+
+.content .line {
+  width: 708rpx;
+  margin: 15rpx auto;
+  border-bottom: solid 1rpx #e0e0e0;
+  display: flex;
+}
+
+.content .line:last-child {
+  border-bottom: none;
+}
+
+.content .line .left {
+  color: #999;
+  font-size: 25rpx;
+}
+
+.content .line .left.text {
+  width: 138rpx;
+  height: 1.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.content .line .left.default, .content .line .input {
+  flex: 1;
+  font-size: 25rpx;
+  position: relative;
+}
+
+.content .line .input .picker {
+  height: 1.4rem;
+  line-height: 1.4rem;
+}
+
+.content .line .input .icon {
+  position: absolute;
+  right: 0;
+  top: 0;
+  height: 1.4rem;
+  line-height: 1.4rem;
+  color: #999;
+}
+
+.content .line .select {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.select .icon {
+  font-size: 18rpx;
+  width: 30rpx;
+  height: 30rpx;
+  line-height: 30rpx;
+  border-radius: 50%;
+  color: white;
+  text-align: center;
+}
+
+.select .icon_select {
+  background-color: #f44;
+  border: solid 1px #f44;
+}
+
+.select .icon_de_select {
+  background-color: #fff;
+  border: solid 1px #999;
+}
+
+.select .icon_de_select.icon {
+  color: #999;
+}
+
+.button_group {
+  position: fixed;
+  bottom: 0;
+  height: 97rpx;
+  width: 750rpx;
+  display: flex;
+}
+
+.button_group .button {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 42rpx;
+  border-radius: 0;
+  border: none;
+}
+
+.button_group .button.cancel {
+  background-color: #e5e5e5;
+  color: #666;
+}
+
+.button_group .button.add {
+  background-color: #04a396;
+  color: #fff;
+}

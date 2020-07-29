@@ -1,0 +1,177 @@
+/* pages/order/detail/detail.wxss */
+@import '../order_detail.wxss';
+
+.detail_status {
+  width: 750rpx;
+  height: 80rpx;
+  line-height: 80rpx;
+  color: #fff;
+  text-align: center;
+  font-size: 33rpx;
+}
+
+.status_cancle {
+  background-color: #999;
+}
+
+.status_nopaid {
+  background: linear-gradient(to right, #ff9059, #ff513e);
+}
+
+.status_payment {
+  background: linear-gradient(to right, #ff586a, #ed43db);
+  display: flex;
+}
+
+.status_payment .text {
+  flex: 1.26;
+  line-height: 80rpx;
+  text-align: center;
+}
+
+.status_payment .btn_content {
+  flex: 1;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.status_payment .btn_content .btn {
+  width: 193rpx;
+  height: 38rpx;
+  line-height: 38rpx;
+  background-color: #7066ef;
+  border-radius: 19rpx;
+  font-size: 25rpx;
+  box-shadow: 0px 0px 10px 0px #888;
+}
+
+.status_shipped {
+  background: linear-gradient(to right, #b359ff, #1985d4);
+}
+
+.status_completed {
+  background: linear-gradient(to right, #1a87b4, #04cfce);
+  display: flex;
+}
+
+.status_completed .text {
+  flex: 1.26;
+  line-height: 80rpx;
+  text-align: center;
+}
+
+.status_completed .btn_content {
+  flex: 1;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.status_completed .btn_content .btn {
+  width: 193rpx;
+  height: 38rpx;
+  line-height: 38rpx;
+  background-color: #7066ef;
+  border-radius: 19rpx;
+  font-size: 25rpx;
+  box-shadow: 0px 0px 10px 0px #888;
+}
+
+.detail_delete {
+  margin-bottom: 98rpx;
+}
+
+.delete_btn {
+  position: fixed;
+  left: 0;
+  bottom: 0;
+  width: 750rpx;
+  height: 97rpx;
+  line-height: 97rpx;
+  background-color: #dcdcdc;
+  text-align: center;
+  font-size: 33rpx;
+  color: #fff;
+}
+
+.delete_btn.got_ship {
+  background-color: #04cfce;
+}
+
+.delete_btn.pay_line {
+  background-color: #fff;
+  display: flex;
+}
+
+.delete_btn.pay_line .total_prices, .delete_btn.pay_line .pay_btn {
+  flex: 1;
+}
+
+.delete_btn.pay_line .total_prices {
+  color: #666;
+}
+
+.delete_btn.pay_line .pay_btn {
+  background-color: #ff6f71;
+}
+
+.order_cancel {
+  width: 750rpx;
+  height: 97rpx;
+  line-height: 97rpx;
+  background-color: #dcdcdc;
+  text-align: center;
+  font-size: 33rpx;
+  color: #fff;
+}
+
+.self_pick_text {
+  text-align: left;
+  margin: 20rpx;
+  color: #1a87b4;
+  font-size: 30rpx;
+}
+
+.self_pick_text.noselect {
+  color: red;
+}
+
+.self_pick_map {
+  margin: 10rpx;
+}
+
+.self_pick_map text {
+  font-size: 30rpx;
+  color: #1a87b4;
+}
+
+.self_pick_map image {
+  width: 730rpx;
+  height: 800rpx;
+}
+
+/* pick code */
+
+.pick_qrcode {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 750rpx;
+  height: 100%;
+  z-index: 10;
+  background-color: rgba(0, 0, 0, 0.3);
+  animation: 1500ms ease-in-out;
+}
+
+.pick_qrcode image {
+  position: absolute;
+  width: 500rpx;
+  height: 500rpx;
+  left: 50%;
+  top: 50%;
+  margin-left: -250rpx;
+  margin-top: -250rpx;
+}

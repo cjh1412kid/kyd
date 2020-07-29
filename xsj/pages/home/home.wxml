@@ -1,0 +1,120 @@
+<!--pages/home/home.wxml-->
+<import src="/component/loadMore/loadmore.wxml" />
+<!-- 搜索栏 -->
+<view class='home_search_top'>
+  <view class='top_scan iconfont icon-saoyisao' bindtap='scanCode'></view>
+  <view class='top_search' >
+    <!-- <view class='search_icon iconfont icon-31sousuo'></view>
+    <view class='text_input'>商品搜索</view> -->
+  </view>
+  <view class='top_list iconfont icon-31liebiao' bindtap='categoryList'></view>
+</view>
+<!-- 品牌logo -->
+<view class='home_brand_logo' wx:if='{{false}}'>
+  <image src='{{brandData.brandLogo}}'></image>
+</view>
+
+<!-- 首页轮播 -->
+<swiper duration='500' autoplay='true' interval='3000' circular='true' class='home_swiper' indicator-dots='true' indicator-color='#dcdcdc' indicator-active-color='#ff6f71'>
+  <block wx:for='{{brandData.sowing}}' wx:key='{{index}}'>
+    <swiper-item bindtap='swiperClick' data-type='{{item.type}}' data-link-seq='{{item.linkSeq}}'>
+      <image src='{{item.image}}'></image>
+    </swiper-item>
+  </block>
+</swiper>
+
+<!-- 分类icon -->
+<view class='home_category'>
+  <view class='category_icon' bindtap='categoryClick' data-type='0'>
+    <view class='iconfont icon-hot'></view>
+    <view class='category_text'>热订爆款</view>
+  </view>
+  <view class='category_icon' bindtap='categoryClick' data-type='1'>
+    <view class='iconfont icon-shoes'></view>
+    <view class='category_text'>新品特推</view>
+  </view>
+  <view class='category_icon' bindtap='categoryList'>
+    <view class='iconfont icon-quanbu'></view>
+    <view class='category_text'>全部品类</view>
+  </view>
+  <view class='category_icon' bindtap='rankList' data-type='3'>
+    <view class='iconfont icon'></view>
+    <view class='category_text'>排行榜</view>
+  </view>
+</view>
+
+<!-- 精选专题 -->
+<view class='column_title'>
+  <view class='chinese'>精选专题</view>
+  <view class='english'>#Featured</view>
+</view>
+<view class='featured_swiper'>
+  <swiper class='swiper'>
+    <swiper-item>
+      <image src='{{brandData.topic_4}}' bindtap='categoryClick' data-type='4'></image>
+    </swiper-item>
+  </swiper>
+</view>
+
+<!-- 品牌活动 -->
+<!--<view class='column_title'>
+  <view class='chinese'>品牌活动</view>
+  <view class='english'>#Brand activity</view>
+</view>
+<view class='brand_activity'>
+  <view class='brand_top' bindtap='categoryClick' data-type='5'>
+    <image src='{{brandData.topic_5}}'></image>
+  </view>
+  <block wx:if='{{brandData.brandGoods.length > 0}}'>
+    <view class='brand_sales'>
+      <block wx:for='{{brandData.brandGoods}}' wx:key='*this'>
+        <view class='brands_one' bindtap='goodsClick' data-seq='{{item.seq}}'>
+          <image src='{{item.imgSrc}}'></image>
+        </view>
+      </block>
+    </view>
+  </block>
+</view>-->
+
+<!-- 热销爆款 -->
+<!--<view class='column_title'>
+  <view class='chinese'>热销爆款</view>
+  <view class='english'>#Hot shoes</view>
+</view>
+<view class='hot_sale'>
+  <view class='hot_top' bindtap='categoryClick' data-type='0'>
+    <image src='{{brandData.topic_0}}'></image>
+  </view>
+  <block wx:if='{{brandData.hotGoods.length > 0}}'>
+    <view class='hot_rank'>
+      <block wx:for='{{brandData.hotGoods}}' wx:key='*this'>
+        <view class='hot_one' bindtap='goodsClick' data-seq='{{item.seq}}'>
+          <image src='{{item.imgSrc}}'></image>
+        </view>
+      </block>
+    </view>
+  </block>
+</view>-->
+
+<!-- 猜你喜欢 -->
+<view class='column_title'>
+  <view class='chinese'>全部商品</view>
+  <view class='english'>#You may slsl like</view>
+</view>
+
+<view class='goods_list'>
+  <view class='goods' wx:for='{{likeList}}' wx:key='*this' bindtap='goodsClick' data-seq='{{item.seq}}'>
+    <view class='face'>
+      <image src='{{item.imgSrc}}' class='{{isOrder==0&&isAdmin==0?"dim":""}}'></image>
+    </view>
+    <view class='title'>
+    <view class='name' style='margin-left:85rpx;'>货号：{{item.goodId}}</view>
+      <view class='name'>{{item.introduce}}</view>
+      <view class='price'>工厂价：￥<text style='font-size:36rpx'>{{item.salePrice}}</text>元</view>
+    </view>
+  </view>
+</view>
+<template is="load-more" data="{{dataList:likeList, loading:loading}}"></template>
+ <view class='periodView'>
+  <image src='/assets/images/scan.png' class='period'  bindtap='scanCode'></image>
+  </view>

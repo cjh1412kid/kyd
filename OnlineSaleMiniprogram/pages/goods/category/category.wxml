@@ -1,0 +1,20 @@
+<!--pages/goods/category/category.wxml-->
+<block wx:if='{{activeIndex||activeIndex==0}}'>
+  <view class='page'>
+    <view class='first_category'>
+      <view wx:for='{{categoryData}}' wx:key='*this' class='name {{activeIndex==index?"selected":""}}' bindtap='firstCategoryChange' data-index='{{index}}'>
+        {{item.name}}
+      </view>
+    </view>
+
+    <view wx:for='{{currentSelectArray}}' class='second_category' wx:key='*this'>
+      <view class='name'>{{item.name}}</view>
+      <view class='third_category'>
+        <view wx:for='{{item.child}}' wx:for-item='itemThird' wx:key='*this' class='name' bindtap='categoryClick' data-seq='{{itemThird.seq}}' data-name='{{itemThird.name}}'>{{itemThird.name}}</view>
+      </view>
+    </view>
+  </view>
+</block>
+<block wx:else>
+  <view class='first_category'>暂无分类</view>
+</block>

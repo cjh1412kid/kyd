@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="io.nuite.modules.order_platform_app.dao.ShoesDataDao">
+
+  <!-- 可根据自己的需求，是否要使用 -->
+  <resultMap type="io.nuite.modules.order_platform_app.entity.ShoesDataEntity" id="shoesDataMap">
+    <result property="seq" column="Seq"/>
+    <result property="shoesSeq" column="Shoes_Seq"/>
+    <result property="colorSeq" column="Color_Seq"/>
+    <result property="sizeSeq" column="Size_Seq"/>
+    <result property="num" column="Num"/>
+    <result property="stockDate" column="StockDate"/>
+    <result property="stock" column="Stock"/>
+    <result property="remark" column="Remark"/>
+    <result property="del" column="Del"/>
+  </resultMap>
+
+
+  <!-- 修改库存 -->
+  <update id="changeShoesDataStock">
+	    UPDATE
+			YHSROrderPlatform.dbo.YHSR_OP_ShoesData
+		SET
+			Stock = (Stock + #{changNum})
+		WHERE
+			Seq = #{shoesDataSeq};
+	</update>
+
+
+  <select id="queryDataAndColorName" resultType="io.nuite.modules.order_platform_app.entity.ShoesDataEntity">
+		SELECT
+			A.*,
+			B.Name AS colorName,
+			B.Code AS code,
+			C.SizeCode AS sizeCode,
+			C.SizeName AS sizeName
+		FROM
+			YHSROrderPlatform.dbo.YHSR_OP_ShoesData A
+		LEFT JOIN YHSmartRetail.dbo.YHSR_Goods_Color B ON A.Color_Seq = B.Seq
+		LEFT JOIN YHSmartRetail.dbo.YHSR_Goods_Size C ON A.Size_Seq = C.Seq
+		WHERE
+			A.Shoes_Seq = #{goodsSeq} AND A.Del = 0
+	</select>
+
+  <select id="selectByGoodsseqAndColorseqAndSizeseq" resultMap="shoesDataMap">
+		SELECT *
+ 	  FROM [YHSROrderPlatform].[dbo].[YHSR_OP_ShoesData]
+ 	  WHERE Shoes_Seq=#{goodsSeq} and Color_Seq=#{colorSeq} and Size_Seq=#{sizeSeq}
+	</select>
+  <select id="selectByShoeSeq" resultType="java.lang.Integer">
+		SELECT [Seq]
+    FROM [YHSROrderPlatform].[dbo].[YHSR_OP_ShoesData]
+    WHERE  Shoes_Seq=#{shoeSeq} and Del=0
+	</select>
+  <select id="getShoesSeqsByShoesDataSeqs" resultType="java.lang.Integer">
+    SELECT DISTINCT
+    [Shoes_Seq]
+    FROM [YHSROrderPlatform].[dbo].[YHSR_OP_ShoesData]
+    WHERE Del=0 and Seq in
+    <foreach collection="list" item="seq" open="(" close=")" separator=",">
+      #{seq}
+    </foreach>
+  </select>
+  <!--根据鞋子序号获取鞋子数据， erp接口用-->
+  <select id="getShoeDataByShoeSeq" resultType="io.nuite.modules.system.erp.entity.GoodsStock">
+    SELECT
+       c.Code colorCode
+      ,c.Name colorName
+      ,s.SizeCode sizeCode
+      ,s.SizeName SizeName
+		FROM (SELECT *
+    FROM [YHSROrderPlatform].[dbo].[YHSR_OP_ShoesData]
+    WHERE  Shoes_Seq=#{shoeSeq} and Del=0) d
+		join [YHSmartRetail].[dbo].[YHSR_Goods_Color] c
+		on d.Color_Seq = c.Seq
+		join [YHSmartRetail].[dbo].[YHSR_Goods_Size] s
+		on d.Size_Seq = s.Seq
+	</select>
+
+  <update id="deleteByShoesSeq">
+		UPDATE [YHSROrderPlatform].[dbo].YHSR_OP_ShoesData SET
+        Del = 1 WHERE Shoes_Seq = #{seq}
+	</update>
+</mapper>

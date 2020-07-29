@@ -1,0 +1,42 @@
+spring:
+    datasource:
+        type:                                                com.alibaba.druid.pool.DruidDataSource
+        driverClassName:                                     com.microsoft.sqlserver.jdbc.SQLServerDriver
+        druid:
+            default:
+                url:                                         jdbc:sqlserver://192.168.2.146:1433;DatabaseName=ESmart
+                username:                                    sa
+                password:                                    123456
+            qiangren:
+                url:                                         jdbc:sqlserver://171.8.71.132:2081;DatabaseName=BSERP
+                username:                                    qrsa
+                password:                                    zz3515qr
+            yiting:
+                url:                                         jdbc:sqlserver://122.228.130.42:1800;DatabaseName=bserp3cs
+                username:                                    yunli
+                password:                                    YT*()890yl
+            initial-size:                                    10
+            max-active:                                      100
+            min-idle:                                        10
+            max-wait:                                        60000
+            pool-prepared-statements:                        true
+            max-pool-prepared-statement-per-connection-size: 20
+            time-between-eviction-runs-millis:               60000
+            min-evictable-idle-time-millis:                  300000
+            validation-query:                                SELECT 1 FROM DUAL
+            test-while-idle:                                 true
+            test-on-borrow:                                  false
+            test-on-return:                                  false
+            stat-view-servlet:
+                enabled:                                     true
+                url-pattern:                                 /druid/*
+                #login-username:                             admin
+                #login-password:                             admin
+            filter:
+                stat:
+                    log-slow-sql:                            true
+                    slow-sql-millis:                         1000
+                    merge-sql:                               true
+                wall:
+                    config:
+                        multi-statement-allow:               true

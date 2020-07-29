@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>订货会管理</title>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
+  <link rel="stylesheet" href="../../../css/bootstrap.min.css">
+  <link rel="stylesheet" href="../../../css/font-awesome.min.css">
+  <link rel="stylesheet" href="../../../plugins/jqgrid/ui.jqgrid-bootstrap.css">
+  <link rel="stylesheet" href="../../../plugins/ztree/css/metroStyle/metroStyle.css">
+  <link rel="stylesheet" href="../../../plugins/select2/select2.min.css">
+  <link rel="stylesheet" href="../../../plugins/daterangepicker/daterangepicker.css">
+  <link rel="stylesheet" href="../../../css/main.css">
+
+  <style>
+  a{text-decoration:none} 
+  	#show{
+  		background-color: black;
+  	}
+  	#left{
+  	}
+	#scan{
+
+	text-align: center;
+	border-radius: 6px;
+	width:216px;
+	height:62px;
+	font-size:44px;
+	font-family:Arial-Black;
+	font-weight:900;
+	color:rgba(255,255,255,0.7);
+	line-height:62px;
+	position: absolute;
+	top:720px;
+	left: 25px;
+	}
+	#meetingName{
+	width:124px;
+	height:367px;
+	line-height:66px;
+	font-weight:600;
+	font-family:PingFangSC-Semibold;
+	color: :rgba(255,255,255,0.7);
+	text-align: center;
+	font-size: 47px;
+	border-radius: 5px;
+	position: absolute;
+	top:15px;
+	left: 22px;
+	}
+	#meetingName .dropdown{
+		letter-spacing: 16px;
+		 height: 367px;
+    	line-height: 70px;
+	}
+	#meetingName a{
+		color: rgba(255,255,255,0.7);
+	}
+	#meetingName ul li a{
+		color:black;
+		letter-spacing: initial;
+	}
+	#qRcode{
+		margin-top: -40px;
+		margin-left: 10px;
+	}
+	#buyCount{
+	font-size: 22px;
+	font-weight: bold;
+	position: absolute;
+	top:793px;
+	left: 27px;
+	color: #7d7b7b;
+	}
+	.chartmain {
+		  	width:1540px;
+		   height: 800px;
+		   
+	}
+	#myCarousel{
+	    box-shadow:0px 0px 19px -4px #ffffff;
+		  	width:1540px;
+		   height: 860px;
+		   left:362px;
+		   top:22px;
+		   position: absolute; 
+		   	border-radius:10px;
+	}
+	.carousel-inner .active{
+		width:1540px;
+		height: 800px;
+		
+	}
+	#title{
+	position: absolute;
+	top:980px;;
+	left: 24px;
+	font-size: 24px;
+	font-weight: bold;
+	font-family:PingFangSC-Semibold;
+	font-weight:600;
+	width:124px;
+	line-height:42px;
+	height:84px;
+	text-align: center;
+	display: inline-block;
+	color: #7d7b7b;
+	}
+	#code{
+		position: absolute;
+		top:475px;
+		left:25px;
+		height: 216px;
+		width: 242px;
+		border-radius: 10px;
+		background: white;
+	}
+	#times{
+		position: absolute;
+		top: 270px;
+		left: 165px;
+	}
+	#time{
+		color:rgba(255,255,255,0.7);
+		font-size: 30px;
+		font-family:Arial-Black;
+		font-weight:900;
+		text-align: center;
+    	width: 154px;
+    	line-height:37px;
+	}
+	#noData{
+		position: absolute;
+		left:362px;
+		top:22px;
+		width:1540px;
+		height: 850px;
+		text-align: center;
+		line-height: 850px;
+		font-size: 40px;
+		font-weight: bold;
+	 	box-shadow:0px 0px 19px -4px #9d9d9d;
+		border-radius:10px;
+	}
+	
+	.list{
+	display: inline-block;
+	margin-left: 10px;
+	position: absolute;
+	top:900px;
+	left: 172px;
+	}
+	.rank{
+		background: white;
+		margin-left: 30px;
+		border-radius: 10px;
+		display: inline-block;
+		width: 300px;
+	}
+	.rank .img{
+		display: inline-block;
+		width:auto;
+		height: 150px;
+		vertical-align: initial;
+		padding: 10px;
+	}
+	.rank .code{
+		width:80px;
+		height:80px;
+		margin-left: 9px;
+		position: relative;
+		top: -50px;
+	}
+	.rank .goodId{
+		text-align: center;
+		font-size: 15px;
+		position: relative;
+		top: -25px;
+		width: 80px;
+		left: 160px;
+	}
+	.buyNum{
+		text-align: center;
+		font-size: 20px;
+		width: 100%;
+		margin-left: 20px;
+		color: #7d7b7b;
+	}
+	.code{
+	display: inline-block;
+	width: 75px;
+	}
+	.carousel-indicators li{
+		background-color:#ECECEC;
+		width: 16px;
+		height: 16px;
+		margin-left: 10px;
+	}
+	.carousel-indicators .active{
+		background-color: #F5A623;
+		width: 16px;
+	   height: 16px;
+	   	margin-left: 10px;
+	}
+	.pie{
+		margin-left: 900px;
+		margin-top: -800px;
+	}
+  </style>
+</head>
+<body >
+<div id="show">
+<div id="left">
+	<div id="meeting">
+		<div id="meetingName">
+				<div class="dropdown" style="z-index: 100">
+					<a role="button" data-toggle="dropdown" class="dropdown">{{selectPeriodName
+						|| '订货会选择'}} 
+					</a>
+					<ul class="dropdown-menu multi-level" role="menu"
+						aria-labelledby="dropdownMenu">
+						<li class="dropdown-submenu"><a tabindex="-1"
+							@click="periodSelect(-1)">所有订货会</a></li>
+						<li class="dropdown-submenu" v-for="(values,key) in meetings">
+							<a tabindex="-1">{{key}}</a>
+							<ul class="dropdown-menu">
+								<li v-for="item in values"><a tabindex="-1"
+									@click="periodSelect(item)">{{item.name}}</a></li>
+							</ul>
+						</li>
+					</ul>
+				</div>
+			</div>
+		<!--<img  src="../../../media/ytgz.png" style="width: 315px;height: 404px;position: absolute;left:33px;top:15px;" @click="requestFullScreen">-->
+	<div id="times">
+	<div id="time">{{startTime}}</div>
+	<div id="time">至</div>
+	<div id="time">{{endTime}}</div>
+	</div>
+	</div>
+	<div id="qRcode">
+	<div id="scan">
+		扫码进场
+	</div>
+	<div id=code>
+	<div id="qrcode" style="padding:10px;"></div>
+	</div>
+	</div>
+	<!-- <div id="buyCount">当前订货量：<label style="font-size: 42px">{{buyCount}}</label></div> -->
+</div>
+
+<div id="middle">
+	<div >
+		<div id="myCarousel" class="carousel slide">
+		<!-- 轮播（Carousel）指标 -->
+		<ol class="carousel-indicators">
+			<li data-target="#myCarousel" data-slide-to="0" class="active"></li>
+			<li data-target="#myCarousel" data-slide-to="1"></li>
+			<!-- <li data-target="#myCarousel" data-slide-to="2"></li> -->
+		</ol>   
+		<!-- 轮播（Carousel）项目 -->
+		<div class="carousel-inner">
+			<div class="item active">
+				<div  id="chartmain3" class="chartmain"  ></div><!-- :style="{display:noData?'none':'inline'}" -->
+				 <div id="pie3" class="pie" style="width: 600px;height:400px;"></div>
+			</div>
+			<div class="item">
+				<div  id="chartmain1" class="chartmain"></div>
+				<div id="pie1" class="pie" style="width: 600px;height:400px;"></div> 
+			</div>
+			<!-- <div class="item">
+				<div  id="chartmain2" class="chartmain"></div>
+				<div id="pie2" class="pie" style="width: 1540px;height:800px;"></div>
+			</div> -->
+		</div>
+	</div> 
+	</div>
+	
+	<!-- <div :style="{display:noData?'inline':'none'}" id="noData">暂无数据</div> -->
+</div>
+<div id="footer">
+	<div id="title">订货量排行</div>
+	<div class="list"  class="carousel slide">
+
+		<!-- 轮播（Carousel）项目 -->
+		<div class="carousel-inner">
+			
+		</div>
+</div>
+</div>
+</div>
+</body>
+
+<script src="../../../libs/jquery.min.js"></script>
+<script src="../../../plugins/layer/layer.js"></script>
+<script src="../../../libs/bootstrap.min.js"></script>
+<script src="../../../libs/vue.min.js"></script>
+<script src="../../../plugins/daterangepicker/moment.min.js"></script>
+<script src="../../../plugins/daterangepicker/daterangepicker.js"></script>
+<script src="../../../plugins/datepicker/bootstrap-datepicker.js"></script>
+<script
+	src="../../../plugins/datepicker/locales/bootstrap-datepicker.zh-CN.js"></script>
+<script src="../../../js/common.js"></script>
+<script src="../../../plugins/echart/echarts.js"></script>
+<script src="../../../plugins/qrcode/qrcode.js"></script>
+<script src="../../../plugins/qrcode/qrcode.min.js"></script>
+<script src="../../../js/modules/system/order_meeting/meeting_screen_1.js"></script>
+
+<script type="text/javascript">
+//指定图标的配置和数据
+
+</script>
+</html>

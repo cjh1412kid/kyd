@@ -1,0 +1,71 @@
+.goods_detail_content {
+  flex: 1;
+  background-color: #fff;
+  height: 200rpx;
+  display: flex;
+}
+
+.goods_detail_content .image_content {
+  width: 175rpx;
+  margin: 5rpx 17rpx;
+}
+
+.goods_detail_content .image_content image {
+  width: 100%;
+  height: 100%;
+}
+
+.goods_detail_content .message_content {
+  flex: 1;
+  margin: 5rpx 20rpx;
+}
+
+.goods_detail_content .message_content .description,
+.goods_detail_content .message_content .color_size {
+  height: 37rpx;
+  line-height: 37rpx;
+  font-size: 28rpx;
+}
+
+.goods_detail_content .message_content .description {
+  color: #505050;
+}
+
+.goods_detail_content .message_content .color_size {
+  color: #999;
+  margin-top: 30rpx;
+}
+
+.goods_detail_content .message_content .price_count {
+  display: flex;
+  margin-top: 40rpx;
+  height: 46rpx;
+  line-height: 46rpx;
+}
+
+.goods_detail_content .message_content .price_count .prices,
+.goods_detail_content .message_content .price_count .count {
+  height: 100%;
+}
+
+.goods_detail_content .message_content .price_count .prices {
+  font-size: 33rpx;
+  color: #f44;
+  flex: 1;
+}
+
+.goods_detail_content .message_content .price_count .count {
+  width: 150rpx;
+}
+
+.goods_detail_content .message_content .price_count .count text {
+  margin: auto 20rpx;
+  font-size: 33rpx;
+  color: #444;
+}
+
+.goods_detail_content .message_content .price_count .count .icon {
+  width: 50rpx;
+  font-size: 30rpx;
+  color: #999;
+}

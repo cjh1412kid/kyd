@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="io.nuite.modules.order_platform_app.dao.ShareRecordDao">
+    <insert id="insertShareRecord" parameterType="java.util.List">
+        INSERT INTO
+        [YHSROrderPlatform].[dbo].[YHSR_OP_ShareRecord](User_Seq,MeetingGoods_Seq,InputTime)
+        VALUES
+        <foreach collection="list" index="index" item="item" open="" close="" separator=",">
+            (#{item.userSeq},#{item.meetingGoodsSeq},#{item.inputTime})
+        </foreach>
+    </insert>
+
+    <!--<select id="selectShareRecord" parameterType="java.util.Map" resultType="io.nuite.modules.order_platform_app.entity.MeetingGoodsEntity">
+        SELECT
+        s.*,
+        CASE s.Is_Decode WHEN 0 THEN 0 ELSE ISNULL(AVG(sv.Score),0) END AS score,
+        CASE s.Is_Decode WHEN 0 THEN 0 ELSE ISNULL(SUM(sd.Stock),0) END AS stock,
+        ISNULL(gs.GoodName,'') AS goodName
+        FROM (SELECT
+        mg.Seq AS meetingGoodsSeq,
+        mg.Price,
+        mg.GoodID,
+        mg.Img,
+        mg.Is_Decode,
+        SUM(mopt.BuyCount) AS saleNum
+        FROM
+        [YHSmartRetail].[dbo].[YHSR_Goods_Shoes] gs
+        [YHSROrderPlatform].[dbo].[YHSR_OP_MeetingGoods] mg
+        LEFT JOIN
+        [YHSROrderPlatform].[dbo].[YHSR_OP_MeetingOrderProduct] mopt
+        ON mg.Seq = mopt.MeetingGoods_Seq
+        WHERE mg.Del = 0 AND EXISTS
+        (SELECT Seq FROM [YHSROrderPlatform].[dbo].[YHSR_OP_ShareRecord] sr WHERE sr.MeetingGoods_Seq = mg.Seq AND sr.User_Seq = #{userSeq})
+        GROUP BY mg.Seq,mg.Price,mg.GoodID,mg.Img,mg.Is_Decode
+        ) s
+        LEFT JOIN
+        [YHSmartRetail].[dbo].[YHSR_Goods_Shoes] gs
+        ON gs.MeetingGoods_Seq = s.meetingGoodsSeq
+        LEFT JOIN
+        [YHSROrderPlatform].[dbo].[YHSR_OP_ShoesData] sd
+        ON sd.Shoes_Seq = gs.Seq
+        LEFT JOIN
+        [YHSROrderPlatform].[dbo].[YHSR_OP_ShoesValuate] sv
+        ON sv.Shoes_Seq = gs.Seq
+        <where>
+            <if test="type == 1">
+                AND si.IsHotSale = 1
+            </if>
+            <if test="type == 2">
+                AND si.IsNewest = 1
+            </if>
+        </where>
+        GROUP BY s.Price,s.GoodID,s.Img,s.Is_Decode,gs.GoodName,s.meetingGoodsSeq,s.saleNum
+    </select>-->
+
+    <select id="selectShareRecord" parameterType="java.util.Map" resultType="io.nuite.modules.order_platform_app.entity.MeetingGoodsEntity">
+        SELECT
+        A.Seq, A.Img1, A.GoodName, A.GoodID, A.Introduce, A.InputTime,
+        B.OemPrice, B.WholesalerPrice, B.StorePrice, B.SalePrice, E.Score, C.stock, (C.num - C.stock) AS SalesNum,
+        ISNULL(mg.Seq,0) AS meetingGoodsSeq,
+        ISNULL(mg.Price,0) AS price,
+        ISNULL(mg.Is_Decode,0) AS isDecode,
+        ISNULL(mop.BuyCount,0) AS saleNum,
+        ISNULL(mg.Meeting_Seq,0) AS meetingSeq
+        FROM
+        YHSROrderPlatform.dbo.YHSR_OP_ShoesInfo B
+        LEFT JOIN YHSmartRetail.dbo.YHSR_Goods_Shoes A ON B.Shoes_Seq = A.Seq
+        LEFT JOIN (SELECT Shoes_Seq, SUM (Num) AS num, SUM (Stock) AS stock FROM YHSROrderPlatform.dbo.YHSR_OP_ShoesData WHERE Del = 0 GROUP BY Shoes_Seq ) AS C ON A.Seq = C.Shoes_Seq
+        LEFT JOIN (SELECT B.Shoes_Seq, SUM (A.BuyCount) AS BuyCount FROM YHSROrderPlatform.dbo.YHSR_OP_ShoppingCart A LEFT JOIN YHSROrderPlatform.dbo.YHSR_OP_ShoesData B ON A.ShoesData_Seq = B.Seq WHERE A.Del = 0 GROUP BY B.Shoes_Seq) AS D ON A.Seq = D.Shoes_Seq
+        LEFT JOIN (SELECT Shoes_Seq, CONVERT(DECIMAL(5,1), AVG(Score)) AS Score FROM YHSROrderPlatform.dbo.YHSR_OP_ShoesValuate WHERE Del = 0 AND Score != 0 GROUP BY Shoes_Seq) AS E ON A.Seq = E.Shoes_Seq
+        LEFT JOIN YHSROrderPlatform.dbo.YHSR_OP_ShoesCompanyType F ON A.Seq = F.Shoes_Seq
+        LEFT JOIN [YHSROrderPlatform].[dbo].[YHSR_OP_MeetingGoods] mg ON mg.Seq = A.MeetingGoods_Seq
+        LEFT JOIN
+        (SELECT MeetingGoods_Seq,SUM(BuyCount) AS BuyCount FROM [YHSROrderPlatform].[dbo].[YHSR_OP_MeetingOrderProduct] mop
+        LEFT JOIN [YHSROrderPlatform].[dbo].[YHSR_OP_MeetingOrder] mo ON mo.Seq = mop.MeetingOrder_Seq
+        WHERE mop.Del = 0
+        <if test="status != null">
+            AND mo.User_Seq = #{userSeq}
+        </if>
+        GROUP BY MeetingGoods_Seq) mop ON mg.Seq = mop.MeetingGoods_Seq
+        LEFT JOIN [YHSROrderPlatform].[dbo].[YHSR_OP_Meeting] m ON m.Seq = mg.Meeting_Seq
+        LEFT JOIN (SELECT MeetingGoods_Seq FROM [YHSROrderPlatform].[dbo].[YHSR_OP_ShareRecord] GROUP BY MeetingGoods_Seq) sr ON sr.MeetingGoods_Seq = mg.Seq
+        WHERE
+        A.Del = 0 AND B.Del = 0 AND F.Del = 0 AND
+        B.OnSale = 1 AND (B.OffSaleTime IS NULL OR DateDiff(dd, GETDATE(), B.OffSaleTime) &gt;= 0) AND
+        A.Period_Seq IN (${periodSeq}) AND F.CompanyType_Seq = #{companyTypeSeq}
+        <if test="meetingSeq != null">
+            AND mg.Meeting_Seq = #{meetingSeq}
+        </if>
+        <if test="year != null and year != ''">
+            AND m.year = #{year}
+        </if>
+        <if test="type == 1">
+            AND B.IsHotSale = 1
+        </if>
+        <if test="type == 2">
+            AND B.IsNewest = 1
+        </if>
+    </select>
+</mapper>

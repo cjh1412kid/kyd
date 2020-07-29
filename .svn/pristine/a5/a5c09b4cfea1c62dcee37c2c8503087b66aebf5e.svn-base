@@ -1,0 +1,176 @@
+
+.placeholder{
+    text-align: center;
+    height: 71rpx;
+    line-height: 71rpx;
+    color: rgba(102,102,102,1);
+    font-size:32rpx;
+    font-family:PingFangSC-Regular;
+    font-weight:400; 
+}
+.typeColor{
+  color:rgba(255,111,113,1);
+}
+.line{
+ width:12rpx;
+height:33rpx;
+background:rgba(255,111,113,1);
+float: left;
+top:22rpx;
+position:relative;
+
+}
+.page{
+  margin-left: 20rpx;
+}
+.name{
+  height:33rpx;
+  font-size:32rpx;
+font-family:PingFangSC-Regular;
+font-weight:400;
+color:rgba(28,28,28,1);
+line-height: 33rpx;
+position: relative; 
+left: 12rpx;
+top:22rpx;
+}
+page{
+  background-color: #fff;
+}
+.weui-flex{
+  height: 71rpx;
+  border-bottom: 1px solid rgba(232,232,232,1);
+}
+.tap{
+  font-size:20rpx;
+font-family:PingFangSC-Regular;
+font-weight:400;
+color:rgba(255,111,113,1);
+margin-left: 7rpx;
+letter-spacing:4rpx;
+}
+.contain1 {
+width:375rpx;
+position:absolute;
+top:190rpx;
+bottom:0;
+left:0;
+right:0;
+height:200rpx;
+}
+.contain2{
+  width:660rpx;
+position:absolute;
+top:470rpx;
+bottom:0;
+left:100rpx;
+right:0;
+height:400rpx;
+}
+.contain4{
+  width:660rpx;
+position:absolute;
+top:930rpx;
+bottom:0;
+left:100rpx;
+right:0;
+height:400rpx;
+}
+.contain3{
+margin-top: 66rpx;
+margin-left: -56rpx;
+right:0;
+display:flex;
+flex-direction:column;
+align-items:center;
+justify-content:space-between;
+box-sizing:border-box;
+width: 650rpx;
+}
+
+#mychart-dom-pie1{
+  width: 70%;
+  height: 100%;
+}
+#mychart-dom-pie2{
+   width: 100%;
+  height: 100%;
+ 
+}
+#mychart-dom-pie4{
+   width: 100%;
+  height: 100%;
+
+}
+.total{
+  position: absolute;
+  top:140rpx;
+  left: 375rpx;
+  font-size: 24rpx;
+}
+.radius1{
+  width:20rpx;
+height:20rpx;
+border-radius: 50%;
+float: left;
+position: relative;
+top:8rpx;
+}
+.radius2{
+  width:24px;
+height:24px;
+border-radius: 50%;
+float: left;
+position: relative;
+top:8rpx;
+}
+.cate1{
+  margin-left: 10rpx;
+}
+.pie1{
+  height: 300rpx;
+}
+.pie2{
+  height: 460rpx;
+}
+.pie3{
+  height: 460rpx;
+}
+.ec-canvas{
+  width: 100%;
+}
+.good{
+  width:75rpx;
+height:28rpx;
+font-size:24rpx;
+font-family:PingFangSC-Regular;
+font-weight:400;
+color:rgba(84,84,84,1);
+line-height:28rpx;
+position: absolute;
+top: 1388rpx;
+left: 72rpx;
+}
+.goto{
+font-size: 20rpx;
+height: 98rpx;
+}
+.gotos{
+  position: absolute;
+  top: 1460rpx;
+  left: 620rpx;
+}
+.womanOther{
+position:absolute;
+left:340rpx;
+font-size:22rpx;
+top:400rpx;
+width:300rpx;
+}
+.manOther{
+position:absolute;
+left:340rpx;
+font-size:22rpx;
+top:900rpx;
+width:300rpx;
+}

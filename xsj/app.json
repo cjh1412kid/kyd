@@ -1,0 +1,56 @@
+{
+  "pages": [
+    "pages/home/home",
+    "pages/rankList/rankList",
+    "pages/authorize/authorize",
+    "pages/cart/index/cart",
+    "pages/myself/index/myself",
+    "pages/goods/detail/detail",
+    "pages/order/list/list",
+    "pages/order/detail/detail",
+    "pages/order/upload/upload",
+    "pages/goods/search/search",
+    "pages/goods/category/category",
+    "pages/goods/list/list",
+    "pages/noUse/noUse",
+    "pages/myself/address/list/list",
+    "pages/myself/address/edit/edit"
+  ],
+  "window": {
+    "backgroundColor": "#EAEFF3",
+    "navigationBarBackgroundColor": "#FFF",
+    "navigationBarTitleText": "鞋世界",
+    "navigationBarTextStyle": "black"
+  },
+  "tabBar": {
+    "backgroundColor": "#FFF",
+    "color": "#666",
+    "selectedColor": "#E93B3D",
+    "list": [
+      {
+        "pagePath": "pages/home/home",
+        "iconPath": "assets/images/tabs/home.png",
+        "selectedIconPath": "assets/images/tabs/home_select.png",
+        "text": "首页"
+      },
+      {
+        "pagePath": "pages/cart/index/cart",
+        "iconPath": "assets/images/tabs/cart.png",
+        "selectedIconPath": "assets/images/tabs/cart_select.png",
+        "text": "购物车"
+      },
+      {
+        "pagePath": "pages/myself/index/myself",
+        "iconPath": "assets/images/tabs/myself.png",
+        "selectedIconPath": "assets/images/tabs/myself_select.png",
+        "text": "我的"
+      }
+    ]
+  },
+  "networkTimeout": {
+    "request": 10000,
+    "downloadFile": 10000
+  },
+  "debug": true,
+  "sitemapLocation": "sitemap.json"
+}

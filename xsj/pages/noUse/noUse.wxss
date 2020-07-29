@@ -1,0 +1,9 @@
+/* pages/noUse/noUse.wxss */
+.img{
+  text-align: center;
+  width: 640rpx;
+  height: 480rpx;
+  position: absolute;
+  left: 55rpx;
+  top:290rpx;
+}

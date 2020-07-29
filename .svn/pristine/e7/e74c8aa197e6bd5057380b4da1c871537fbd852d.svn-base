@@ -1,0 +1,608 @@
+$(function () {
+
+  //初始化表格
+
+  $("#jqGrid").jqGrid({
+    url: baseURL + 'system/meetingorder/list',
+    datatype: "json",
+    mtype: "POST",
+    postData: {},
+    colModel: [
+      {label: '序号', name: 'seq', width: 60, hidden: true, align: "center"},
+      {label: '订单号', name: 'orderNum', width: 100, align: "center"},
+      {label: '订货量', name: 'total', width: 60, align: "center"},
+      {label: '订货会', name: 'meetingName', width: 150, align: "center"},
+      {label: '订货方', name: 'username', width: 80, align: "center"},
+      {label: '收件人', name: 'receiverName', width: 80, align: "center"},
+      {label: '电话', name: 'telephone', width: 100, align: "center"},
+      {label: '地址', name: 'address', width: 100, align: "center"},
+      {label: '创建时间', name: 'inputTime', width: 100, align: "center"},
+      {
+        label: '备注', name: 'message', width: 200, align: "center", formatter: function (cellvalue, options, rowObject) {
+          return '<span style="color: red">' + cellvalue + '</span>'
+        }
+      },
+      {
+        label: '操作', width: 80, align: "center",
+        formatter: function (cellvalue, options, rowObject) {
+          return '<button class="operation-btn-security" onclick="lineEdit(' + rowObject.seq + ')">编辑</button>';
+        }
+      }
+    ],
+    height: 'auto',
+    rowNum: 10,
+    rowList: [10, 30, 50],
+    rownumbers: true,
+    rownumWidth: 30,
+    autowidth: true,
+    multiselect: false,
+    viewrecords: true,
+    pager: "#jqGridPager",
+    jsonReader: {
+      root: "page.list",
+      page: "page.currPage",
+      total: "page.totalPage",
+      records: "page.totalCount"
+    },
+    prmNames: {
+      page: "page",
+      rows: "limit",
+      order: "order"
+    },
+      sortable:true,
+    gridComplete: function () {
+      // 隐藏grid底部滚动条
+      $("#jqGrid").closest(".ui-jqgrid-bdiv").css({
+        "overflow-x": "hidden"
+      });
+    },
+      onSortCol : function (index,iCol,sortorder) {
+        vm.sortColumn = index;
+        vm.sortType = sortorder;
+        reloadGrid()
+      },
+
+    /* subGrid: true,// 开启子表格支持
+     // 子表格的id；当子表格展开的时候，在主表格中会创建一个div元素用来容纳子表格，subgrid_id就是这个div的id
+     subGridRowExpanded: function (subgrid_id, row_id) {// 子表格容器的id和需要展开子表格的行id
+       console.log("打开子表格")
+       var before = $("#jqGrid").jqGrid('getRowData', row_id);
+       bindSubGrid(subgrid_id, before.seq);
+     }*/
+  });
+
+
+})
+
+//一级子表格，所有订单货号列表
+function bindSubGrid(subgrid_id, seq) {
+  var subgrid_table_id = subgrid_id + "_t"; // (3)根据subgrid_id定义对应的子表格的table的id
+  var subgrid_pager_id = subgrid_id + "_pgr"; // (4)根据subgrid_id定义对应的子表格的pager的id
+  // (5)动态添加子报表的table和pager
+  $("#" + subgrid_id).html($("#product_table").clone())
+
+}
+
+
+/**
+ * 重载表格，刷新表格数据
+ */
+function reloadGrid() {
+  $("#jqGrid").setGridParam({
+    datatype: 'json',
+    postData: {
+      year: vm.selectYear,
+      meetingSeq: vm.selectMeetingSeq,
+      meetingUserSeq: vm.selectMeetingUserSeq,
+      sortColumn: vm.sortColumn,
+      sortType: vm.sortType
+    },
+    page: 1,
+  }).trigger('reloadGrid');
+}
+
+
+/**
+ * 编辑表格行
+ */
+function lineEdit(seq) {
+  if (!seq) {
+    layer.alert("功能异常：未获取到序号，请刷新页面后重试")
+    return;
+  }
+
+  //订货会单号
+  vm.meetingOrderSeq = seq;
+    var param = "";
+  if(vm.detailKeywords == "") {
+      param = "''";
+  }else {
+    param = vm.detailKeywords;
+  }
+  $.get(baseURL + 'system/meetingorder/product/' + seq + '/' + param, function (data) {
+    if (data.code == 0) {
+      // console.log(data.result)
+      vm.products = data.result;
+      vm.showList = false;
+    } else {
+      layer.alert("信息获取失败：" + data.msg)
+    }
+  })
+}
+
+var vm = new Vue({
+  el: '#rrapp',
+  data: {
+      agreementSeq:'',
+      agreementContent:'',
+    /*统计类型 1按定货方统计 2按货号统计 3按区域统计*/
+    tableType: 1,
+    showList: true,
+    title: '修改订货会订单货品',
+    /*订单关联货品*/
+    products: [
+      /* {
+         goodID: 'A1111',
+         details: [
+           {color: '米白', size: {34: 12, 35: 13, 36: 14}, cancel: true},
+           {color: '黑色', size: {34: 18, 35: 17, 36: 14}, cancel: false}
+         ],
+         title: [34, 35, 36]
+       }*/
+    ],
+    /*按货品统计*/
+    goodsOrder: [],
+    /*按区域统计*/
+    areaOrder: [],
+    /*编辑操作记录订单号*/
+    meetingOrderSeq: null,
+
+    /*查询条件*/
+    yearList: [],
+    meetingList: [],
+    meetingUserList: [],
+    totalMoney:"",
+    totalOrderNum:"",
+    cancelOrderNum:"",
+    cancelGoodNum:"",
+    totalNum:"",
+    totalConfirmNum:"",
+    customNum:"",
+      /*选择的年份*/
+    selectYear: -1,
+    /*选择的订货会*/
+    selectMeetingSeq: -1,
+    /*选择的定货方*/
+    selectMeetingUserSeq: -1,
+    keywords:"",
+    areaList:[],
+    selectAreaSeq:-1,
+    detailKeywords:"",
+    cancelList:[{value:0,name:"未取消"},{value:1,name:"已取消"}],
+    selectCancel:-1,
+    cancelNum:"",
+    confirmGoodNum:"",
+    cancelSkuNum:"",
+    confirmSkuNum:"",
+      sortColumn:"",
+      sortType:""
+  },
+  methods: {
+    changeTableType: function (val) {
+      /* if (val == this.tableType) {
+         return;
+       }
+ */
+
+      if (val == 1) {
+        //1按定货方查询
+        reloadGrid()
+      } else {
+        if (this.selectMeetingSeq == -1) {
+          // layer.alert("请选选择年份和订货会", {icon: 0})
+          // return;
+          //未选择订货会情况下会自动选择第一个订货会并查询
+          if (this.yearList && this.yearList.length > 0) {
+              this.selectYear = this.yearList[0];
+
+            // console.log("根据年份查询订货会：", this.selectYear)
+            //加载年份关联的订货会选择项
+            $.get(baseURL + 'system/meetingorder/select/Meetings/' + this.selectYear, function (data) {
+              if (data.code == 0) {
+                vm.meetingList = data.result;
+                // console.log("订货会列表： ", vm.meetingList)
+                if (vm.meetingList && vm.meetingList.length > 0) {
+                  vm.selectMeetingSeq = vm.meetingList[0].seq;
+                }
+                if (val == 2) {
+                  //2按货号统计
+                  vm.reloadGoodsGrid();
+                } else if (val == 3) {
+                  //3按区域统计
+                  vm.reloadAreaGrid();
+                }
+              } else {
+                layer.alert("订货会查询失败：" + data.msg)
+              }
+            })
+          } else {
+            layer.alert("无数据");
+          }
+        } else {
+          if (val == 2) {
+            //2按货号统计
+            this.reloadGoodsGrid();
+
+          } else if (val == 3) {
+            //3按区域统计
+            this.reloadAreaGrid();
+          }
+        }
+
+      }
+
+      this.keywords = "";
+      this.selectAreaSeq = -1;
+      this.tableType = val;
+      this.orderTotal();
+    },
+    /*按区域统计*/
+    reloadAreaGrid: function () {
+    	console.log( this.selectMeetingSeq)
+      $.get(baseURL + 'system/meetingorder/list/byArea/' + this.selectMeetingSeq + "/" + this.selectAreaSeq, function (data) {
+        if (data.code == 0) {
+          vm.areaOrder = data.result;
+          // console.log("按区域统计结果：",vm.areaOrder)
+        } else {
+          layer.msg(data.msg)
+        }
+      })
+    },
+    /*按货号统计*/
+    reloadGoodsGrid: function () {
+    	console.log( this.keywords)
+        var param = "";
+        if(this.keywords == "") {
+            param = "''";
+        }else {
+          param = this.keywords
+        }
+      $.get(baseURL + 'system/meetingorder/list/byGoods/' + this.selectMeetingSeq + "/" + param + "/" + this.selectCancel, function (data) {
+        if (data.code == 0) {
+          vm.goodsOrder = data.result;
+        } else {
+          layer.msg(data.msg)
+        }
+      })
+
+    },
+      detailSearch: function () {
+        lineEdit(vm.meetingOrderSeq);
+      },
+    hideEditPanel: function () {
+      this.showList = true;
+    },
+    /*取消订单操作*/
+    cancelAllProducts: function () {
+
+      $.get(baseURL + 'system/meetingorderproduct/cancelAll/' + this.meetingOrderSeq, function (data) {
+        if (data.code == 0) {
+          layer.msg("操作成功")
+          vm.goBack();
+        } else {
+          layer.alert("操作失败：" + data.msg)
+        }
+      })
+    },
+    
+    //修改某个尺码数量的功能
+    saveAllProducts:function(){
+    	var products=vm.products
+    	var meetingOrderSeq=vm.meetingOrderSeq 
+        $.post(baseURL + 'system/meetingorderproduct/save', {
+        	products:JSON.stringify(products),
+        	meetingOrderSeq:meetingOrderSeq
+          }, function (data) {
+            if (data.code == 0) {
+              layer.msg("操作成功")
+             // vm.goBack();
+            } else {
+              layer.alert("操作失败：" + data.msg)
+            }
+          })
+    	
+    	
+    	
+    },
+    /*返回键*/
+    goBack: function () {
+      this.detailKeywords = "";
+      reloadGrid();
+      this.showList = true;
+      this.orderTotal();
+    },
+    /*恢复货品*/
+    modifyProductCancel: function (goodSeq, colorSeq, isCancel) {
+
+      // console.log("订单号：", this.meetingOrderSeq, " 货号：", goodSeq, " 颜色：", colorSeq, "是否取消：", isCancel)
+
+      $.post(baseURL + 'system/meetingorderproduct/cancel', {
+        meetingOrderSeq: vm.meetingOrderSeq,
+        goodSeq: goodSeq,
+        colorSeq: colorSeq,
+        isCancel: isCancel
+      }, function (data) {
+        if (data.code == 0) {
+          layer.msg("操作成功")
+          lineEdit(vm.meetingOrderSeq);
+        } else {
+          layer.alert("操作失败：" + data.msg)
+        }
+      })
+
+    },
+    /*按货号统计 - 取消货号颜色*/
+    modifyGoodColorCancel: function (goodSeq, colorSeq, isCancel) {
+
+      if (!goodSeq) {
+        layer.msg("操作失败：无法获取到货号序号")
+        return;
+      } else if (!colorSeq) {
+        layer.msg("操作失败：无法获取到颜色序号")
+        return;
+      }
+
+      $.post(baseURL + 'system/meetingorderproduct/cancel/color', {
+        goodSeq: goodSeq,
+        colorSeq: colorSeq,
+        isCancel: isCancel
+      }, function (data) {
+        if (data.code == 0) {
+          layer.msg("操作成功")
+          vm.reloadGoodsGrid();
+          vm.orderTotal();
+        } else {
+          layer.alert("操作失败：" + data.msg)
+        }
+      })
+    },
+    /*按货号统计 - 取消货号*/
+    modifyGoodCancel: function (goodSeq, isCancel) {
+      // console.log("取消货号：goodSeq:", goodSeq)
+      if (!goodSeq) {
+        layer.msg("操作失败：无法获取到货号序号")
+        return;
+      }
+      $.post(baseURL + 'system/meetingorderproduct/cancel/goodID', {
+        goodSeq: goodSeq,
+        isCancel: isCancel
+      }, function (data) {
+        if (data.code == 0) {
+          layer.msg("操作成功")
+          vm.reloadGoodsGrid();
+        } else {
+          layer.alert("操作失败：" + data.msg)
+        }
+      })
+    },
+    loadYearList: function () {
+      $.get(baseURL + 'system/meetingorder/select/years', function (data) {
+        if (data.code == 0) {
+          vm.yearList = data.result;
+        } else {
+          layer.alert("年份查询失败：" + data.msg)
+        }
+      })
+    },
+      loadAreaList: function () {
+          $.get(baseURL + 'system/meetingorder/selectMeetingArea', function (data) {
+              if (data.code == 0) {
+                  vm.areaList = data.result;
+              } else {
+                  layer.alert("区域查询失败：" + data.msg)
+              }
+          })
+      },
+    /*选择年份*/
+    changeYear: function () {
+      // console.log("选择年份：", this.selectYear)
+
+      if (this.selectYear == -1) {
+        this.selectMeetingSeq = -1;
+        this.selectMeetingUserSeq = -1;
+        this.meetingList = [];
+        this.meetingUserList = []
+        return;
+      }
+
+      //加载年份关联的订货会选择项
+      $.get(baseURL + 'system/meetingorder/select/Meetings/' + this.selectYear, function (data) {
+        if (data.code == 0) {
+          vm.meetingList = data.result;
+        } else {
+          layer.alert("订货会查询失败：" + data.msg)
+        }
+      })
+    },
+      //订单汇总
+      orderTotal:function () {
+        var param = "";
+          if(this.keywords == "") {
+            param = "''";
+          }else {
+            param = this.keywords;
+          }
+          $.get(baseURL + 'system/meetingorder/getTotalStatistics/' + this.selectMeetingSeq + '/' + this.selectMeetingUserSeq + '/' + param + '/' + this.selectAreaSeq, function (data) {
+              if (data.code == 0) {
+                  vm.totalMoney = data.result.totalMoney;
+                  vm.totalOrderNum = data.result.totalOrderNum;
+                  vm.cancelOrderNum = data.result.cancelOrderNum;
+                  vm.cancelGoodNum = data.result.cancelGoodNum;
+                  vm.totalNum = data.result.totalNum;
+                  vm.customNum = data.result.customNum;
+                  vm.totalConfirmNum = data.result.totalConfirmNum;
+                  vm.cancelNum = data.result.cancelNum;
+                  vm.confirmGoodNum = data.result.confirmGoodNum;
+                  vm.confirmSkuNum = data.result.confirmSkuNum;
+                  vm.cancelSkuNum = data.result.cancelSkuNum;
+              } else {
+                  layer.alert("订货方查询失败：" + data.msg)
+              }
+          })
+      },
+    /*选择订货会*/
+    changeMeeting: function () {
+      // console.log("选择订货会：", this.selectMeetingSeq)
+
+      if (this.selectMeetingSeq == -1) {
+        this.selectMeetingUserSeq = -1;
+        this.meetingUserList = []
+        return;
+      }
+
+      //加载年份关联的订货会选择项
+      $.get(baseURL + 'system/meetingorder/select/MeetingUsers/' + this.selectMeetingSeq, function (data) {
+        if (data.code == 0) {
+          vm.meetingUserList = data.result;
+        } else {
+          layer.alert("订货方查询失败：" + data.msg)
+        }
+      })
+    },
+    search: function () {
+      // console.log("点击了查询按钮 年份：", this.selectYear, " 订货会：", this.selectMeetingSeq, " 订货方：", this.selectMeetingUserSeq)
+       var val=this.tableType
+    	if (val == 1) {
+            //1按定货方查询
+            reloadGrid()
+          } else if (val == 2) {
+                //2按货号统计
+                this.reloadGoodsGrid();
+
+           } else if (val == 3) {
+                //3按区域统计
+              this.reloadAreaGrid();
+           }
+
+        this.orderTotal();
+    },
+    exportExcel: function () {
+
+      if (this.selectMeetingSeq == -1) {
+        layer.alert("请选选择年份和订货会", {icon: 0})
+        return;
+      }
+
+      var excelForm = document.getElementById('exportOrderExcel');
+      excelForm.token.value = token;
+      excelForm.meetingSeq.value = this.selectMeetingSeq;
+
+      if (this.tableType == 1) {
+        // console.log("下载定货方订货单")
+        excelForm.action = baseURL + 'system/meetingorder/exportCustomOrder';
+        excelForm.meetingUserSeq.value = this.selectMeetingUserSeq;
+      } else if (this.tableType == 2) {
+        // console.log("下载货品订货单")
+        excelForm.action = baseURL + 'system/meetingorder/excel/goods';
+
+      } else if (this.tableType == 3) {
+        // console.log("下载区域订货单")
+        excelForm.action = baseURL + 'system/meetingorder/excel/area';
+      }
+      excelForm.submit();
+    },
+      printExcel:function(){
+          console.log(this.agreementContent)
+          if (this.selectMeetingSeq == -1) {
+              layer.alert("请选选择年份和订货会", {icon: 0})
+              return;
+          }
+          $.get(baseURL + '/system/orderAgreement/getAgreementByUser', function (data) {
+              console.log(data)
+              if (data.code == 0) {
+                  vm.agreementSeq = data.seq;
+                  vm.agreementContent = data.result;
+              }
+          })
+
+        /*	  var excelForm = document.getElementById('exportOrderExcel');
+         excelForm.token.value = token;
+         excelForm.meetingSeq.value = this.selectMeetingSeq;
+         excelForm.action = baseURL + 'system/meetingorder/printOrder';
+         excelForm.meetingUserSeq.value = this.selectMeetingUserSeq;
+         excelForm.submit();*/
+          layer.open({
+              type: 1,
+              offset: '50px',
+              skin: 'layui-layer-molv',
+              title: "订单备注",
+              area: ['300px', '280px'],
+              shade: 0,
+              shadeClose: false,
+              content: jQuery("#menuLayer"),
+              btn: ['确定', '取消'],
+              btn1: function (index) {
+                  console.log(vm.agreementSeq)
+                  $.post(baseURL + "system/orderAgreement/save",
+                      {
+                          seq:vm.agreementSeq ,
+                          agreementContent:vm.agreementContent,
+                          name:'',
+                      },
+                      function (data, status) {
+                          if (data.code == 0) {
+                              layer.close(index);
+                              var formData = new FormData();
+                              formData.append("token", token);
+                              formData.append("meetingSeq", vm.selectMeetingSeq);
+                              formData.append("meetingUserSeq",  vm.selectMeetingUserSeq);
+                              $.ajax({
+                                  type: "POST",
+                                  url: baseURL + 'system/meetingorder/printOrder',
+                                  contentType: false,
+                                  processData: false,
+                                  enctype: 'multipart/form-data',
+                                  data: formData,
+                                  cache: false,
+                                  success: function (r) {
+                                      var printWin=window.open("打印窗口", "_blank");
+                                      printWin.document.write(r.msg);
+                                      printWin.document.close();
+                                      printWin.print();
+                                      printWin.close();
+
+                                  },
+                                  error: function () {
+
+                                      alert('服务器出错啦');
+                                  }
+                              });
+                          } else {
+                              alert("订单备注创建失败")
+                          }
+                      })
+
+              }
+          });
+
+
+
+      },
+    exportDistributeBoxExcel: function () {
+    	if (this.selectMeetingSeq == -1) {
+            layer.alert("请选选择年份和订货会", {icon: 0})
+            return;
+          }
+    	  var excelForm = document.getElementById('exportOrderExcel');
+          excelForm.token.value = token;
+          excelForm.meetingSeq.value = this.selectMeetingSeq;
+          excelForm.action = baseURL + 'system/meetingorder/excel/distributeBox';
+          excelForm.submit();
+    },
+  },
+  created: function () {
+    this.loadYearList();
+    this.orderTotal();
+    this.loadAreaList();
+  }
+})

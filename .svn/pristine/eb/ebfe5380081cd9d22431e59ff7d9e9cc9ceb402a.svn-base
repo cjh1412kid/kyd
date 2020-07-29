@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="io.nuite.modules.system.dao.SizeAllotTemplateDao">
+
+  <!-- 可根据自己的需求，是否要使用 -->
+  <resultMap type="io.nuite.modules.system.entity.SizeAllotTemplateEntity" id="sizeAllotTemplateMap">
+    <result property="seq" column="Seq"/>
+    <result property="companySeq" column="Company_Seq"/>
+    <result property="name" column="Name"/>
+    <result property="minSize" column="MinSize"/>
+    <result property="maxSize" column="MaxSize"/>
+    <result property="inputTime" column="InputTime"/>
+
+    <collection property="details" column="Seq" ofType="io.nuite.modules.system.entity.SizeAllotTemplateDetailEntity"
+                select="selectDetails"></collection>
+  </resultMap>
+
+  <resultMap type="io.nuite.modules.system.entity.SizeAllotTemplateDetailEntity" id="sizeAllotTemplateDetailMap">
+    <result property="seq" column="Seq"/>
+    <result property="templateSeq" column="TemplateSeq"/>
+    <result property="size" column="Size"/>
+    <result property="per" column="Per"/>
+  </resultMap>
+
+  <select id="selectDetails" resultMap="sizeAllotTemplateDetailMap" parameterType="int">
+      SELECT *
+      FROM [YHSROrderPlatform].[dbo].[YHSR_OP_SizeAllotTemplateDetail]
+      where TemplateSeq=#{Seq}
+    </select>
+
+  <select id="selectAllByCompanySeq" resultMap="sizeAllotTemplateMap">
+    SELECT [Seq]
+          ,[Company_Seq]
+          ,[Name]
+          ,[MinSize]
+          ,[MaxSize]
+          ,[InputTime]
+      FROM [YHSROrderPlatform].[dbo].[YHSR_OP_SizeAllotTemplate]
+      WHERE [Company_Seq]=#{companySeq}
+      order by [InputTime] desc
+    </select>
+
+
+</mapper>

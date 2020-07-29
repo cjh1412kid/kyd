@@ -1,0 +1,482 @@
+package io.nuite.modules.order_platform_app.controller;
+
+import java.text.DecimalFormat;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import io.nuite.common.utils.R;
+import io.nuite.modules.order_platform_app.annotation.Login;
+import io.nuite.modules.order_platform_app.annotation.LoginUser;
+import io.nuite.modules.order_platform_app.entity.MeetingGoodsEntity;
+import io.nuite.modules.order_platform_app.entity.MeetingShoppingCartEntity;
+import io.nuite.modules.order_platform_app.service.MeetingGoodsService;
+import io.nuite.modules.order_platform_app.service.MeetingShoppingCartService;
+import io.nuite.modules.sr_base.entity.BaseUserEntity;
+import io.nuite.modules.sr_base.entity.GoodsColorEntity;
+import io.nuite.modules.sr_base.service.GoodsColorService;
+import io.nuite.modules.system.entity.MeetingEntity;
+import io.nuite.modules.system.service.MeetingService;
+import io.nuite.modules.system.service.SizeAllotTemplateService;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import springfox.documentation.annotations.ApiIgnore;
+
+/**
+ * 【部分接口已废弃，改用MeetingShoppingCartExcelController中新接口】订货平台2期 - 订货会购物车相关
+ * @author yy
+ * @date 2018-04-16 13:47
+ */
+@RestController
+@RequestMapping("/order/app/meetingShoppingCart")
+@Api(tags = "订货平台2期 - 订货会购物车相关")
+public class MeetingShoppingCartController extends BaseController {
+	
+	private Logger logger = LoggerFactory.getLogger(getClass());
+    
+    @Autowired
+    private MeetingGoodsService meetingGoodsService;
+    
+    @Autowired
+    private GoodsColorService goodsColorService;
+    
+    @Autowired
+    private MeetingService meetingService;
+    
+    @Autowired
+    private MeetingShoppingCartService meetingShoppingCartService;
+    
+    @Autowired
+    private SizeAllotTemplateService sizeAllotTemplateService;
+    
+
+
+    
+	/**
+     * 【已废弃】根据订货会鞋子seq，获取鞋子详情，购物车已订数量（扫码订货或点击柱状图某一货号）
+     */
+    @Deprecated
+    @Login
+    @GetMapping("getMeetingGoodsBySeq")
+    @ApiOperation("【已废弃】根据订货会鞋子seq，获取鞋子详情，购物车已定数量（扫码订货或点击柱状图某一货号）")
+    public R getMeetingGoodsBySeq(@ApiIgnore @LoginUser BaseUserEntity loginUser,
+    		@ApiParam("订货会鞋子Seq") @RequestParam("meetingGoodsSeq") Integer meetingGoodsSeq) {
+    	try {
+    		if(isFactoryUser(loginUser)) {
+    			return R.error("管理员无法订货");
+    		}
+    		
+    		// 获取当前订货会
+    		MeetingEntity meetingEntity = meetingService.getNowMeetingEntity(loginUser.getCompanySeq());
+    		if(meetingEntity == null) {
+    			return R.error("没有正在进行的订货会");
+    		}
+    		
+    		// 判断有无本次订货会权限
+    		if(!hasNowMeetingPermission(loginUser, meetingEntity)) {
+    			return R.error("没有本次订货会权限");
+    		}
+    		
+    		MeetingGoodsEntity meetingGoodsEntity = meetingGoodsService.selectById(meetingGoodsSeq);
+    		if(meetingGoodsEntity == null) {
+    			return R.error("没有找到此货品");
+    		}
+    		
+    		// 判断此鞋子序号是否属于本次订货会
+    		if(!meetingGoodsEntity.getMeetingSeq().equals(meetingEntity.getSeq())) {
+    			return R.error("此货品不属于本次订货会");
+    		}
+    		
+    		
+    		
+    		Map<String, Object> resultMap = new HashMap<String, Object>();
+    		//货号
+    		resultMap.put("goodID", meetingGoodsEntity.getGoodID());
+    		
+    		//图片
+    		resultMap.put("img", getMeetingGoodsPictureUrl(meetingGoodsEntity.getGoodID()) + meetingGoodsEntity.getImg());
+    		
+    		//判断此货号用户是否已经加入过购物车
+    		MeetingShoppingCartEntity meetingShoppingCartEntity = meetingShoppingCartService.getUserMeetingShoppingCart(loginUser.getSeq(), meetingGoodsSeq);
+    		
+    		//所有可选颜色
+    		String optionalColorSeqs = meetingGoodsEntity.getOptionalColorSeqs();
+			List<Map<String,Object>> colorList = new ArrayList<Map<String,Object>>();
+			for(String colorSeq : optionalColorSeqs.split(",")) {
+					Map<String,Object> colorMap = new HashMap<String,Object>();
+					
+					//根据颜色seq获取颜色信息
+					GoodsColorEntity goodsColorEntity = goodsColorService.getGoodsColorBySeq(Integer.parseInt(colorSeq));
+					colorMap.put("colorSeq", colorSeq);
+					colorMap.put("colorName", goodsColorEntity.getName());
+					
+		    		//获取尺码范围
+					List<Map<String,Object>> sizeList = new ArrayList<Map<String,Object>>();
+		    		for(int size = meetingGoodsEntity.getMinSize(); size <= meetingGoodsEntity.getMaxSize(); size++) {
+						Map<String, Object> sizeMap = new HashMap<String, Object>();
+						sizeMap.put("size", size);
+						
+						//添加已经在购物车中加入的数量
+						Integer selectNum = null;
+						if(meetingShoppingCartEntity != null) {
+							selectNum = meetingShoppingCartService.getUserShoppingCartSelectNum(meetingShoppingCartEntity.getSeq(), goodsColorEntity.getSeq(), size);
+						}
+						sizeMap.put("selectNum", selectNum);
+						sizeList.add(sizeMap);
+					}
+					colorMap.put("sizeList", sizeList);
+					
+					colorList.add(colorMap);
+			}
+			resultMap.put("colorList", colorList);
+    		
+    		return R.ok(resultMap);
+    		
+    	} catch (Exception e) {
+			e.printStackTrace();
+			logger.error(e.getMessage(), e);
+			return R.error("服务器异常");
+		}
+
+    }
+    
+    
+    
+	/**
+     * 【已废弃】总订货量， 我的订货量接口
+     */
+    @Deprecated
+    @Login
+    @GetMapping("alreadySelectNum")
+    @ApiOperation("【已废弃】总订货量， 我的订货量接口")
+    public R alreadySelectNum(@ApiIgnore @LoginUser BaseUserEntity loginUser,
+    		@ApiParam("订货会鞋子Seq") @RequestParam("meetingGoodsSeq") Integer meetingGoodsSeq) {
+    	try {
+    		
+    		// 判断此鞋子序号是否属于本次订货会
+    		MeetingEntity meetingEntity = meetingService.getNowMeetingEntity(loginUser.getCompanySeq());
+    		if(meetingEntity == null) {
+    			return R.error("没有正在进行的订货会");
+    		}
+    		
+    		Map<Integer, Integer> colorSeqNumMap = new HashMap<Integer, Integer>();
+    		
+    		//总订货量（已加入购物车的总量 + 已提交订单的数量）
+    		List<Map<String, Object>> allUsersSelectNumList = meetingShoppingCartService.getAllUsersSelectNum(meetingGoodsSeq);  //已加入购物车的总量
+    		List<Map<String, Object>> allUsersBuyNumList = meetingShoppingCartService.getAllUsersBuyNum(meetingGoodsSeq);  //已提交订单的数量
+    		for(Map<String, Object> map : allUsersSelectNumList) {   //第一个list直接加入map
+    			Integer colorSeq = (Integer) map.get("colorSeq");
+    			Integer num = (Integer) map.get("num");
+    			colorSeqNumMap.put(colorSeq, num);
+    		}
+    		for(Map<String, Object> map : allUsersBuyNumList) {    //第二个list先判断map是否已存在，再加入
+    			Integer colorSeq = (Integer) map.get("colorSeq");
+    			Integer num = (Integer) map.get("num");
+    			if(colorSeqNumMap.containsKey(colorSeq)) {
+    				colorSeqNumMap.put(colorSeq, colorSeqNumMap.get(colorSeq) + num);
+    			} else {
+    				colorSeqNumMap.put(colorSeq, num);
+    			}
+    		}
+    		//循环{颜色seq：数量}的map   例如：{5:100, 6:200, 7:300}
+    		Integer totalSelectNum = 0;
+    		List<Map<String, Object>> colorsNumList = new ArrayList<Map<String, Object>>();
+    		for(Integer key : colorSeqNumMap.keySet()) {
+    			totalSelectNum += colorSeqNumMap.get(key);
+    			Map<String, Object> map = new HashMap<String, Object>();
+    			GoodsColorEntity goodsColorEntity = goodsColorService.selectById(key);
+    			map.put("color", goodsColorEntity.getName());
+    			map.put("num", colorSeqNumMap.get(key));
+    			colorsNumList.add(map);
+    		}
+    		
+    		//2019-05-13新需求：个人账号需要展示各个颜色的百分比，隐藏具体数值
+    		if(totalSelectNum > 0) {
+    			DecimalFormat df  = new DecimalFormat("0"); //这样为保持0位
+	    		for(Map<String, Object> map : colorsNumList) {
+	    			int num = (int) map.get("num");
+	    			map.put("percent", df.format((float)num/totalSelectNum*100) + "%");
+	    		}
+    		}
+    		
+    		// 我的订货量（我的购物车数量 + 我的订单数量）
+    		Integer mySelectNum = meetingShoppingCartService.getMySelectNum(loginUser.getSeq(), meetingGoodsSeq);
+    		Integer myBuyNum = meetingShoppingCartService.getMyBuyNum(loginUser.getSeq(), meetingEntity.getSeq(), meetingGoodsSeq);
+    		
+    		
+    		Map<String, Object> resultMap = new HashMap<String, Object>();
+    		resultMap.put("totalSelectNum", totalSelectNum);
+    		resultMap.put("colorsNum", colorsNumList);
+    		resultMap.put("mySelectNum", mySelectNum + myBuyNum);
+    		return R.ok(resultMap);
+    		
+    	} catch (Exception e) {
+			e.printStackTrace();
+			logger.error(e.getMessage(), e);
+			return R.error("服务器异常");
+		}
+
+    }
+    
+    
+    
+    /**
+     * 【已废弃】配码模板列表接口
+     */
+    @Deprecated
+    @Login
+    @GetMapping("getSizeAllotTemplateList")
+    @ApiOperation("【已废弃】配码模板列表接口")
+    public R getSizeAllotTemplateList(@ApiIgnore @LoginUser BaseUserEntity loginUser,
+    		@ApiParam("订货会鞋子Seq") @RequestParam("meetingGoodsSeq") Integer meetingGoodsSeq) {
+    	try {
+    		
+    		//查询鞋子 获取可订尺码段
+    		MeetingGoodsEntity meetingGoodsEntity = meetingGoodsService.selectById(meetingGoodsSeq);
+    		
+    		//根据最小最大尺码查询满足的配码模板
+    		List<Map< String, Object>> list = sizeAllotTemplateService.getSizeAllotTemplateList(loginUser.getCompanySeq(), meetingGoodsEntity.getMinSize(), meetingGoodsEntity.getMaxSize());
+    		//添加配码模板详情
+    		for(Map< String, Object> map : list) {
+    			Integer seq = (Integer)map.get("seq");
+    			
+    			//查询详情列表
+    			List<Map<String, Object>> detailList = sizeAllotTemplateService.getSizeAllotTemplateDetail(seq);
+    			map.put("detail", detailList);
+    		}
+    		
+    		return R.ok(list);
+    		
+    	} catch (Exception e) {
+			e.printStackTrace();
+			logger.error(e.getMessage(), e);
+			return R.error("服务器异常");
+		}
+
+    }
+    
+    
+    
+    
+    
+    
+	/**
+     * 【已废弃】加入购物车（选款框）（修改也调用此接口，会硬删除已存在的购物车详情）
+     */
+    @Deprecated
+    @Login
+    @PostMapping("addToMeetingShoppingCart")
+    @ApiOperation("【已废弃】加入购物车（选款框）")
+    public R addToMeetingShoppingCart(@ApiIgnore @LoginUser BaseUserEntity loginUser,
+    		@ApiParam("订货会鞋子Seq") @RequestParam("meetingGoodsSeq") Integer meetingGoodsSeq,
+    		@ApiParam("颜色尺码数量[{colorSeq:5,sizeAndNum:[{size:33,num:100},{...}]},{...}]") @RequestParam("colorSizeAndNum") String colorSizeAndNum) {
+    	try {
+    		if(isFactoryUser(loginUser)) {
+    			return R.error("管理员无法订货");
+    		}
+    		
+    		// 当前订货会
+    		MeetingEntity meetingEntity = meetingService.getNowMeetingEntity(loginUser.getCompanySeq());
+    		if(meetingEntity == null) {
+    			return R.error("没有正在进行的订货会");
+    		}
+    		
+    		// 判断有无本次订货会权限
+    		if(!hasNowMeetingPermission(loginUser, meetingEntity)) {
+    			return R.error("没有本次订货会权限");
+    		}
+    		
+    		MeetingGoodsEntity meetingGoodsEntity = meetingGoodsService.selectById(meetingGoodsSeq);
+    		if(meetingGoodsEntity == null) {
+    			return R.error("没有找到此货品");
+    		}
+    		
+    		// 判断此鞋子序号是否属于本次订货会
+    		if(!meetingGoodsEntity.getMeetingSeq().equals(meetingEntity.getSeq())) {
+    			return R.error("此货品不属于本次订货会");
+    		}
+    		
+    		
+    		meetingShoppingCartService.addToMeetingShoppingCart(meetingEntity.getSeq(), loginUser.getSeq(), meetingGoodsSeq, colorSizeAndNum);
+    		
+    		return R.ok("加入成功");
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.error(e.getMessage(), e);
+			return R.error("服务器异常");
+		}
+
+    }
+    
+    
+    
+    
+    
+	/**
+     * 【已废弃】购物车（选款框）列表
+     */
+    @Deprecated
+    @Login
+    @GetMapping("meetingShoppingCartList")
+    @ApiOperation("【已废弃】购物车（选款框）列表")
+    public R meetingShoppingCartList(@ApiIgnore @LoginUser BaseUserEntity loginUser) {
+    	try {
+    		if(isFactoryUser(loginUser)) {
+    			return R.error("管理员无法订货");
+    		}
+    		
+    		// 当前订货会
+    		MeetingEntity meetingEntity = meetingService.getNowMeetingEntity(loginUser.getCompanySeq());
+    		if(meetingEntity == null) {
+    			return R.error("没有正在进行的订货会");
+    		}
+    		
+    		// 判断有无本次订货会权限
+    		if(!hasNowMeetingPermission(loginUser, meetingEntity)) {
+    			return R.error("没有本次订货会权限");
+    		}
+    		
+
+    		
+    		List<Map<String, Object>> resultList = new ArrayList<Map<String, Object>>();
+    		
+			List<MeetingShoppingCartEntity> shoppingCartList = meetingShoppingCartService.getMeetingShoppingCartList(loginUser.getSeq(), meetingEntity.getSeq());
+			
+			for(MeetingShoppingCartEntity meetingShoppingCartEntity : shoppingCartList) {
+	    		Map<String, Object> resultMap = new HashMap<String, Object>();
+	    		resultMap.put("meetingShoppingCartSeq", meetingShoppingCartEntity.getSeq());
+	    		resultMap.put("meetingGoodsSeq", meetingShoppingCartEntity.getMeetingGoodsSeq());
+	    		resultMap.put("totalSelectNum", meetingShoppingCartEntity.getTotalSelectNum());
+	    		resultMap.put("isChecked", meetingShoppingCartEntity.getIsChecked());
+	    		
+				
+	    		MeetingGoodsEntity meetingGoodsEntity = meetingGoodsService.selectById(meetingShoppingCartEntity.getMeetingGoodsSeq());
+	    		resultMap.put("meetingGoodsId", meetingGoodsEntity.getGoodID());
+	    		resultMap.put("meetingGoodsImg", getMeetingGoodsPictureUrl(meetingGoodsEntity.getGoodID()) + meetingGoodsEntity.getImg());
+	    		
+	    		//所有可选颜色
+	    		String optionalColorSeqs = meetingGoodsEntity.getOptionalColorSeqs();
+				List<Map<String,Object>> colorList = new ArrayList<Map<String,Object>>();
+				for(String colorSeq : optionalColorSeqs.split(",")) {
+						Map<String,Object> colorMap = new HashMap<String,Object>();
+						
+						//根据颜色seq获取颜色信息
+						GoodsColorEntity goodsColorEntity = goodsColorService.getGoodsColorBySeq(Integer.parseInt(colorSeq));
+						colorMap.put("colorSeq", colorSeq);
+						colorMap.put("colorName", goodsColorEntity.getName());
+						
+			    		//获取尺码范围
+						List<Map<String,Object>> sizeList = new ArrayList<Map<String,Object>>();
+			    		for(int size = meetingGoodsEntity.getMinSize(); size <= meetingGoodsEntity.getMaxSize(); size++) {
+							Map<String, Object> sizeMap = new HashMap<String, Object>();
+							sizeMap.put("size", size);
+							
+							//添加已经在购物车中加入的数量
+							Integer selectNum = meetingShoppingCartService.getUserShoppingCartSelectNum(meetingShoppingCartEntity.getSeq(), goodsColorEntity.getSeq(), size);
+							sizeMap.put("selectNum", selectNum);
+							sizeList.add(sizeMap);
+						}
+						colorMap.put("sizeList", sizeList);
+						
+						colorList.add(colorMap);
+				}
+				resultMap.put("colorList", colorList);
+				
+				
+				resultList.add(resultMap);
+			}
+			
+			return R.ok(resultList);
+			
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.error(e.getMessage(), e);
+			return R.error("服务器异常");
+		}
+
+    }
+    
+    
+    
+    /**
+     * 选中购物车
+     */
+    @Login
+    @GetMapping("checkShoppingCart")
+    @ApiOperation("选中购物车")
+    public R checkShoppingCart(@ApiParam("购物车Seq") @RequestParam("meetingShoppingCartSeq") Integer meetingShoppingCartSeq,
+    		@ApiParam("是否选中") @RequestParam("isChecked") Integer isChecked) {
+    	try {
+			MeetingShoppingCartEntity shoppingCartEntity = new MeetingShoppingCartEntity();
+			shoppingCartEntity.setSeq(meetingShoppingCartSeq);
+			shoppingCartEntity.setIsChecked(isChecked);
+			meetingShoppingCartService.updateById(shoppingCartEntity);
+    		
+			return R.ok("操作成功");
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.error(e.getMessage(), e);
+			return R.error("服务器异常");
+		}
+
+    }
+
+    
+    /**
+     * 购物车全选/全不选
+     */
+    @Login
+    @GetMapping("checkAllShoppingCart")
+    @ApiOperation("购物车全选/全不选")
+    public R checkAllShoppingCart(@ApiIgnore @LoginUser BaseUserEntity loginUser,
+    		@ApiParam("是否选中") @RequestParam("isChecked") Integer isChecked) {
+    	try {
+    		MeetingEntity meetingEntity = meetingService.getNowMeetingEntity(loginUser.getCompanySeq());
+    		if(meetingEntity == null) {
+    			return R.error("没有正在进行的订货会");
+    		}
+    		
+    		meetingShoppingCartService.checkAllShoppingCart(meetingEntity.getSeq(), loginUser.getSeq(), isChecked);
+			return R.ok("操作成功");
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.error(e.getMessage(), e);
+			return R.error("服务器异常");
+		}
+
+    }
+    
+    
+    
+    /**
+     * 批量删除购物车
+     */
+    @Login
+    @GetMapping("deleteShoppingCart")
+    @ApiOperation("批量删除购物车")
+    public R deleteShoppingCart(@ApiParam("购物车Seq(逗号分隔)") @RequestParam("meetingShoppingCartSeqs") List<Integer> meetingShoppingCartSeqs) {
+    	try {
+    		meetingShoppingCartService.deleteMeetingShoppingCart(meetingShoppingCartSeqs);
+			return R.ok("删除成功");
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.error(e.getMessage(), e);
+			return R.error("服务器异常");
+		}
+
+    }
+    
+    
+    
+}

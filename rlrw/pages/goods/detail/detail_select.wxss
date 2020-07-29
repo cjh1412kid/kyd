@@ -1,0 +1,164 @@
+.dialog_seat {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transition: all 0.1s ease;
+}
+
+.select_dialog {
+  width: 750rpx;
+  height: 0;
+  position: absolute;
+  bottom: 0;
+  background-color: #fff;
+  box-shadow: 0px -5px 10px 0px #999;
+}
+
+.select_dialog.nochoosed {
+  height: 694rpx;
+}
+
+.select_dialog .select_content {
+  margin: 25rpx auto 0 auto;
+  width: 700rpx;
+}
+
+.select_content .title_line {
+  display: flex;
+}
+
+.select_content .title_line .image {
+  position: absolute;
+  background-color: #fff;
+  box-shadow: 0px 0px 10px 0px #666;
+  top: 20rpx;
+  transition: all 0.2s ease;
+}
+
+.select_dialog.nochoosed .title_line .image {
+  top: -47rpx;
+}
+
+.select_content .title_line .image, .select_content .title_line .image image {
+  width: 188rpx;
+  height: 188rpx;
+}
+
+.select_content .title_line .content {
+  margin-left: 220rpx;
+}
+
+.select_content .title_line .content .name {
+  width: 350rpx;
+  font-size: 28rpx;
+  color: #505050;
+  margin-bottom: 35rpx;
+}
+
+.select_content .title_line .content .prices {
+  font-size: 33rpx;
+  color: #f44;
+}
+
+.color_line, .size_line, .number_line {
+  margin-top: 24rpx;
+  font-size: 25rpx;
+}
+
+.color_line .title, .size_line .title, .number_line .buy_number {
+  color: #505050;
+}
+
+.color_line .select, .size_line .select {
+  margin: 20rpx 10rpx;
+  overflow: hidden;
+}
+
+.color_line .select_one, .size_line .select_one {
+  width: 88rpx;
+  height: 33rpx;
+  line-height: 33rpx;
+  text-align: center;
+  border-radius: 16rpx;
+  border: solid 1px #505050;
+  float: left;
+  margin-right: 40rpx;
+}
+
+.color_line .select_one.choose, .size_line .select_one.choose {
+  background-color: #f44;
+  color: #fff;
+  border: solid 1px #f44;
+}
+
+.size_line .select_one {
+  width: 50rpx;
+}
+
+.number_line {
+  display: flex;
+}
+
+.number_line .buy_number {
+  flex: 1;
+}
+
+.number_line .buy_number text {
+  color: #999;
+}
+
+.number_line .count text {
+  margin: auto 20rpx;
+  font-size: 30rpx;
+  color: #444;
+}
+
+.number_line .count .icon {
+  width: 50rpx;
+  font-size: 30rpx;
+  color: #999;
+}
+
+.prices_line {
+  margin-top: 20rpx;
+  color: #f44;
+  font-size: 50rpx;
+}
+
+.select_btn_group {
+  width: 750rpx;
+  display: flex;
+  position: absolute;
+  bottom: 0;
+  height: 0;
+  transition: all 0.2s ease;
+}
+
+.select_dialog.nochoosed .select_btn_group {
+  height: auto;
+}
+
+.select_btn_group .btn {
+  flex: 1;
+  color: #fff;
+  height: 96rpx;
+  line-height: 96rpx;
+  font-size: 42rpx;
+  text-align: center;
+}
+
+.select_btn_group .make_sure_btn {
+  background-color: #ff9059;
+}
+
+.select_btn_group .next_step_btn {
+  background-color: #ff6363;
+}
+
+.select_btn_group .put_into_cart {
+  background-color: #ff9059;
+}
+
+.select_btn_group .buy_btn {
+  background-color: #ff6363;
+}

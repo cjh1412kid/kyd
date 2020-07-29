@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="io.nuite.modules.system.dao.order_platform.OrderUserJurisdictionDao">
+
+  <!--修改禁用状态-->
+  <update id="updateDisable" parameterType="java.lang.Integer">
+    UPDATE [YHSROrderPlatform].[dbo].YHSR_OP_UserJurisdiction SET 
+        IsDisable = #{disable} WHERE User_Seq = #{seq}
+    </update>
+
+  <!--修改删除状态-->
+  <update id="updateDel">
+    UPDATE [YHSROrderPlatform].[dbo].YHSR_OP_UserJurisdiction
+    SET Del = #{del}
+    WHERE User_Seq = #{userSeq}
+  </update>
+
+  <select id="selectByUserSeq" resultType="io.nuite.modules.system.entity.order_platform.OrderUserJurisdictionEntity" >
+    SELECT [Seq] as seq
+      ,[User_Seq] as userSeq
+      ,[CreateUser_Seq] as createUserSeq
+      ,[EffectiveDate] as effectiveDate
+      ,[IsDisable] as isDisable
+      ,[IntOfCreateUsers] as intOfCreateUsers
+      ,[AlreadyCreateUsers] as alreadyCreateUsers
+      ,[IsAdministrator] as isAdministrator
+      ,[Del] as del
+    FROM [YHSROrderPlatform].[dbo].YHSR_OP_UserJurisdiction
+    WHERE  User_Seq = #{userSeq}
+  </select>
+</mapper>

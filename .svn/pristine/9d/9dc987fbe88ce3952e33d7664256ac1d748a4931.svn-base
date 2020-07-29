@@ -1,0 +1,2086 @@
+package io.nuite.modules.system.controller;
+
+import java.awt.Color;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.math.BigDecimal;
+import java.net.URLEncoder;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.servlet.ServletOutputStream;
+import javax.servlet.http.HttpServletResponse;
+
+import com.baomidou.mybatisplus.mapper.EntityWrapper;
+import com.baomidou.mybatisplus.mapper.Wrapper;
+import io.nuite.modules.order_platform_app.service.*;
+import io.nuite.modules.system.entity.MeetingAreaEntity;
+import io.nuite.modules.system.entity.MeetingOrderProductEntity;
+import io.nuite.modules.system.service.MeetingAreaService;
+import io.nuite.modules.system.service.SysMeetingOrderProductService;
+import org.apache.poi.hssf.usermodel.*;
+import org.apache.poi.ss.usermodel.BorderStyle;
+import org.apache.poi.ss.usermodel.FillPatternType;
+import org.apache.poi.ss.usermodel.HorizontalAlignment;
+import org.apache.poi.ss.usermodel.VerticalAlignment;
+import org.apache.poi.ss.util.CellRangeAddress;
+import org.apache.poi.xssf.usermodel.XSSFCell;
+import org.apache.poi.xssf.usermodel.XSSFCellStyle;
+import org.apache.poi.xssf.usermodel.XSSFColor;
+import org.apache.poi.xssf.usermodel.XSSFFont;
+import org.apache.poi.xssf.usermodel.XSSFRow;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.baomidou.mybatisplus.plugins.Page;
+
+import io.nuite.common.utils.DateUtils;
+import io.nuite.common.utils.PageUtils;
+import io.nuite.common.utils.R;
+import io.nuite.modules.order_platform_app.entity.MeetingGoodsEntity;
+import io.nuite.modules.order_platform_app.entity.MeetingOrderCartDetailEntity;
+import io.nuite.modules.order_platform_app.entity.MeetingOrderCartDistributeBoxEntity;
+import io.nuite.modules.order_platform_app.entity.MeetingOrderCartEntity;
+import io.nuite.modules.sr_base.entity.BaseUserEntity;
+import io.nuite.modules.sr_base.entity.GoodsColorEntity;
+import io.nuite.modules.sr_base.service.BaseUserService;
+import io.nuite.modules.sr_base.service.GoodsColorService;
+import io.nuite.modules.system.entity.MeetingEntity;
+import io.nuite.modules.system.entity.MeetingOrderEntity;
+import io.nuite.modules.system.service.MeetingService;
+import io.nuite.modules.system.service.SysMeetingOrderService;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+
+/**
+ * 订货会订单
+ *
+ * @author yangchuang
+ * @date 2019-04-17 13:42:11
+ */
+@RestController
+@RequestMapping("/system/meetingorder")
+@Api(tags = "后台-订货会订单")
+public class SysMeetingOrderController extends AbstractController {
+	private Logger logger = LoggerFactory.getLogger(getClass());
+
+	@Autowired
+	private SysMeetingOrderService meetingOrderService;
+
+	@Autowired
+	private MeetingService meetingService;
+
+	@Autowired
+	private MeetingOrderCartService meetingOrderCartService;
+	
+	@Autowired
+	private MeetingOrderCartDetailService meetingOrderCartDetailService;
+
+	
+	@Autowired
+	private MeetingOrderCartDistributeBoxService meetingOrderCartDistributeBoxService;
+	
+	@Autowired
+	private GoodsColorService GoodsColorService;
+	
+	@Autowired
+	private MeetingGoodsService meetingGoodsService;
+	
+	@Autowired
+	private BaseUserService baseUserService;
+	
+	@Autowired
+	private MeetingGoodsValuateService meetingGoodsValuateService;
+
+	@Autowired
+	private SysMeetingOrderProductService productService;
+
+	@Autowired
+	private MeetingAreaService meetingAreaService;
+
+	@Autowired
+	private MeetingShoppingCartService meetingShoppingCartService;
+	
+	@PostMapping("/list")
+	@ApiOperation(value = "订货会订单分页查询+条件查询")
+	public R list(@ApiParam("第几页") Integer page, @ApiParam("每页数量") Integer limit,
+			@ApiParam("年份") @RequestParam(required = false) Integer year,
+			@ApiParam("订货会") @RequestParam(required = false) Integer meetingSeq,
+			@ApiParam("订货方") @RequestParam(required = false) Integer meetingUserSeq,
+			@ApiParam("需排序的列") @RequestParam(required = false) String sortColumn,
+			@ApiParam("排序方式") @RequestParam(required = false) String sortType) {
+
+		Page<MeetingOrderEntity> meetingOrderEntityPage = new Page<>(page, limit);
+		Page page2 = meetingOrderService.queryPageByCompanySeq(meetingOrderEntityPage, getUser().getCompanySeq(), year,
+				meetingSeq, meetingUserSeq,sortColumn,sortType);
+
+		return R.ok().put("page", new PageUtils(page2));
+	}
+
+	@GetMapping("product/{meetingOrderSeq}/{keywords}")
+	@ApiOperation(value = "分页查询订货会订单下的货品列表")
+	public R listProducts(@ApiParam("订货会订单序号") @PathVariable Integer meetingOrderSeq,@PathVariable String keywords) {
+		List<Map<String, Object>> list = meetingOrderService.queryProductInfoByMeetingOrderSeq(meetingOrderSeq,keywords);
+		return R.ok(list);
+	}
+
+	@GetMapping("/delete/{seq}")
+	@ApiOperation(value = "删除订货会订单")
+	public R delete(@PathVariable("seq") Integer meetingOrderSeq) {
+		meetingOrderService.deleteById(meetingOrderSeq);
+		return R.ok();
+	}
+
+	@GetMapping("select/years")
+	@ApiOperation(value = "查询订货会订单中存在的订货会所有年份")
+	public R listYear() {
+		List<Integer> years = meetingOrderService.queryOrderExistYears(getUser().getCompanySeq());
+		return R.ok(years);
+	}
+
+	@GetMapping("select/Meetings/{year}")
+	@ApiOperation(value = "查询订货会订单中存在的订货会")
+	public R listMeeting(@ApiParam(value = "年份", required = true) @PathVariable Integer year) {
+		List<Map<String, Object>> meetings = meetingOrderService.queryOrderExistMeetings(getUser().getCompanySeq(),
+				year);
+		return R.ok(meetings);
+	}
+
+	@GetMapping("select/MeetingUsers/{meetingSeq}")
+	@ApiOperation(value = "查询指定定货方的订货会订单中存在的定货方")
+	public R listMeetingUser(@ApiParam(value = "订货会序号", required = true) @PathVariable Integer meetingSeq) {
+		List<Map<String, Object>> meetingUsers = meetingOrderService
+				.queryOrderExistMeetingUsers(getUser().getCompanySeq(), meetingSeq);
+		return R.ok(meetingUsers);
+	}
+
+	@GetMapping("list/byGoods/{meetingSeq}/{keywords}/{isCancel}")
+	@ApiOperation(value = "按货品统计")
+	public R listByGood(@ApiParam(value = "订货会序号", required = true) @PathVariable Integer meetingSeq,@ApiParam(value = "模糊搜索关键字", required = true)@PathVariable String keywords,@ApiParam(value = "模糊搜索关键字", required = true) @PathVariable Integer isCancel) {
+		List<Map<String, Object>> goodsOrderProducts = meetingOrderService
+				.queryGoodsOrderByMeetingSeq(getUser().getCompanySeq(), meetingSeq,keywords,isCancel);
+		return R.ok(goodsOrderProducts);
+	}
+
+	@GetMapping("list/byArea/{meetingSeq}/{areaSeq}")
+	@ApiOperation(value = "按区域统计")
+	public R listByArea(@ApiParam(value = "订货会序号", required = true) @PathVariable Integer meetingSeq,@PathVariable Integer areaSeq) {
+		List<Map<String, Object>> areaOrderProducts = meetingOrderService
+				.queryAreaOrderByMeetingSeq(getUser().getCompanySeq(), meetingSeq,areaSeq);
+		return R.ok(areaOrderProducts);
+	}
+
+	@PostMapping("excel/user")
+	@ApiOperation(value = "下载定货方订货单", hidden = true)
+	public void downloadMeetingUserExcel(@ApiParam("订货会") @RequestParam Integer meetingSeq,
+			@ApiParam("订货方") @RequestParam(required = false) Integer meetingUserSeq, HttpServletResponse response) {
+
+		try {
+
+			List<MeetingOrderEntity> meetingOrderEntities = meetingOrderService.queryOrderByMeetingSeq(meetingSeq,
+					meetingUserSeq);
+			if (meetingOrderEntities == null || meetingOrderEntities.size() == 0) {
+				logger.warn("订货单下载-查询内容为空");
+				return;
+			}
+			//查询总的订单量
+			Integer totalBuy=meetingOrderService.getTotalCountByMeetingSeq(meetingSeq, meetingUserSeq);
+
+			// 获取订货会
+			String filePrefix = meetingOrderEntities.get(0).getMeetingName() + "-";
+
+			// 2.创建Excel
+			response.setCharacterEncoding("UTF-8");
+			response.setHeader("content-Type", "application/vnd.ms-excel");
+			response.setHeader("Content-Disposition",
+					"attachment;filename=" + URLEncoder.encode(filePrefix + "订货单.xlsx", "UTF-8"));
+
+			// 创建excel2007工作簿
+			XSSFWorkbook wb = new XSSFWorkbook();
+
+			// 创建sheet页
+			XSSFSheet sheet = wb.createSheet("sheet1");
+			// 默认单元格宽度和高度
+			sheet.setDefaultColumnWidth(8);
+			sheet.setDefaultRowHeightInPoints(16);
+
+			// 不同列的宽度
+			sheet.setColumnWidth(0, 18 * 256);
+			// sheet.setColumnWidth(1, 40 * 256);
+
+			// 单元格样式1
+			XSSFCellStyle style1 = wb.createCellStyle();
+			style1.setAlignment(HorizontalAlignment.CENTER); // 水平居中
+			style1.setVerticalAlignment(VerticalAlignment.CENTER);// 垂直居中
+			style1.setBorderLeft(BorderStyle.THIN);
+			style1.setLeftBorderColor(new XSSFColor(Color.black));
+			style1.setBorderRight(BorderStyle.THIN);
+			style1.setRightBorderColor(new XSSFColor(Color.black));
+			style1.setBorderTop(BorderStyle.THIN);
+			style1.setTopBorderColor(new XSSFColor(Color.black));
+			style1.setBorderBottom(BorderStyle.THIN);
+			style1.setBottomBorderColor(new XSSFColor(Color.black));
+
+			// 单元格样式2
+			XSSFCellStyle style2 = wb.createCellStyle();
+			style2.setAlignment(HorizontalAlignment.CENTER); // 水平居中
+			style2.setVerticalAlignment(VerticalAlignment.CENTER);// 垂直居中
+			style2.setBorderLeft(BorderStyle.THIN);
+			style2.setLeftBorderColor(new XSSFColor(Color.black));
+			style2.setBorderRight(BorderStyle.THIN);
+			style2.setRightBorderColor(new XSSFColor(Color.black));
+			style2.setBorderTop(BorderStyle.THIN);
+			style2.setTopBorderColor(new XSSFColor(Color.black));
+			style2.setBorderBottom(BorderStyle.THIN);
+			style2.setBottomBorderColor(new XSSFColor(Color.black));
+
+			// 字体样式
+			XSSFFont font = wb.createFont();
+			font.setFontName("仿宋_GB2312");
+			font.setBold(true); // 粗体
+			font.setFontHeightInPoints((short) 12);
+
+			style1.setFont(font); // 字体
+
+			XSSFRow newRow;
+			XSSFCell newCell;
+			// 当前操作行,创建新行后+1
+			int currRowIndex = 0;
+			CellRangeAddress cra1 = new CellRangeAddress(currRowIndex, currRowIndex, 0, 12); // 合并单元格
+			sheet.addMergedRegion(cra1);
+			newRow = sheet.createRow(currRowIndex++);
+			newRow.setHeightInPoints(24);
+			newCell = newRow.createCell(0);
+			newCell.setCellStyle(style1);
+			newCell.setCellValue("总订货量："+totalBuy);
+			int CountSeq=1;
+			for (int i = 0; i < meetingOrderEntities.size(); i++) {
+				MeetingOrderEntity meetingOrderEntity = meetingOrderEntities.get(i);
+				List<Map<String, Object>> orderGoods = meetingOrderService
+						.queryProductInfoByMeetingOrderSeq(meetingOrderEntity.getSeq(),"");
+
+				// 创建订单标题
+				CellRangeAddress cra = new CellRangeAddress(currRowIndex, currRowIndex, 0, 12); // 合并单元格
+				sheet.addMergedRegion(cra);
+				newRow = sheet.createRow(currRowIndex++);
+				newRow.setHeightInPoints(30);
+
+				// 标题内容
+				StringBuilder sb = new StringBuilder().append("    ").append(meetingOrderEntity.getUsername())// 定货方
+						.append("    订单号：").append(meetingOrderEntity.getOrderNum()).append("    下单日期：")
+						.append(DateUtils.format(meetingOrderEntity.getInputTime(), DateUtils.DATE_TIME_PATTERN))
+						.append(" 收货地址:").append(meetingOrderEntity.getAddress()).append("  收货人："+meetingOrderEntity.getReceiverName()).append(" 收货电话："+meetingOrderEntity.getTelephone()).append("    订单量序号:").append(CountSeq++).append("  物流信息：").append(meetingOrderEntity.getExpressName())
+						.append("  物流电话:"+meetingOrderEntity.getExpressPhone());
+				newCell = newRow.createCell(0);
+				// newCell.setCellStyle(style1);
+				newCell.setCellValue(sb.toString());
+				int seq = 1;
+				for (int j = 0; j < orderGoods.size(); j++) {
+					// 每个货号尺码范围不同，需要创建1行标题行
+					Map<String, Object> orderGood = orderGoods.get(j);
+					/**
+					 * { goodID: 'A1111', details: [ {color: '米白', size: {34: 12, 35: 13, 36: 14},
+					 * cancel: true}, {color: '黑色', size: {34: 18, 35: 17, 36: 14}, cancel: false}
+					 * ], title: [34, 35, 36], total:100 }
+					 */
+					// 数据解析
+					List<Integer> sizeTitles = (List<Integer>) orderGood.get("title");
+					Integer total = (Integer) orderGood.get("total");
+					String goodID = (String) orderGood.get("goodID");
+					List<Map<String, Object>> goodDetail = (List<Map<String, Object>>) orderGood.get("details");
+
+					// 标题列表
+					List<String> titles = new ArrayList<>();
+					titles.add("序号");
+					titles.add("货号");
+					titles.add("订货量");
+					titles.add("颜色");
+					titles.add("总数");
+					for (Integer sizeTitle : sizeTitles) {
+						titles.add(sizeTitle.toString());
+					}
+					titles.add("建议");
+					// 创建标题行
+					newRow = sheet.createRow(currRowIndex++);
+					for (int k = 0; k < titles.size(); k++) {
+						newCell = newRow.createCell(k);
+						newCell.setCellStyle(style1);
+						String title = titles.get(k);
+						newCell.setCellValue(title);
+					}
+
+					// 循环创建数据行
+					for (int n = 0; n < goodDetail.size(); n++) {
+						Map<String, Object> detail = goodDetail.get(n);
+						Map<Integer, Integer> sizeMap = (Map<Integer, Integer>) detail.get("size");
+						newRow = sheet.createRow(currRowIndex++);
+						if (n == 0) {
+							newCell = newRow.createCell(0);
+							newCell.setCellStyle(style2);
+							newCell.setCellValue(seq++);
+
+							newCell = newRow.createCell(1);
+							newCell.setCellStyle(style2);
+							newCell.setCellValue(goodID);
+
+							newCell = newRow.createCell(2);
+							newCell.setCellStyle(style2);
+							newCell.setCellValue(total);
+						}
+						// 第三列 颜色
+						newCell = newRow.createCell(3);
+						newCell.setCellStyle(style2);
+						newCell.setCellValue(detail.get("color").toString());
+						// 第四列 颜色-尺码 订货量总数
+						newCell = newRow.createCell(4);
+						newCell.setCellStyle(style2);
+						newCell.setCellValue(detail.get("colorTotal").toString());
+						// 第四列开始 尺码列
+						int currCellIndex = 5;
+						for (Integer sizeTitle : sizeTitles) {
+							Integer sizeCount = sizeMap.get(sizeTitle);
+							newCell = newRow.createCell(currCellIndex);
+							newCell.setCellStyle(style2);
+							if (sizeCount != null) {
+								if(detail.get("cancel").equals(1)) {
+									newCell.setCellValue(sizeCount+"(已取消)");
+								}else {
+									newCell.setCellValue(sizeCount);
+								}
+							}
+							currCellIndex++;
+						}
+						if (n == 0) {
+							// 最后1列 所有建议
+							newCell = newRow.createCell(currCellIndex);
+							newCell.setCellStyle(style2);
+							newCell.setCellValue(detail.get("valuate").toString());
+						}
+
+					}
+
+				}
+
+				// 每个订单空两行
+				currRowIndex += 2;
+
+			} // 订单 for end
+
+			// 获取输出流，写入excel并关闭
+			ServletOutputStream out = response.getOutputStream();
+			wb.write(out);
+			out.flush();
+			out.close();
+			wb.close();
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+			logger.error("定货方订货单: 文件名编码异常");
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.error("定货方订货单: " + e.getMessage(), e);
+		}
+	}
+
+	@PostMapping("exportCustomOrder")
+	@ApiOperation(value = "下载定货方订货单", hidden = true)
+	public void exportCustomOrder(@ApiParam("订货会") @RequestParam Integer meetingSeq,
+										 @ApiParam("订货方") @RequestParam(required = false) Integer meetingUserSeq, HttpServletResponse response) {
+		ServletOutputStream out = null;
+		HSSFWorkbook wb = null;
+		try {
+			List<Integer> userSeqList = meetingOrderService.selectUserSeqList(getUser().getCompanySeq(),meetingSeq,meetingUserSeq);
+
+			List<MeetingOrderEntity> meetingOrderEntities = meetingOrderService.queryOrderByMeetingSeq(meetingSeq,
+					meetingUserSeq);
+			if (meetingOrderEntities == null || meetingOrderEntities.size() == 0) {
+				logger.warn("订货单下载-查询内容为空");
+				return;
+			}
+
+			// 获取订货会
+			String filePrefix = meetingOrderEntities.get(0).getMeetingName() + "-";
+
+			// 2.创建Excel
+			response.setCharacterEncoding("UTF-8");
+			response.setHeader("content-Type", "application/vnd.ms-excel");
+			response.setHeader("Content-Disposition", "attachment;filename=" + URLEncoder.encode(filePrefix + "订货单.xls", "UTF-8"));
+
+			// 创建excel2007工作簿
+			wb = new HSSFWorkbook();
+			//列标题单元格样式
+			HSSFCellStyle headCellStyle = wb.createCellStyle();
+			//设置居中:
+			headCellStyle.setAlignment(HSSFCellStyle.ALIGN_CENTER); // 居中
+			headCellStyle.setVerticalAlignment(HSSFCellStyle.VERTICAL_CENTER);//垂直居中
+			//设置字体:
+			HSSFFont font = wb.createFont();
+			font.setFontName("仿宋_GB2312");
+			font.setBoldweight(HSSFFont.BOLDWEIGHT_BOLD);//粗体显示
+			font.setFontHeightInPoints((short) 12);
+			headCellStyle.setFont(font);//选择需要用到的字体格式
+
+			//内容单元格样式
+			HSSFCellStyle contentCellStyle = wb.createCellStyle();
+			//设置居中:
+			contentCellStyle.setAlignment(HSSFCellStyle.ALIGN_CENTER); // 居中
+			contentCellStyle.setVerticalAlignment(HSSFCellStyle.VERTICAL_CENTER);//垂直居中
+			List<Integer> sizeList = meetingOrderService.selectMinMaxSize(meetingSeq);
+			for(Integer userSeq : userSeqList) {
+				List<MeetingOrderEntity> meetingOrderList = meetingOrderService.selectCustomMeetingOrder(getUser().getCompanySeq(),meetingSeq,userSeq);
+				BaseUserEntity user = baseUserService.selectById(userSeq);
+
+
+				// 创建sheet页
+				HSSFSheet sheet = wb.createSheet(user.getUserName());
+				//默认宽度和高度
+				sheet.setDefaultColumnWidth(15);
+				sheet.setDefaultRowHeightInPoints(18);
+				//不同列的宽度
+				sheet.setColumnWidth(0, 18 * 256);
+				sheet.setColumnWidth(1, 18 * 256);
+				sheet.setColumnWidth(2, 40 * 256);
+
+				List<String> title = new ArrayList<>(30);
+				title.add("序号");
+				title.add("客户");
+				title.add("货品货号");
+				title.add("批发价");
+				title.add("颜色");
+				for(Integer size : sizeList) {
+					title.add(size.toString());
+				}
+				title.add("合计");
+				title.add("金额");
+				HSSFRow row = sheet.createRow(0);
+				row.setHeightInPoints(24);
+				for (int i = 0; i < title.size(); i++) {
+					HSSFCell cell = row.createCell(i);
+					cell.setCellStyle(headCellStyle);
+					cell.setCellValue(title.get(i));
+				}
+
+
+				// 画图的顶级管理器，一个sheet只能获取一个（一定要注意这点）
+				HSSFPatriarch patriarch = sheet.createDrawingPatriarch();
+				// 循环多少次
+				int h = 1;
+				HSSFCell cell;
+				for (int i = 0; i < meetingOrderList.size(); i++) {
+					MeetingOrderEntity meetingOrderEntity = meetingOrderList.get(i);// 获得行对象
+					Wrapper<MeetingOrderProductEntity> meetingOrderProductEntityWrapper = new EntityWrapper<>();
+					meetingOrderProductEntityWrapper.eq("MeetingOrder_Seq",meetingOrderEntity.getSeq());
+					meetingOrderProductEntityWrapper.eq("MeetingGoods_Seq",meetingOrderEntity.getGoodSeq());
+					meetingOrderProductEntityWrapper.eq("Color_Seq",meetingOrderEntity.getColorSeq());
+					List<MeetingOrderProductEntity> list = productService.selectList(meetingOrderProductEntityWrapper);
+					if(list.size() > 0 && list.get(0).getCancel() == 1) {
+						continue;
+					}
+
+					row = sheet.createRow(h++);// 创建行
+					row.setHeightInPoints(50);//行高度
+					//序号
+					cell = row.createCell(0);
+					cell.setCellStyle(contentCellStyle);
+					cell.setCellValue(h-1);
+
+					//客户
+					cell = row.createCell(1);
+					cell.setCellStyle(contentCellStyle);
+					cell.setCellValue(meetingOrderEntity.getUsername());
+
+					//货号
+					cell = row.createCell(2);
+					cell.setCellStyle(contentCellStyle);
+					cell.setCellValue(meetingOrderEntity.getGoodId());
+
+					//批发价
+					cell = row.createCell(3);
+					cell.setCellStyle(contentCellStyle);
+					if(meetingOrderEntity.getPrice() != null) {
+						String money = meetingOrderEntity.getPrice().toString();
+						String[] cut = money.split("\\.");
+						if("00".equals(cut[1])) {
+							cell.setCellValue(cut[0]);
+						}else {
+							cell.setCellValue(money);
+						}
+					}
+
+
+					//颜色
+					cell = row.createCell(4);
+					cell.setCellStyle(contentCellStyle);
+					cell.setCellValue(meetingOrderEntity.getColorName());
+
+					Integer totalNum = 0;
+					Integer num = 0;
+					List<MeetingOrderCartDetailEntity> meetingOrderCartDetailEntities = meetingOrderService.getOrderCartDetail(meetingOrderEntity.getDistributeBoxSeq());
+					for(MeetingOrderCartDetailEntity meetingOrderCartDetailEntity : meetingOrderCartDetailEntities) {
+						num = 5;
+						if(meetingOrderCartDetailEntity != null && meetingOrderCartDetailEntity.getSize() != null) {
+							for(Integer size : sizeList) {
+								if(size.equals(meetingOrderCartDetailEntity.getSize())) {
+									totalNum += meetingOrderCartDetailEntity.getSelectNum();
+									cell = row.createCell(num);
+									cell.setCellStyle(contentCellStyle);
+									cell.setCellValue(meetingOrderCartDetailEntity.getSelectNum());
+								}
+								num++;
+							}
+						}
+					}
+
+					//合计
+					cell = row.createCell(num++);
+					cell.setCellStyle(contentCellStyle);
+					cell.setCellValue(meetingOrderEntity.getColorNum());
+
+					//金额
+					cell = row.createCell(num++);
+					cell.setCellStyle(contentCellStyle);
+					if(meetingOrderEntity.getMoney() != null) {
+						String money = meetingOrderEntity.getMoney().toString();
+						String[] cut = money.split("\\.");
+						if("00".equals(cut[1])) {
+							cell.setCellValue(cut[0]);
+						}else {
+							cell.setCellValue(money);
+						}
+
+					}
+				}
+			}
+
+
+			// 获取输出流，写入excel并关闭
+			out = response.getOutputStream();
+			wb.write(out);
+			out.flush();
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+			logger.error("定货方订货单: 文件名编码异常");
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.error("定货方订货单: " + e.getMessage(), e);
+		} finally {
+			try {
+				if (out != null) {
+					out.close();
+				}
+				if (wb != null) {
+					wb.close();
+				}
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+
+		}
+	}
+
+	/*@PostMapping("excel/goods")
+	@ApiOperation(value = "下载订货单-按货号统计", hidden = true)
+	public void downloadGoodsExcel(@ApiParam(value = "订货会", required = true) @RequestParam Integer meetingSeq,
+			HttpServletResponse response) {
+
+		try {
+
+			List<Map<String, Object>> goodsList = meetingOrderService
+					.queryGoodsOrderByMeetingSeq(getUser().getCompanySeq(), meetingSeq);
+
+			if (goodsList == null || goodsList.size() == 0) {
+				logger.warn("货号统计订货单下载-查询内容为空");
+				return;
+			}
+			//查询总的订单量
+			Integer totalBuy=meetingOrderService.getTotalCountByMeetingSeq(meetingSeq, null);
+			
+			MeetingEntity meetingEntity = meetingService.selectById(meetingSeq);
+
+			// 文件名前缀
+			String filePrefix = "";
+			if (meetingEntity != null) {
+				filePrefix += meetingEntity.getName() + "-";
+			}
+
+			// 2.创建Excel
+			response.setCharacterEncoding("UTF-8");
+			response.setHeader("content-Type", "application/vnd.ms-excel");
+			response.setHeader("Content-Disposition",
+					"attachment;filename=" + URLEncoder.encode(filePrefix + "订货单.xlsx", "UTF-8"));
+
+			// 创建excel2007工作簿
+			XSSFWorkbook wb = new XSSFWorkbook();
+
+			// 创建sheet页
+			XSSFSheet sheet = wb.createSheet("sheet1");
+			// 默认单元格宽度和高度
+			sheet.setDefaultColumnWidth(8);
+			sheet.setDefaultRowHeightInPoints(16);
+
+			// 不同列的宽度
+			sheet.setColumnWidth(0, 18 * 256);
+			// sheet.setColumnWidth(1, 40 * 256);
+
+			// 单元格样式1
+			XSSFCellStyle style1 = wb.createCellStyle();
+			style1.setAlignment(HorizontalAlignment.CENTER); // 水平居中
+			style1.setVerticalAlignment(VerticalAlignment.CENTER);// 垂直居中
+			style1.setBorderLeft(BorderStyle.THIN);
+			style1.setLeftBorderColor(new XSSFColor(Color.black));
+			style1.setBorderRight(BorderStyle.THIN);
+			style1.setRightBorderColor(new XSSFColor(Color.black));
+			style1.setBorderTop(BorderStyle.THIN);
+			style1.setTopBorderColor(new XSSFColor(Color.black));
+			style1.setBorderBottom(BorderStyle.THIN);
+			style1.setBottomBorderColor(new XSSFColor(Color.black));
+
+			// 单元格样式2
+			XSSFCellStyle style2 = wb.createCellStyle();
+			style2.setAlignment(HorizontalAlignment.CENTER); // 水平居中
+			style2.setVerticalAlignment(VerticalAlignment.CENTER);// 垂直居中
+			style2.setBorderLeft(BorderStyle.THIN);
+			style2.setLeftBorderColor(new XSSFColor(Color.black));
+			style2.setBorderRight(BorderStyle.THIN);
+			style2.setRightBorderColor(new XSSFColor(Color.black));
+			style2.setBorderTop(BorderStyle.THIN);
+			style2.setTopBorderColor(new XSSFColor(Color.black));
+			style2.setBorderBottom(BorderStyle.THIN);
+			style2.setBottomBorderColor(new XSSFColor(Color.black));
+
+			// 字体样式
+			XSSFFont font = wb.createFont();
+			font.setFontName("仿宋_GB2312");
+			font.setBold(true); // 粗体
+			font.setFontHeightInPoints((short) 12);
+
+			style1.setFont(font); // 字体
+
+			*//*
+			 * 数据结构 [ { goodID: 'A1111', details: [ {color: '米白', size: {34: 12, 35: 13, 36:
+			 * 14}}, {color: '黑色', size: {34: 18, 35: 17, 36: 14}} ], title: [34, 35, 36],
+			 * imgSrc:'http://', total:101 } ]
+			 *//*
+
+			XSSFRow newRow;
+			XSSFCell newCell;
+			// 当前操作行,创建新行后+1
+			int currRowIndex = 0;
+			CellRangeAddress cra1 = new CellRangeAddress(currRowIndex, currRowIndex, 0, 12); // 合并单元格
+			sheet.addMergedRegion(cra1);
+			newRow = sheet.createRow(currRowIndex++);
+			newRow.setHeightInPoints(24);
+			newCell = newRow.createCell(0);
+			newCell.setCellStyle(style1);
+			newCell.setCellValue("总订货量："+totalBuy);
+			int seq = 1;
+			for (int j = 0; j < goodsList.size(); j++) {
+				// 每个货号尺码范围不同，需要创建1行标题行
+				Map<String, Object> orderGood = goodsList.get(j);
+				// 数据解析
+				List<Integer> sizeTitles = (List<Integer>) orderGood.get("title");
+				Integer total = (Integer) orderGood.get("total");
+				String goodID = (String) orderGood.get("goodID");
+				List<Map<String, Object>> goodDetail = (List<Map<String, Object>>) orderGood.get("details");
+
+				// 标题列表
+				List<String> titles = new ArrayList<>();
+				titles.add("序号");
+				titles.add("货号");
+				titles.add("订货量");
+				titles.add("颜色");
+				titles.add("总数");
+				for (Integer sizeTitle : sizeTitles) {
+					titles.add(sizeTitle.toString());
+				}
+				titles.add("建议");
+				// 创建标题行
+				newRow = sheet.createRow(currRowIndex++);
+				for (int k = 0; k < titles.size(); k++) {
+					newCell = newRow.createCell(k);
+					newCell.setCellStyle(style1);
+					String title = titles.get(k);
+					newCell.setCellValue(title);
+				}
+
+				// 循环创建数据行
+				for (int n = 0; n < goodDetail.size(); n++) {
+					Map<String, Object> detail = goodDetail.get(n);
+					Map<Integer, Integer> sizeMap = (Map<Integer, Integer>) detail.get("size");
+					newRow = sheet.createRow(currRowIndex++);
+					if (n == 0) {
+						newCell = newRow.createCell(0);
+						newCell.setCellStyle(style2);
+						newCell.setCellValue(seq++);
+
+						newCell = newRow.createCell(1);
+						newCell.setCellStyle(style2);
+						newCell.setCellValue(goodID);
+
+						newCell = newRow.createCell(2);
+						newCell.setCellStyle(style2);
+						newCell.setCellValue(total);
+					}
+					// 第三列 颜色
+					newCell = newRow.createCell(3);
+					newCell.setCellStyle(style2);
+					if(detail.get("color") != null) {
+						newCell.setCellValue(detail.get("color").toString());
+					}
+					// 第四列 颜色下所有尺码的数量之和
+					newCell = newRow.createCell(4);
+					newCell.setCellStyle(style2);
+					newCell.setCellValue(detail.get("colorTotal").toString());
+					// 第四列开始 尺码列
+					int currCellIndex = 5;
+					for (Integer sizeTitle : sizeTitles) {
+						Integer sizeCount = sizeMap.get(sizeTitle);
+						newCell = newRow.createCell(currCellIndex);
+						newCell.setCellStyle(style2);
+						if (sizeCount != null) {
+							if(detail.get("cancel").equals(1)) {
+								newCell.setCellValue(sizeCount+"(已取消)");
+							}else {
+								newCell.setCellValue(sizeCount);
+							}
+							
+						}
+						currCellIndex++;
+					}
+					if (n == 0) {
+						// 最后1列 所有建议
+						newCell = newRow.createCell(currCellIndex);
+						newCell.setCellStyle(style2);
+						newCell.setCellValue(detail.get("valuate").toString());
+					}
+
+				}
+
+				// 每个货号之间空一行
+				currRowIndex++;
+			}
+
+			// 获取输出流，写入excel并关闭
+			ServletOutputStream out = response.getOutputStream();
+			wb.write(out);
+			out.flush();
+			out.close();
+			wb.close();
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+			logger.error("货号统计订货单: 文件名编码异常");
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.error("货号统计订货单: " + e.getMessage(), e);
+		}
+	}*/
+
+	@PostMapping("excel/goods")
+	@ApiOperation(value = "下载订货单-按货号统计", hidden = true)
+	public void downloadGoodsExcel(@ApiParam(value = "订货会", required = true) @RequestParam Integer meetingSeq,
+								   HttpServletResponse response) {
+
+		try {
+
+			List<Map<String, Object>> goodsList = meetingOrderService
+					.queryGoodsOrderByMeetingSeq(getUser().getCompanySeq(), meetingSeq,"%''%'",null);
+
+			if (goodsList == null || goodsList.size() == 0) {
+				logger.warn("货号统计订货单下载-查询内容为空");
+				return;
+			}
+			//查询总的订单量
+			Integer totalBuy = meetingOrderService.getTotalCountByMeetingSeq(meetingSeq, null);
+
+			MeetingEntity meetingEntity = meetingService.selectById(meetingSeq);
+
+			// 文件名前缀
+			String filePrefix = "";
+			if (meetingEntity != null) {
+				filePrefix += meetingEntity.getName() + "-";
+			}
+
+			// 2.创建Excel
+			response.setCharacterEncoding("UTF-8");
+			response.setHeader("content-Type", "application/vnd.ms-excel");
+			response.setHeader("Content-Disposition",
+					"attachment;filename=" + URLEncoder.encode(filePrefix + "订货单.xlsx", "UTF-8"));
+
+			// 创建excel2007工作簿
+			XSSFWorkbook wb = new XSSFWorkbook();
+
+			// 创建sheet页
+			XSSFSheet sheet = wb.createSheet("sheet1");
+			// 默认单元格宽度和高度
+			sheet.setDefaultColumnWidth(8);
+			sheet.setDefaultRowHeightInPoints(16);
+
+			// 不同列的宽度
+			sheet.setColumnWidth(0, 5*256);
+			sheet.setColumnWidth(1, 12*256);
+			sheet.setColumnWidth(2, 12*256);
+			sheet.setColumnWidth(3, 8*256);
+			sheet.setColumnWidth(4, 5*256);
+			sheet.setColumnWidth(5, 5*256);
+			sheet.setColumnWidth(6, 5*256);
+			sheet.setColumnWidth(7, 5*256);
+			sheet.setColumnWidth(8, 5*256);
+			sheet.setColumnWidth(9, 5*256);
+			sheet.setColumnWidth(10, 5*256);
+			sheet.setColumnWidth(11, 5*256);
+			sheet.setColumnWidth(12, 5*256);
+			sheet.setColumnWidth(13, 5*256);
+			sheet.setColumnWidth(14, 5*256);
+			sheet.setColumnWidth(15, 5*256);
+			sheet.setColumnWidth(16, 5*256);
+			sheet.setColumnWidth(17, 5*256);
+			sheet.setColumnWidth(18, 5*256);
+			sheet.setColumnWidth(19, 5*256);
+			sheet.setColumnWidth(20, 5*256);
+			sheet.setColumnWidth(21, 5*256);
+			sheet.setColumnWidth(22, 8*256);
+			sheet.setColumnWidth(23, 8*256);
+
+			// 单元格样式1
+			XSSFCellStyle style1 = wb.createCellStyle();
+			style1.setAlignment(HorizontalAlignment.CENTER); // 水平居中
+			style1.setVerticalAlignment(VerticalAlignment.CENTER);// 垂直居中
+
+			// 单元格样式2
+			XSSFCellStyle style2 = wb.createCellStyle();
+			style2.setAlignment(HorizontalAlignment.CENTER); // 水平居中
+			style2.setVerticalAlignment(VerticalAlignment.CENTER);// 垂直居中
+
+			// 字体样式
+			XSSFFont font = wb.createFont();
+			font.setFontName("仿宋_GB2312");
+			font.setBold(true); // 粗体
+			font.setFontHeightInPoints((short) 12);
+
+			style1.setFont(font); // 字体
+
+			/*
+			 * 数据结构 [ { goodID: 'A1111', details: [ {color: '米白', size: {34: 12, 35: 13, 36:
+			 * 14}}, {color: '黑色', size: {34: 18, 35: 17, 36: 14}} ], title: [34, 35, 36],
+			 * imgSrc:'http://', total:101 } ]
+			 */
+
+			XSSFRow newRow;
+			XSSFCell newCell;
+			// 当前操作行,创建新行后+1
+			int currRowIndex = 0;
+			CellRangeAddress cra1 = new CellRangeAddress(currRowIndex, currRowIndex, 0, 23); // 合并单元格
+			sheet.addMergedRegion(cra1);
+			newRow = sheet.createRow(currRowIndex++);
+			newRow.setHeightInPoints(24);
+			newCell = newRow.createCell(0);
+			newCell.setCellStyle(style1);
+			newCell.setCellValue("总订货量："+totalBuy);
+			int seq = 1;
+			// 标题列表
+			List<Integer> sizeList = meetingOrderService.selectMinMaxSize(meetingSeq);
+			List<String> titles = new ArrayList<>();
+			titles.add("序号");
+			titles.add("客户");
+			titles.add("货品货号");
+			titles.add("批发价");
+			titles.add("颜色");
+			for(Integer size : sizeList) {
+				titles.add(size.toString());
+			}
+			titles.add("合计");
+			titles.add("金额");
+			// 创建标题行
+			newRow = sheet.createRow(currRowIndex++);
+			for (int k = 0; k < titles.size(); k++) {
+				newCell = newRow.createCell(k);
+				newCell.setCellStyle(style1);
+				String title = titles.get(k);
+				newCell.setCellValue(title);
+			}
+			for (int j = 0; j < goodsList.size(); j++) {
+				// 每个货号尺码范围不同，需要创建1行标题行
+				Map<String, Object> orderGood = goodsList.get(j);
+				// 数据解析
+				List<Integer> sizeTitles = (List<Integer>) orderGood.get("title");
+				Integer total = (Integer) orderGood.get("total");
+				String goodID = (String) orderGood.get("goodID");
+				List<Map<String, Object>> goodDetail = (List<Map<String, Object>>) orderGood.get("details");
+
+
+
+				// 循环创建数据行
+				for (int n = 0; n < goodDetail.size(); n++) {
+					Map<String, Object> detail = goodDetail.get(n);
+					Map<Integer, Integer> sizeMap = (Map<Integer, Integer>) detail.get("size");
+					newRow = sheet.createRow(currRowIndex++);
+
+					newCell = newRow.createCell(0);
+					newCell.setCellStyle(style2);
+					newCell.setCellValue(seq++);
+
+					newCell = newRow.createCell(1);
+					newCell.setCellStyle(style2);
+					newCell.setCellValue((String)detail.get("userName"));
+
+					newCell = newRow.createCell(2);
+					newCell.setCellStyle(style2);
+					newCell.setCellValue(goodID);
+
+					newCell = newRow.createCell(3);
+					newCell.setCellStyle(style2);
+					if(detail.get("price") != null) {
+						String price = detail.get("price").toString();
+						String[] prices = price.split("\\.");
+						if("00".equals(prices[1])) {
+							newCell.setCellValue(prices[0]);
+						}else {
+							newCell.setCellValue(price);
+						}
+					}
+
+					newCell = newRow.createCell(4);
+					newCell.setCellStyle(style2);
+					if(detail.get("color") != null) {
+						newCell.setCellValue(detail.get("color").toString());
+					}
+					Integer totalNum = 0;
+					Integer num = 0;
+					for (Integer sizeTitle : sizeTitles) {
+						num = 5;
+						Integer sizeCount = sizeMap.get(sizeTitle);
+						for(Integer size : sizeList) {
+							if(sizeTitle.equals(size)) {
+								newCell = newRow.createCell(num);
+								newCell.setCellStyle(style2);
+								if (sizeCount != null) {
+									if(detail.get("cancel").equals(1)) {
+										newCell.setCellValue(sizeCount+"(已取消)");
+									}else {
+										newCell.setCellValue(sizeCount);
+									}
+									totalNum += sizeCount;
+								}
+							}
+							num++;
+						}
+					}
+
+					newCell = newRow.createCell(num++);
+					newCell.setCellStyle(style2);
+					newCell.setCellValue(totalNum);
+
+					newCell = newRow.createCell(num++);
+					newCell.setCellStyle(style2);
+					if(detail.get("price") != null) {
+						String totalMoney = new BigDecimal(detail.get("price").toString()).multiply(new BigDecimal(totalNum)).toString();
+						String[] totalMoneys = totalMoney.split("\\.");
+						if("00".equals(totalMoneys[1])) {
+							newCell.setCellValue(totalMoneys[0]);
+						}else {
+							newCell.setCellValue(totalMoney);
+						}
+					}
+
+				}
+			}
+
+			// 获取输出流，写入excel并关闭
+			ServletOutputStream out = response.getOutputStream();
+			wb.write(out);
+			out.flush();
+			out.close();
+			wb.close();
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+			logger.error("货号统计订货单: 文件名编码异常");
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.error("货号统计订货单: " + e.getMessage(), e);
+		}
+	}
+
+	@PostMapping("excel/area")
+	@ApiOperation(value = "下载区域订货单", hidden = true)
+	public void downloadAreaExcel(@ApiParam(value = "订货会序号", required = true) Integer meetingSeq,
+			HttpServletResponse response) {
+
+		try {
+
+			List<Map<String, Object>> areaOrderProducts = meetingOrderService
+					.queryAreaOrderByMeetingSeq(getUser().getCompanySeq(), meetingSeq,null);
+			if (areaOrderProducts == null || areaOrderProducts.size() == 0) {
+				logger.warn("区域统计订货单下载-查询内容为空");
+				return;
+			}
+			//查询总的订单量
+			Integer totalBuy=meetingOrderService.getTotalCountByMeetingSeq(meetingSeq, null);
+			
+			// 获取订货会
+			MeetingEntity meetingEntity = meetingService.selectById(meetingSeq);
+			String filePrefix = "";
+			if (meetingEntity != null) {
+				filePrefix += meetingEntity.getName() + "-";
+			}
+
+			// 2.创建Excel
+			response.setCharacterEncoding("UTF-8");
+			response.setHeader("content-Type", "application/vnd.ms-excel");
+			response.setHeader("Content-Disposition",
+					"attachment;filename=" + URLEncoder.encode(filePrefix + "区域统计订货单.xlsx", "UTF-8"));
+
+			// 创建excel2007工作簿
+			XSSFWorkbook wb = new XSSFWorkbook();
+
+			// 创建sheet页
+			XSSFSheet sheet = wb.createSheet("sheet1");
+			// 默认单元格宽度和高度
+			sheet.setDefaultColumnWidth(17);
+			sheet.setDefaultRowHeightInPoints(16);
+
+			// 默认单元格宽度和高度
+			sheet.setDefaultColumnWidth(8);
+			sheet.setDefaultRowHeightInPoints(16);
+
+			// 不同列的宽度
+			sheet.setColumnWidth(0, 18 * 256);
+			// sheet.setColumnWidth(1, 40 * 256);
+
+			// 单元格样式1
+			XSSFCellStyle style1 = wb.createCellStyle();
+			style1.setAlignment(HorizontalAlignment.CENTER); // 水平居中
+			style1.setVerticalAlignment(VerticalAlignment.CENTER);// 垂直居中
+			style1.setBorderLeft(BorderStyle.THIN);
+			style1.setLeftBorderColor(new XSSFColor(Color.black));
+			style1.setBorderRight(BorderStyle.THIN);
+			style1.setRightBorderColor(new XSSFColor(Color.black));
+			style1.setBorderTop(BorderStyle.THIN);
+			style1.setTopBorderColor(new XSSFColor(Color.black));
+			style1.setBorderBottom(BorderStyle.THIN);
+			style1.setBottomBorderColor(new XSSFColor(Color.black));
+
+			// 单元格样式2
+			XSSFCellStyle style2 = wb.createCellStyle();
+			style2.setAlignment(HorizontalAlignment.CENTER); // 水平居中
+			style2.setVerticalAlignment(VerticalAlignment.CENTER);// 垂直居中
+			style2.setBorderLeft(BorderStyle.THIN);
+			style2.setLeftBorderColor(new XSSFColor(Color.black));
+			style2.setBorderRight(BorderStyle.THIN);
+			style2.setRightBorderColor(new XSSFColor(Color.black));
+			style2.setBorderTop(BorderStyle.THIN);
+			style2.setTopBorderColor(new XSSFColor(Color.black));
+			style2.setBorderBottom(BorderStyle.THIN);
+			style2.setBottomBorderColor(new XSSFColor(Color.black));
+
+			// 字体样式
+			XSSFFont font = wb.createFont();
+			font.setFontName("仿宋_GB2312");
+			font.setBold(true); // 粗体
+			font.setFontHeightInPoints((short) 12);
+
+			style1.setFont(font); // 字体
+
+			/*
+			 * 返回的数据结构
+			 * 
+			 * [ {areaName:'郑州', areaTotal:101, areaDetail:[ { goodID: 'A1111', details: [
+			 * {color: '米白', size: {34: 12, 35: 13, 36: 14}}, {color: '黑色', size: {34: 18,
+			 * 35: 17, 36: 14}} ], title: [34, 35, 36], imgSrc:'http://', total:110, } ] } ]
+			 */
+			XSSFRow newRow;
+			XSSFCell newCell;
+			// 当前操作行,创建新行后+1
+			int currRowIndex = 0;
+			CellRangeAddress cra1 = new CellRangeAddress(currRowIndex, currRowIndex, 0, 12); // 合并单元格
+			sheet.addMergedRegion(cra1);
+			newRow = sheet.createRow(currRowIndex++);
+			newRow.setHeightInPoints(24);
+			newCell = newRow.createCell(0);
+			newCell.setCellStyle(style1);
+			newCell.setCellValue("总订货量："+totalBuy);
+			for (Map<String, Object> areaOrderProduct : areaOrderProducts) {
+
+				// 数据解析
+				String areaName = (String) areaOrderProduct.get("areaName");
+				Integer areaTotal = (Integer) areaOrderProduct.get("areaTotal");
+				List<Map<String, Object>> areaDetail = (List<Map<String, Object>>) areaOrderProduct.get("areaDetail");
+
+				for (int i = 0; i < areaDetail.size(); i++) {
+					Map<String, Object> goodsMap = areaDetail.get(i);
+					// 数据解析
+					List<Integer> sizeTitles = (List<Integer>) goodsMap.get("title");
+					Integer total = (Integer) goodsMap.get("total");
+					String goodID = (String) goodsMap.get("goodID");
+					List<Map<String, Object>> goodDetail = (List<Map<String, Object>>) goodsMap.get("details");
+
+					// 标题列表
+					List<String> titles = new ArrayList<>();
+					titles.add("区域");
+					titles.add("订货量");
+					titles.add("序号");
+					titles.add("货号");
+					titles.add("订货量");
+					titles.add("颜色");
+					titles.add("总数");
+					for (Integer sizeTitle : sizeTitles) {
+						titles.add(sizeTitle.toString());
+					}
+
+					// 创建标题行
+					// 相同区域下的第一个货号，显示区域和订货量
+					newRow = sheet.createRow(currRowIndex++);
+					if (i == 0) {
+						for (int k = 0; k < titles.size(); k++) {
+							newCell = newRow.createCell(k);
+							newCell.setCellStyle(style1);
+							String title = titles.get(k);
+							newCell.setCellValue(title);
+						}
+					} else {
+						for (int k = 2; k < titles.size(); k++) {
+							newCell = newRow.createCell(k);
+							newCell.setCellStyle(style1);
+							String title = titles.get(k);
+							newCell.setCellValue(title);
+						}
+					}
+					int seq = 1;
+					// 循环创建数据行
+					for (int n = 0; n < goodDetail.size(); n++) {
+						Map<String, Object> detail = goodDetail.get(n);
+						Map<Integer, Integer> sizeMap = (Map<Integer, Integer>) detail.get("size");
+						newRow = sheet.createRow(currRowIndex++);
+						if (n == 0) {
+							// 区域下的第一个货号
+							if (i == 0) {
+								newCell = newRow.createCell(0);
+								newCell.setCellStyle(style2);
+								newCell.setCellValue(areaName);
+
+								newCell = newRow.createCell(1);
+								newCell.setCellStyle(style2);
+								newCell.setCellValue(areaTotal);
+							}
+
+							newCell = newRow.createCell(2);
+							newCell.setCellStyle(style2);
+							newCell.setCellValue(seq++);
+
+							newCell = newRow.createCell(3);
+							newCell.setCellStyle(style2);
+							newCell.setCellValue(goodID);
+
+							newCell = newRow.createCell(4);
+							newCell.setCellStyle(style2);
+							newCell.setCellValue(total);
+						}
+						// 第5列 颜色
+						newCell = newRow.createCell(5);
+						newCell.setCellStyle(style2);
+						newCell.setCellValue(detail.get("color").toString());
+						// 第6列 颜色下尺码数量之和
+						newCell = newRow.createCell(6);
+						newCell.setCellStyle(style2);
+						newCell.setCellValue(detail.get("colorTotal").toString());
+
+						// 第7列开始 尺码列
+						int currCellIndex = 7;
+						for (Integer sizeTitle : sizeTitles) {
+							Integer sizeCount = sizeMap.get(sizeTitle);
+							newCell = newRow.createCell(currCellIndex);
+							newCell.setCellStyle(style2);
+							if (sizeCount != null) {
+								if(detail.get("cancel").equals(1)) {
+									newCell.setCellValue(sizeCount+"(已取消)");
+								}else {
+									newCell.setCellValue(sizeCount);
+								}
+							}
+							currCellIndex++;
+						}
+					}
+
+				}
+				// 区域之间空一行
+				currRowIndex++;
+			}
+
+			// 获取输出流，写入excel并关闭
+			ServletOutputStream out = response.getOutputStream();
+			wb.write(out);
+			out.flush();
+			out.close();
+			wb.close();
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+			logger.error("区域统计订货单: 文件名编码异常");
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.error("区域统计订货单: " + e.getMessage(), e);
+		}
+	}
+
+	
+	public void downloadDistributeBoxExcel(@ApiParam(value = "订货会序号", required = true) Integer meetingSeq,
+			HttpServletResponse response) {
+		try {
+			// 根据订货会序号查询购物车信息
+			List<MeetingOrderCartEntity> cartEntities = meetingOrderCartService.getListByMeetingSeq(meetingSeq);
+			  if (cartEntities == null || cartEntities.size() == 0) {
+				  logger.warn("配码单下载-查询内容为空"); 
+				  return; 
+			  }
+			// 获取订货会
+				MeetingEntity meetingEntity = meetingService.selectById(meetingSeq);
+				String filePrefix = "";
+				if (meetingEntity != null) {
+					filePrefix += meetingEntity.getName() + "-";
+				}
+				List<MeetingOrderEntity> meetingOrderEntities=meetingOrderService.getAllListByMeeingSeq(meetingSeq);
+				
+				
+				
+				// 2.创建Excel
+				response.setCharacterEncoding("UTF-8");
+				response.setHeader("content-Type", "application/vnd.ms-excel");
+				response.setHeader("Content-Disposition",
+						"attachment;filename=" + URLEncoder.encode(filePrefix + "配码单.xlsx", "UTF-8"));
+				// 创建excel2007工作簿
+				XSSFWorkbook wb = new XSSFWorkbook();
+			  //查询所有订货的用户
+			  for (MeetingOrderEntity meetingOrderEntity : meetingOrderEntities) {
+				  List<MeetingOrderCartEntity> meetingCartEntities =  meetingOrderCartService.getListByOrderSeq(meetingOrderEntity.getSeq());
+				  BaseUserEntity baseUserEntity=baseUserService.selectById(meetingOrderEntity.getUserSeq());
+				  	// 创建sheet页
+					XSSFSheet sheet = wb.createSheet(baseUserEntity.getUserName()+"的"+meetingOrderEntity.getOrderNum() +"配码单");
+					// 默认单元格宽度和高度
+					sheet.setDefaultColumnWidth(17);
+					sheet.setDefaultRowHeightInPoints(16);
+
+					// 默认单元格宽度和高度
+					sheet.setDefaultColumnWidth(8);
+					sheet.setDefaultRowHeightInPoints(16);
+
+					// 不同列的宽度
+					sheet.setColumnWidth(0, 18 * 256);
+					// sheet.setColumnWidth(1, 40 * 256);
+
+					// 单元格样式1
+					XSSFCellStyle style1 = wb.createCellStyle();
+					style1.setAlignment(HorizontalAlignment.CENTER); // 水平居中
+					style1.setVerticalAlignment(VerticalAlignment.CENTER);// 垂直居中
+					style1.setBorderLeft(BorderStyle.THIN);
+					style1.setLeftBorderColor(new XSSFColor(Color.black));
+					style1.setBorderRight(BorderStyle.THIN);
+					style1.setRightBorderColor(new XSSFColor(Color.black));
+					style1.setBorderTop(BorderStyle.THIN);
+					style1.setTopBorderColor(new XSSFColor(Color.black));
+					style1.setBorderBottom(BorderStyle.THIN);
+					style1.setBottomBorderColor(new XSSFColor(Color.black));
+
+					// 单元格样式2
+					XSSFCellStyle style2 = wb.createCellStyle();
+					style2.setAlignment(HorizontalAlignment.CENTER); // 水平居中
+					style2.setVerticalAlignment(VerticalAlignment.CENTER);// 垂直居中
+					style2.setBorderLeft(BorderStyle.THIN);
+					style2.setLeftBorderColor(new XSSFColor(Color.black));
+					style2.setBorderRight(BorderStyle.THIN);
+					style2.setRightBorderColor(new XSSFColor(Color.black));
+					style2.setBorderTop(BorderStyle.THIN);
+					style2.setTopBorderColor(new XSSFColor(Color.black));
+					style2.setBorderBottom(BorderStyle.THIN);
+					style2.setBottomBorderColor(new XSSFColor(Color.black));
+					
+					// 单元格样式3
+					XSSFCellStyle style3 = wb.createCellStyle();
+					style3.setAlignment(HorizontalAlignment.CENTER); // 水平居中
+					style3.setVerticalAlignment(VerticalAlignment.CENTER);// 垂直居中
+					style3.setBorderLeft(BorderStyle.THIN);
+					style3.setLeftBorderColor(new XSSFColor(Color.black));
+					style3.setBorderRight(BorderStyle.THIN);
+					style3.setRightBorderColor(new XSSFColor(Color.black));
+					style3.setBorderTop(BorderStyle.THIN);
+					style3.setTopBorderColor(new XSSFColor(Color.black));
+					style3.setBorderBottom(BorderStyle.THIN);
+					style3.setBottomBorderColor(new XSSFColor(Color.black));
+					style3.setFillPattern(FillPatternType.SOLID_FOREGROUND); //设置填充方案
+					style3.setFillForegroundColor(new XSSFColor(new Color(255,217,102)));  //设置填充颜色
+
+					// 字体样式
+					XSSFFont font = wb.createFont();
+					font.setFontName("仿宋_GB2312");
+					font.setBold(true); // 粗体
+					font.setFontHeightInPoints((short) 12);
+
+					style1.setFont(font); // 字体
+					XSSFRow newRow;
+					XSSFCell newCell;
+					// 当前操作行,创建新行后+1
+					int currRowIndex = 0;
+					for (MeetingOrderCartEntity shoppingCartEntity : meetingCartEntities) {
+						String meetingGoodsID=shoppingCartEntity.getMeetingGoodsID(); //工厂货号
+						
+						String userGoodID=shoppingCartEntity.getUserGoodID();//客户型号
+						Integer perBoxNum=shoppingCartEntity.getPerBoxNum();//每箱数量（配件）
+						Integer meetingShoppingCartSeq=shoppingCartEntity.getSeq();
+						Integer isAllocated=shoppingCartEntity.getIsAllocated();//是否已配码0：否 1：是
+						Integer meetingGoodsSeq=shoppingCartEntity.getMeetingGoodsSeq();
+						MeetingGoodsEntity meetingGoodsEntity=meetingGoodsService.selectById(meetingGoodsSeq);
+						newRow = sheet.createRow(currRowIndex++);
+						
+						newCell = newRow.createCell(0);
+						newCell.setCellStyle(style3);
+						newCell.setCellValue("工厂货号");
+						
+						newCell = newRow.createCell(1);
+						newCell.setCellStyle(style2);
+						newCell.setCellValue(meetingGoodsEntity.getGoodID());
+						
+						newCell = newRow.createCell(2);
+						newCell.setCellStyle(style3);
+						newCell.setCellValue("客户型号");
+						
+						newCell = newRow.createCell(3);
+						newCell.setCellStyle(style2);
+						if(userGoodID!=null) {
+							newCell.setCellValue(userGoodID);
+						}else {
+							newCell.setCellValue("");
+						}
+					
+						
+						newCell = newRow.createCell(4);
+						newCell.setCellStyle(style3);
+						newCell.setCellValue("配件数");
+						
+						newCell = newRow.createCell(5);
+						newCell.setCellStyle(style2);
+						if(perBoxNum!=null) {
+							newCell.setCellValue(perBoxNum);
+						}else {
+							newCell.setCellValue("");
+						}
+						
+						
+						newRow = sheet.createRow(currRowIndex++);
+						
+						newCell = newRow.createCell(0);
+						newCell.setCellStyle(style3);
+						newCell.setCellValue("订单数量");
+						
+						
+						Integer cellIndex=1;
+					if(isAllocated.equals(1)) {
+						List<Map<String, Object>> shoppingCartDistributeBoxEntities=meetingOrderCartDistributeBoxService.getSelectNum(meetingShoppingCartSeq);
+						List<MeetingOrderCartDistributeBoxEntity> meetingShoppingCartDistributeBoxEntities=meetingOrderCartDistributeBoxService.getMeetingShoppingCartDistributeBoxListByShoppingCartSeq(meetingShoppingCartSeq);
+						for (Map<String, Object> meetingShoppingCartDistributeBoxEntity : shoppingCartDistributeBoxEntities) {
+							Integer colorTotalNum=(Integer) meetingShoppingCartDistributeBoxEntity.get("num");//本颜色总数量
+							Integer colorSeq =(Integer) meetingShoppingCartDistributeBoxEntity.get("colorSeq");//颜色seq
+							GoodsColorEntity goodsColorEntity=GoodsColorService.selectById(colorSeq);
+							newCell = newRow.createCell(cellIndex++);
+							newCell.setCellStyle(style3);
+							newCell.setCellValue(goodsColorEntity.getName());
+							
+							newCell = newRow.createCell(cellIndex++);
+							newCell.setCellStyle(style2);
+							newCell.setCellValue(colorTotalNum);
+						
+						}
+						
+						CellRangeAddress cra = new CellRangeAddress(currRowIndex, currRowIndex, 0, 12); // 合并单元格
+						sheet.addMergedRegion(cra);
+						newRow = sheet.createRow(currRowIndex++);
+						newRow.setHeightInPoints(24);
+
+						// 标题内容
+						
+						newCell = newRow.createCell(0);
+						 newCell.setCellStyle(style1);
+						newCell.setCellValue("配码明细");
+						
+						newRow = sheet.createRow(currRowIndex++);
+						
+						newCell = newRow.createCell(0);
+						newCell.setCellStyle(style3);
+						newCell.setCellValue("颜色");
+						
+						newCell = newRow.createCell(1);
+						newCell.setCellStyle(style3);
+						newCell.setCellValue("数量");
+						
+						newCell = newRow.createCell(2);
+						newCell.setCellStyle(style3);
+						newCell.setCellValue("件数");
+						//获取最小尺码段和最大尺码段
+					
+						
+						Integer minSize=meetingGoodsEntity.getMinSize();
+						Integer maxSize=meetingGoodsEntity.getMaxSize();
+						
+						for (int i = 0; i <=maxSize-minSize; i++) {
+							newCell = newRow.createCell(i+3);
+							newCell.setCellStyle(style3);
+							newCell.setCellValue((minSize+i)+"#");
+						}
+						
+						
+						for (MeetingOrderCartDistributeBoxEntity meetingShoppingCartDistributeBoxEntity : meetingShoppingCartDistributeBoxEntities) {
+							Integer meetingShoppingCartDistributeBoxSeq=meetingShoppingCartDistributeBoxEntity.getSeq();
+							List<MeetingOrderCartDetailEntity> meetingShoppingCartDetailEntities=meetingOrderCartDetailService.getListByMeetingShoppingCartDistributeBoxSeq(meetingShoppingCartDistributeBoxSeq);
+							Integer colorSeq =meetingShoppingCartDistributeBoxEntity.getColorSeq();//颜色seq
+							GoodsColorEntity goodsColorEntity=GoodsColorService.selectById(colorSeq);
+							newRow = sheet.createRow(currRowIndex++);
+							
+							newCell = newRow.createCell(0);
+							newCell.setCellStyle(style2);
+							newCell.setCellValue(goodsColorEntity.getName());
+							
+							newCell = newRow.createCell(1);
+							newCell.setCellStyle(style2);
+							newCell.setCellValue(meetingShoppingCartDistributeBoxEntity.getColorTotalNum());
+							
+							newCell = newRow.createCell(2);
+							newCell.setCellStyle(style2);
+							if(meetingShoppingCartDistributeBoxEntity.getBoxCount()!=null) {
+								newCell.setCellValue(meetingShoppingCartDistributeBoxEntity.getBoxCount());
+							}else {
+								newCell.setCellValue(meetingShoppingCartDistributeBoxEntity.getColorTotalNum()/perBoxNum);	
+							}
+							
+							
+							
+							Map<String, Integer>  distributeBox=new HashMap<String, Integer>();
+							for (MeetingOrderCartDetailEntity meetingShoppingCartDetailEntity : meetingShoppingCartDetailEntities) {
+								Integer Size=meetingShoppingCartDetailEntity.getSize();//尺码
+								Integer SelectNum=meetingShoppingCartDetailEntity.getSelectNum();//选款数量
+									distributeBox.put(Size.toString(), SelectNum);
+							}
+							
+							for (int i = 0; i <=maxSize-minSize; i++) {
+								newCell = newRow.createCell(i+3);
+								newCell.setCellStyle(style2);
+								Integer key=minSize+i;
+								Integer selectNum=	distributeBox.get(key.toString());
+								if(selectNum!=null) {
+									newCell.setCellValue(selectNum);
+								}else {
+									newCell.setCellValue("");
+								}
+								
+							}
+						}
+//						}else{
+//							List<Map<String, Object>> shoppingCartDetailEntities=meetingShoppingCartDetailService.getSelectNum(meetingShoppingCartSeq);
+//							List<MeetingShoppingCartDetailEntity> meetingShoppingCartDetailEntities=meetingShoppingCartDetailService.getListByMeetingShoppingCartDistributeBoxSeq(meetingShoppingCartSeq);	
+//							for (Map<String, Object> shoppingCartDetailEntity : shoppingCartDetailEntities) {
+//								Integer colorTotalNum=(Integer) shoppingCartDetailEntity.get("num");//本颜色总数量
+//								Integer colorSeq =(Integer) shoppingCartDetailEntity.get("colorSeq");//颜色seq
+//								GoodsColorEntity goodsColorEntity=GoodsColorService.selectById(colorSeq);
+//								newCell = newRow.createCell(cellIndex++);
+//								newCell.setCellStyle(style3);
+//								newCell.setCellValue(goodsColorEntity.getName());
+//								
+//								newCell = newRow.createCell(cellIndex++);
+//								newCell.setCellStyle(style2);
+//								newCell.setCellValue(colorTotalNum);
+//							
+//							}
+//							
+//							CellRangeAddress cra = new CellRangeAddress(currRowIndex, currRowIndex, 0, 12); // 合并单元格
+//							sheet.addMergedRegion(cra);
+//							newRow = sheet.createRow(currRowIndex++);
+//							newRow.setHeightInPoints(24);
+//
+//							// 标题内容
+//							
+//							newCell = newRow.createCell(0);
+//							newCell.setCellStyle(style1);
+//							newCell.setCellValue("配码明细");
+//							
+//							newRow = sheet.createRow(currRowIndex++);
+//							
+//							newCell = newRow.createCell(0);
+//							newCell.setCellStyle(style3);
+//							newCell.setCellValue("颜色");
+//							
+//							newCell = newRow.createCell(1);
+//							newCell.setCellStyle(style3);
+//							newCell.setCellValue("数量");
+//							
+//							newCell = newRow.createCell(2);
+//							newCell.setCellStyle(style3);
+//							newCell.setCellValue("件数");
+//							//获取最小尺码段和最大尺码段
+//							MeetingGoodsEntity meetingGoodsEntity=meetingGoodsService.selectById(meetingGoodsSeq);
+//							
+//							Integer minSize=meetingGoodsEntity.getMinSize();
+//							Integer maxSize=meetingGoodsEntity.getMaxSize();
+//							
+//							for (int i = 0; i <=maxSize-minSize; i++) {
+//								newCell = newRow.createCell(i+3);
+//								newCell.setCellStyle(style3);
+//								newCell.setCellValue((minSize+i)+"#");
+//							}
+						
+					
+	                  }
+					currRowIndex++;
+					currRowIndex++;
+					currRowIndex++;
+					}
+			  }
+				ServletOutputStream out = response.getOutputStream();
+				wb.write(out);
+				out.flush();
+				out.close();
+				wb.close();		
+				
+			 
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+			logger.error("配码单: 文件名编码异常");
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.error("配码单: " + e.getMessage(), e);
+		}
+
+	}
+	
+	@PostMapping("excel/distributeBox")
+	public void downloadDistributeExcel(@ApiParam(value = "订货会序号", required = true) Integer meetingSeq,
+			HttpServletResponse response) {
+		try {
+			// 根据订货会序号查询购物车信息
+			List<MeetingOrderCartEntity> cartEntities = meetingOrderCartService.getListByMeetingSeq(meetingSeq);
+			  if (cartEntities == null || cartEntities.size() == 0) {
+				  logger.warn("配码单下载-查询内容为空"); 
+				  return; 
+			  }
+			// 获取订货会
+				MeetingEntity meetingEntity = meetingService.selectById(meetingSeq);
+			//获取本次订货会最小尺码和最大尺码
+				Integer minSize=meetingGoodsService.getMinSizeByMeetingSeq(meetingSeq);
+				
+				Integer maxSize=meetingGoodsService.getMaxSizeByMeetingSeq(meetingSeq);
+				
+				
+				String filePrefix = "";
+				if (meetingEntity != null) {
+					filePrefix += meetingEntity.getName() + "-";
+				}
+				List<MeetingOrderEntity> meetingOrderEntities=meetingOrderService.getAllListByMeeingSeq(meetingSeq);
+				// 2.创建Excel
+				response.setCharacterEncoding("UTF-8");
+				response.setHeader("content-Type", "application/vnd.ms-excel");
+				response.setHeader("Content-Disposition",
+						"attachment;filename=" + URLEncoder.encode(filePrefix + "配码单.xlsx", "UTF-8"));
+				// 创建excel2007工作簿
+				XSSFWorkbook wb = new XSSFWorkbook();
+				// 单元格样式2
+				XSSFCellStyle style2 = wb.createCellStyle();
+				style2.setAlignment(HorizontalAlignment.CENTER); // 水平居中
+				style2.setVerticalAlignment(VerticalAlignment.CENTER);// 垂直居中
+				style2.setBorderLeft(BorderStyle.THIN);
+				style2.setLeftBorderColor(new XSSFColor(Color.black));
+				style2.setBorderRight(BorderStyle.THIN);
+				style2.setRightBorderColor(new XSSFColor(Color.black));
+				style2.setBorderTop(BorderStyle.THIN);
+				style2.setTopBorderColor(new XSSFColor(Color.black));
+				style2.setBorderBottom(BorderStyle.THIN);
+				style2.setBottomBorderColor(new XSSFColor(Color.black));
+				
+				// 字体样式
+				XSSFFont font = wb.createFont();
+				font.setFontName("仿宋_GB2312");
+				font.setBold(true); // 粗体
+				font.setFontHeightInPoints((short) 12);
+				
+				
+				//按客户生成创建sheet页
+				// 创建sheet页
+				XSSFSheet sheet1 = wb.createSheet("按客户");
+				// 默认单元格宽度和高度
+				sheet1.setDefaultColumnWidth(17);
+				sheet1.setDefaultRowHeightInPoints(16);
+
+				// 默认单元格宽度和高度
+				sheet1.setDefaultColumnWidth(8);
+				sheet1.setDefaultRowHeightInPoints(16);
+
+				// 不同列的宽度
+				sheet1.setColumnWidth(0, 18 * 256);
+				// sheet.setColumnWidth(1, 40 * 256);
+				// 当前操作行,创建新行后+1
+				int currRowIndex = 0;
+				XSSFRow newRow;
+				XSSFCell newCell;
+				newRow = sheet1.createRow(currRowIndex++);
+				
+				newCell = newRow.createCell(0);
+				newCell.setCellStyle(style2);
+				newCell.setCellValue("序号");
+				
+				newCell = newRow.createCell(1);
+				newCell.setCellStyle(style2);
+				newCell.setCellValue("客户");
+				
+				newCell = newRow.createCell(2);
+				newCell.setCellStyle(style2);
+				newCell.setCellValue("型号");
+				
+				newCell = newRow.createCell(3);
+				newCell.setCellStyle(style2);
+				newCell.setCellValue("客户型号");
+				
+				newCell = newRow.createCell(4);
+				newCell.setCellStyle(style2);
+				newCell.setCellValue("颜色");
+				
+				newCell = newRow.createCell(5);
+				newCell.setCellStyle(style2);
+				newCell.setCellValue("双数");
+				
+				
+				
+				for (int i = 0; i <=maxSize-minSize; i++) {
+					newCell = newRow.createCell(i+6);
+					newCell.setCellStyle(style2);
+					newCell.setCellValue((minSize+i)+"#");
+				}
+				
+				newCell = newRow.createCell(maxSize-minSize+6);
+				newCell.setCellStyle(style2);
+				newCell.setCellValue("建议");
+				
+				
+				int seq=0;
+				  for (MeetingOrderEntity meetingOrderEntity : meetingOrderEntities) {
+					  List<MeetingOrderCartEntity> meetingCartEntities =  meetingOrderCartService.getListByOrderSeq(meetingOrderEntity.getSeq());
+					  BaseUserEntity baseUserEntity=baseUserService.selectById(meetingOrderEntity.getUserSeq());
+						for (MeetingOrderCartEntity shoppingCartEntity:meetingCartEntities) {
+							String userGoodID=shoppingCartEntity.getUserGoodID();//客户型号
+							Integer meetingGoodsSeq=shoppingCartEntity.getMeetingGoodsSeq();
+							//根据货号和客户编号查询建议
+						String valute=meetingGoodsValuateService.getMeetingGoodsValuateByUserSeq(meetingGoodsSeq, meetingOrderEntity.getUserSeq());
+							
+							MeetingGoodsEntity meetingGoodsEntity=meetingGoodsService.selectById(meetingGoodsSeq);
+							Integer meetingShoppingCartSeq=shoppingCartEntity.getSeq();
+						//	List<Map<String, Object>> shoppingCartDistributeBoxEntities=meetingOrderCartDistributeBoxService.getSelectNum(meetingShoppingCartSeq);
+							List<MeetingOrderCartDistributeBoxEntity> meetingShoppingCartDistributeBoxEntities=meetingOrderCartDistributeBoxService.getMeetingShoppingCartDistributeBoxListByShoppingCartSeq(meetingShoppingCartSeq);
+							for (MeetingOrderCartDistributeBoxEntity meetingShoppingCartDistributeBoxEntity : meetingShoppingCartDistributeBoxEntities) {
+								Integer meetingShoppingCartDistributeBoxSeq=meetingShoppingCartDistributeBoxEntity.getSeq();
+								List<MeetingOrderCartDetailEntity> meetingShoppingCartDetailEntities=meetingOrderCartDetailService.getListByMeetingShoppingCartDistributeBoxSeq(meetingShoppingCartDistributeBoxSeq);
+								Integer colorSeq =meetingShoppingCartDistributeBoxEntity.getColorSeq();//颜色seq
+								GoodsColorEntity goodsColorEntity=GoodsColorService.selectById(colorSeq);
+								newRow = sheet1.createRow(currRowIndex++);
+								seq++;
+								newCell = newRow.createCell(0);
+								newCell.setCellStyle(style2);
+								newCell.setCellValue(seq);
+								
+								newCell = newRow.createCell(1);
+								newCell.setCellStyle(style2);
+								newCell.setCellValue(baseUserEntity.getUserName());
+								
+								newCell = newRow.createCell(2);
+								newCell.setCellStyle(style2);
+								newCell.setCellValue(meetingGoodsEntity.getGoodID());
+								
+								newCell = newRow.createCell(3);
+								newCell.setCellStyle(style2);
+								newCell.setCellValue(userGoodID);
+								
+								newCell = newRow.createCell(4);
+								newCell.setCellStyle(style2);
+								newCell.setCellValue(goodsColorEntity.getName());
+								
+								
+								
+								newCell = newRow.createCell(5);
+								newCell.setCellStyle(style2);
+								newCell.setCellValue(meetingShoppingCartDistributeBoxEntity.getColorTotalNum());
+							
+								
+								
+								
+								Map<String, Integer>  distributeBox=new HashMap<String, Integer>();
+								for (MeetingOrderCartDetailEntity meetingShoppingCartDetailEntity : meetingShoppingCartDetailEntities) {
+									Integer Size=meetingShoppingCartDetailEntity.getSize();//尺码
+									Integer SelectNum=meetingShoppingCartDetailEntity.getSelectNum();//选款数量
+										distributeBox.put(Size.toString(), SelectNum);
+								}
+								for (int j = 0; j <=maxSize-minSize; j++) {
+									newCell = newRow.createCell(j+6);
+									newCell.setCellStyle(style2);
+									Integer key=minSize+j;
+									Integer selectNum=	distributeBox.get(key.toString());
+									if(selectNum!=null) {
+										newCell.setCellValue(selectNum);
+									}else {
+										newCell.setCellValue("");
+									}
+									
+								}
+								
+								newCell = newRow.createCell(maxSize-minSize+6);
+								newCell.setCellStyle(style2);
+								newCell.setCellValue(valute);
+								
+							}	
+					
+						}
+					  
+				  }
+				
+				
+				
+				//按型号生成创建sheet页
+				// 创建sheet页
+				XSSFSheet sheet2 = wb.createSheet("按型号");
+				// 默认单元格宽度和高度
+				sheet2.setDefaultColumnWidth(17);
+				sheet2.setDefaultRowHeightInPoints(16);
+
+				// 默认单元格宽度和高度
+				sheet2.setDefaultColumnWidth(8);
+				sheet2.setDefaultRowHeightInPoints(16);
+
+				// 不同列的宽度
+				sheet2.setColumnWidth(0, 18 * 256);
+				
+				// 当前操作行,创建新行后+1
+				int currRowIndex2 = 0;
+				newRow = sheet2.createRow(currRowIndex2++);
+				
+				newCell = newRow.createCell(0);
+				newCell.setCellStyle(style2);
+				newCell.setCellValue("序号");
+				
+				newCell = newRow.createCell(1);
+				newCell.setCellStyle(style2);
+				newCell.setCellValue("型号");
+				
+				newCell = newRow.createCell(2);
+				newCell.setCellStyle(style2);
+				newCell.setCellValue("颜色");
+				
+				newCell = newRow.createCell(3);
+				newCell.setCellStyle(style2);
+				newCell.setCellValue("双数");
+				
+				
+				
+				for (int i = 0; i <=maxSize-minSize; i++) {
+					newCell = newRow.createCell(i+4);
+					newCell.setCellStyle(style2);
+					newCell.setCellValue((minSize+i)+"#");
+				}
+				seq=0;
+				List<Map<String, Object>> meetingOrderCartDistributeBoxs=meetingOrderCartDistributeBoxService.getTotalNumByMeetingSeq(meetingSeq);
+				for (Map<String, Object> map : meetingOrderCartDistributeBoxs) {
+					Integer meetingGoodsSeq=(Integer) map.get("meetingGoodsSeq");
+					Integer colorSeq=(Integer) map.get("colorSeq");
+					Integer totalNum=(Integer) map.get("totalNum");
+					newRow = sheet2.createRow(currRowIndex2++);
+					seq++;
+					
+					newCell = newRow.createCell(0);
+					newCell.setCellStyle(style2);
+					newCell.setCellValue(seq);
+					
+					MeetingGoodsEntity meetingGoodsEntity=meetingGoodsService.selectById(meetingGoodsSeq);
+					
+					newCell = newRow.createCell(1);
+					newCell.setCellStyle(style2);
+					newCell.setCellValue(meetingGoodsEntity.getGoodID());
+					
+					GoodsColorEntity goodsColorEntity=GoodsColorService.selectById(colorSeq);
+					
+					newCell = newRow.createCell(2);
+					newCell.setCellStyle(style2);
+					newCell.setCellValue(goodsColorEntity.getName());
+					
+					newCell = newRow.createCell(3);
+					newCell.setCellStyle(style2);
+					newCell.setCellValue(totalNum);
+					
+					//根据货品序号和颜色序号查询各尺寸的件数
+					Map<String, Integer>  distributeBox=new HashMap<String, Integer>();
+					List<Map<String, Object>> sizeNums=	meetingOrderService.getSizeNum(meetingGoodsSeq, colorSeq);
+					for (Map<String, Object> map2 : sizeNums) {
+						Integer Size=(Integer) map2.get("Size");//尺码
+						Integer SelectNum=(Integer) map2.get("totalNum");//选款数量
+						distributeBox.put(Size.toString(), SelectNum);
+					}
+					
+					for (int j = 0; j <=maxSize-minSize; j++) {
+						newCell = newRow.createCell(j+4);
+						newCell.setCellStyle(style2);
+						Integer key=minSize+j;
+						Integer selectNum=	distributeBox.get(key.toString());
+						if(selectNum!=null) {
+							newCell.setCellValue(selectNum);
+						}else {
+							newCell.setCellValue("");
+						}
+						
+					}
+					
+				}
+				
+				//按订单生成创建sheet页
+				/*  for (MeetingOrderEntity meetingOrderEntity : meetingOrderEntities) {
+					  List<MeetingOrderCartEntity> meetingCartEntities =  meetingOrderCartService.getListByOrderSeq(meetingOrderEntity.getSeq());
+					  BaseUserEntity baseUserEntity=baseUserService.selectById(meetingOrderEntity.getUserSeq());
+					  	// 创建sheet页
+						XSSFSheet sheet = wb.createSheet(baseUserEntity.getUserName()+"的"+meetingOrderEntity.getOrderNum() +"配码单");
+						// 默认单元格宽度和高度
+						sheet.setDefaultColumnWidth(17);
+						sheet.setDefaultRowHeightInPoints(16);
+
+						// 默认单元格宽度和高度
+						sheet.setDefaultColumnWidth(8);
+						sheet.setDefaultRowHeightInPoints(16);
+
+						// 不同列的宽度
+						sheet.setColumnWidth(0, 18 * 256);  
+						currRowIndex = 0;
+						newRow = sheet.createRow(currRowIndex++);
+						
+						newCell = newRow.createCell(0);
+						newCell.setCellStyle(style2);
+						newCell.setCellValue("序号");
+						
+						newCell = newRow.createCell(1);
+						newCell.setCellStyle(style2);
+						newCell.setCellValue("型号");
+						
+						newCell = newRow.createCell(2);
+						newCell.setCellStyle(style2);
+						newCell.setCellValue("客户型号");
+						
+						newCell = newRow.createCell(3);
+						newCell.setCellStyle(style2);
+						newCell.setCellValue("颜色");
+						
+						newCell = newRow.createCell(4);
+						newCell.setCellStyle(style2);
+						newCell.setCellValue("双数");
+						
+						
+						
+						for (int i = 0; i <=maxSize-minSize; i++) {
+							newCell = newRow.createCell(i+5);
+							newCell.setCellStyle(style2);
+							newCell.setCellValue((minSize+i)+"#");
+						}
+							int seq2=0;
+									for (MeetingOrderCartEntity shoppingCartEntity:meetingCartEntities) {
+										String userGoodID=shoppingCartEntity.getUserGoodID();//客户型号
+										Integer meetingGoodsSeq=shoppingCartEntity.getMeetingGoodsSeq();
+										
+										MeetingGoodsEntity meetingGoodsEntity=meetingGoodsService.selectById(meetingGoodsSeq);
+										Integer meetingShoppingCartSeq=shoppingCartEntity.getSeq();
+									//	List<Map<String, Object>> shoppingCartDistributeBoxEntities=meetingOrderCartDistributeBoxService.getSelectNum(meetingShoppingCartSeq);
+										List<MeetingOrderCartDistributeBoxEntity> meetingShoppingCartDistributeBoxEntities=meetingOrderCartDistributeBoxService.getMeetingShoppingCartDistributeBoxListByShoppingCartSeq(meetingShoppingCartSeq);
+										for (MeetingOrderCartDistributeBoxEntity meetingShoppingCartDistributeBoxEntity : meetingShoppingCartDistributeBoxEntities) {
+											Integer meetingShoppingCartDistributeBoxSeq=meetingShoppingCartDistributeBoxEntity.getSeq();
+											List<MeetingOrderCartDetailEntity> meetingShoppingCartDetailEntities=meetingOrderCartDetailService.getListByMeetingShoppingCartDistributeBoxSeq(meetingShoppingCartDistributeBoxSeq);
+											Integer colorSeq =meetingShoppingCartDistributeBoxEntity.getColorSeq();//颜色seq
+											GoodsColorEntity goodsColorEntity=GoodsColorService.selectById(colorSeq);
+											newRow = sheet.createRow(currRowIndex++);
+											seq2++;
+											newCell = newRow.createCell(0);
+											newCell.setCellStyle(style2);
+											newCell.setCellValue(seq2);
+											
+											newCell = newRow.createCell(1);
+											newCell.setCellStyle(style2);
+											newCell.setCellValue(meetingGoodsEntity.getGoodID());
+											
+											newCell = newRow.createCell(2);
+											newCell.setCellStyle(style2);
+											newCell.setCellValue(userGoodID);
+											
+											newCell = newRow.createCell(3);
+											newCell.setCellStyle(style2);
+											newCell.setCellValue(goodsColorEntity.getName());
+											
+											
+											
+											newCell = newRow.createCell(4);
+											newCell.setCellStyle(style2);
+											newCell.setCellValue(meetingShoppingCartDistributeBoxEntity.getColorTotalNum());
+										
+											
+											
+											
+											Map<String, Integer>  distributeBox=new HashMap<String, Integer>();
+											for (MeetingOrderCartDetailEntity meetingShoppingCartDetailEntity : meetingShoppingCartDetailEntities) {
+												Integer Size=meetingShoppingCartDetailEntity.getSize();//尺码
+												Integer SelectNum=meetingShoppingCartDetailEntity.getSelectNum();//选款数量
+													distributeBox.put(Size.toString(), SelectNum);
+											}
+											for (int j = 0; j <=maxSize-minSize; j++) {
+												newCell = newRow.createCell(j+5);
+												newCell.setCellStyle(style2);
+												Integer key=minSize+j;
+												Integer selectNum=	distributeBox.get(key.toString());
+												if(selectNum!=null) {
+													newCell.setCellValue(selectNum);
+												}else {
+													newCell.setCellValue("");
+												}
+												
+											}
+											
+										}	
+								
+									}
+					  
+				  }*/
+				ServletOutputStream out = response.getOutputStream();
+				wb.write(out);
+				out.flush();
+				out.close();
+				wb.close();		
+				
+				
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+			logger.error("配码单: 文件名编码异常");
+		}catch (Exception e) {
+			e.printStackTrace();
+			logger.error("配码单: " + e.getMessage(), e);
+		}
+	}
+
+	@GetMapping("getTotalStatistics/{meetingSeq}/{userSeq}/{keywords}/{areaSeq}")
+	public R getTotalStatistics(@PathVariable Integer meetingSeq,@PathVariable Integer userSeq,@PathVariable String keywords,@PathVariable Integer areaSeq) {
+		try {
+			Map<String, Object> result = new HashMap<>(10);
+			keywords = "%" + keywords + "%";
+			MeetingOrderEntity meetingOrderEntity = meetingOrderService.selectOrderTotalData(getUser().getCompanySeq(), meetingSeq, userSeq, keywords, areaSeq);
+			//订单总金额
+			BigDecimal totalMoney = meetingOrderEntity.getMoney();
+			//订单取消金额
+			BigDecimal cancelMoney = productService.selectCancelMoney(getUser().getCompanySeq(), meetingSeq, userSeq, keywords, areaSeq);
+			//订单量
+			Integer totalOrderNum = meetingOrderEntity.getOrderCount();
+			//订单取消量
+			Integer cancelOrderNum = 0;
+			Wrapper<MeetingOrderEntity> wrapper = new EntityWrapper<>();
+			if (meetingSeq != -1) {
+				wrapper.eq("Meeting_Seq", meetingSeq);
+			}
+			if (userSeq != -1) {
+				wrapper.eq("User_Seq", userSeq);
+			}
+			wrapper.eq("Company_Seq", getUser().getCompanySeq());
+			List<MeetingOrderEntity> meetingOrderEntities = meetingOrderService.selectList(wrapper);
+			for (MeetingOrderEntity meetingOrder : meetingOrderEntities) {
+				List<MeetingOrderProductEntity> productEntities = productService.selectCancelOrder(meetingOrder.getSeq());
+				if (productEntities != null && productEntities.size() == 1 && productEntities.get(0).getCancel() == 1) {
+					cancelOrderNum++;
+				}
+			}
+			wrapper.setSqlSelect("User_Seq").groupBy("User_Seq");
+			List<MeetingOrderEntity> meetingOrderCustoms = meetingOrderService.selectList(wrapper);
+			Integer customNum = 0;
+			if (meetingOrderCustoms != null) {
+				customNum = meetingOrderCustoms.size();
+			}
+			//订单双数
+			Integer totalConfirmNum = meetingOrderEntity.getColorNum();
+			//订单取消双数
+			Integer cancelNum = productService.selectCancelTotal(getUser().getCompanySeq(), meetingSeq, userSeq, keywords, areaSeq);
+			//订单款数
+			Integer goodNum = meetingOrderEntity.getGoodCount();
+			//订单取消款数
+			Integer cancelGoodNum = productService.selectCancelGoodNum(getUser().getCompanySeq(), meetingSeq, userSeq, keywords, areaSeq);
+			//订单sku数
+			Integer skuNum = meetingOrderEntity.getCategoryCount();
+			//订单取消sku数
+			Integer cancelSkuNum = productService.selectCancelSku(getUser().getCompanySeq(), meetingSeq, userSeq, keywords);
+			//选款数量
+			Integer pickNum = meetingShoppingCartService.selectPickNum(getUser().getCompanySeq(), meetingSeq, userSeq, keywords);
+			if (totalMoney != null) {
+				if (cancelMoney != null) {
+					result.put("totalMoney", totalMoney.subtract(cancelMoney));
+				} else {
+					result.put("totalMoney", totalMoney);
+				}
+			} else {
+				result.put("totalMoney", "");
+			}
+
+			if (totalOrderNum != null) {
+				if (cancelOrderNum != null) {
+					result.put("totalOrderNum", totalOrderNum - cancelOrderNum);
+				} else {
+					result.put("totalOrderNum", totalOrderNum);
+				}
+			} else {
+				result.put("totalOrderNum", "");
+			}
+
+			if (totalConfirmNum != null) {
+				if (cancelNum != null) {
+					result.put("totalConfirmNum", totalConfirmNum - cancelNum);
+				} else {
+					result.put("totalConfirmNum", totalConfirmNum);
+				}
+			}
+
+			result.put("cancelOrderNum", cancelOrderNum);
+			result.put("cancelGoodNum", cancelGoodNum);
+			result.put("customNum", customNum);
+			result.put("cancelNum", cancelNum);
+			result.put("cancelSkuNum", cancelSkuNum);
+			if (pickNum != null) {
+				result.put("totalNum", totalConfirmNum + pickNum);
+			}else {
+				result.put("totalNum", totalConfirmNum);
+			}
+			if(cancelGoodNum != null) {
+				result.put("confirmGoodNum",goodNum - cancelGoodNum);
+			}else {
+				result.put("confirmGoodNum",goodNum);
+			}
+			if(cancelSkuNum != null) {
+				result.put("confirmSkuNum",skuNum - cancelSkuNum);
+			}else {
+				result.put("confirmSkuNum",skuNum);
+			}
+			return R.ok().put("result",result);
+		}catch (Exception e) {
+			logger.error(e.getMessage(),e);
+			e.printStackTrace();
+		}
+		return R.error();
+	}
+
+	@GetMapping("/selectMeetingArea")
+	public R selectMeetingArea() {
+		try {
+			Wrapper<MeetingAreaEntity> wrapper = new EntityWrapper<>();
+			wrapper.eq("Company_Seq",getUser().getCompanySeq());
+			List<MeetingAreaEntity> list = meetingAreaService.selectList(wrapper);
+			return R.ok().put("result",list);
+		}catch (Exception e) {
+			e.printStackTrace();
+		}
+		return R.error();
+	}
+}

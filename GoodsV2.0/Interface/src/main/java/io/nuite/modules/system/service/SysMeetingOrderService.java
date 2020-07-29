@@ -1,0 +1,169 @@
+package io.nuite.modules.system.service;
+
+import com.baomidou.mybatisplus.plugins.Page;
+import com.baomidou.mybatisplus.service.IService;
+import io.nuite.modules.order_platform_app.entity.MeetingOrderCartDetailEntity;
+import io.nuite.modules.order_platform_app.entity.MeetingOrderCartDistributeBoxEntity;
+import io.nuite.modules.system.entity.MeetingOrderEntity;
+
+import java.util.List;
+import java.util.Map;
+
+public interface SysMeetingOrderService extends IService<MeetingOrderEntity> {
+
+    /**
+     * 按公司序号分页查询
+     * @param page
+     * @param companySeq
+     * @param year           年份
+     * @param meetingSeq     订货会序号
+     * @param meetingUserSeq 订货方序号
+     * @param sortColumn
+     * @param sortType
+     * @return
+     */
+    Page queryPageByCompanySeq(Page page, Integer companySeq, Integer year, Integer meetingSeq, Integer meetingUserSeq,String sortColumn,String sortType);
+    
+    /**
+     * 根据订货会和定货方查询所有订单
+     *
+     * @param meetingSeq
+     * @param meetingUserSeq
+     * @return
+     */
+    List<MeetingOrderEntity> queryOrderByMeetingSeq(Integer meetingSeq, Integer meetingUserSeq);
+    
+    /**
+     * 查询指定订单号的商品详情
+     *
+     * @param meetingOrderSeq
+     * @return
+     */
+    List<Map<String, Object>> queryProductInfoByMeetingOrderSeq(Integer meetingOrderSeq,String keywords);
+    
+    /**
+     * 查询订单中所有存在的年份
+     *
+     * @param companySeq
+     * @return
+     */
+    List<Integer> queryOrderExistYears(Integer companySeq);
+    
+    /**
+     * 查询订单中所有存在的指定年份订货会
+     *
+     * @param companySeq
+     * @return
+     */
+    List<Map<String, Object>> queryOrderExistMeetings(Integer companySeq, Integer year);
+    
+    /**
+     * 查询订单中指定年份订货会的所有定货方
+     *
+     * @param companySeq
+     * @param meetingSeq
+     * @return
+     */
+    List<Map<String, Object>> queryOrderExistMeetingUsers(Integer companySeq, Integer meetingSeq);
+
+    /**
+     * 查询指定订货会按货品统计订货单
+     * @param companySeq
+     * @param meetingSeq
+     * @param keywords
+     * @param isCancel
+     * @return
+     */
+    List<Map<String, Object>> queryGoodsOrderByMeetingSeq(Integer companySeq, Integer meetingSeq,String keywords,Integer isCancel);
+
+    /**
+     * 查询指定订货会按区域统计订货单
+     * @param companySeq
+     * @param meetingSeq
+     * @param areaSeq
+     * @return
+     */
+    List<Map<String, Object>> queryAreaOrderByMeetingSeq(Integer companySeq, Integer meetingSeq,Integer areaSeq);
+    
+    List<MeetingOrderEntity>  getAllListByMeeingSeq(Integer meetingSeq);
+    
+    Integer getTotalCountByMeetingSeq(Integer meetingSeq,Integer meetingUserSeq);
+    
+    List<Map<String, Object>> getSizeNum(Integer meetingGoodsSeq,Integer colorSeq);
+
+    /**
+     * 获取当前订货会下订货方序号列表
+     * @param companySeq
+     * @param meetingSeq
+     * @param userSeq
+     * @return
+     * @throws Exception
+     */
+    List<Integer> selectUserSeqList(Integer companySeq,Integer meetingSeq,Integer userSeq) throws Exception;
+
+    /**
+     * 根据订货方获取订单详情
+     * @param companySeq
+     * @param meetingSeq
+     * @param userSeq
+     * @return
+     * @throws Exception
+     */
+    List<MeetingOrderEntity> selectCustomMeetingOrder(Integer companySeq,Integer meetingSeq,Integer userSeq) throws Exception;
+
+    /**
+     * 获取配码详情
+     * @param distributeBoxSeq
+     * @return
+     * @throws Exception
+     */
+    List<MeetingOrderCartDetailEntity> getOrderCartDetail(Integer distributeBoxSeq) throws Exception;
+
+    /**
+     * 订单汇总
+     * @param companySeq
+     * @param meetingSeq
+     * @param userSeq
+     * @param keywords
+     * @param areaSeq
+     * @return
+     * @throws Exception
+     */
+    MeetingOrderEntity selectOrderTotalData(Integer companySeq,Integer meetingSeq,Integer userSeq,String keywords,Integer areaSeq) throws Exception;
+
+    
+    MeetingOrderEntity selectTotalDataByOrderSeq(Integer orderSeq)throws Exception;
+    
+    
+    
+    /**
+     * 获取订货会尺码列表
+     * @param meetingSeq
+     * @return
+     * @throws Exception
+     */
+    List<Integer> selectMinMaxSize(Integer meetingSeq) throws Exception;
+    
+    /**
+     * 获取订货会订单分类
+     * @param orderSeq
+     * @return
+     */
+    List<Integer> selectCategory(Integer orderSeq);
+    
+    /**
+     * 获取订货会订单分类尺码
+     * @param meetingSeq
+     * @return
+     * @throws Exception
+     */
+    List<Integer> selectMinMaxSizeByOrder(Integer orderSeq,Integer categorySeq) throws Exception;
+    
+    List<MeetingOrderEntity> getOrderList(Integer companySeq,Integer meetingSeq,Integer userSeq);
+    
+    List<Map<String, Object>> getOrderDetailList(Integer orderSeq,Integer categorySeq);
+    
+    MeetingOrderCartDistributeBoxEntity getBoxByOrderSeq(Integer cartSeq,Integer colorSeq,Integer goodsSeq);
+    
+}
+

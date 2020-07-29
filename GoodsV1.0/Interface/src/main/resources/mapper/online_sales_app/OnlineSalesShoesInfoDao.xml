@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="io.nuite.modules.online_sales_app.dao.OnlineSalesShoesInfoDao">
+
+  <!-- 可根据自己的需求，是否要使用 -->
+  <resultMap type="io.nuite.modules.online_sales_app.entity.ShoesInfoEntity" id="shoesInfoMap">
+    <result property="seq" column="Seq"/>
+    <result property="shoesSeq" column="Shoes_Seq"/>
+    <result property="tagPrice" column="TagPrice"/>
+    <result property="salePrice" column="SalePrice"/>
+    <result property="isHotSale" column="IsHotSale"/>
+    <result property="isNewest" column="IsNewest"/>
+    <result property="isPromotion" column="IsPromotion"/>
+    <result property="remark" column="Remark"/>
+    <result property="del" column="Del"/>
+    <result property="browseNum" column="Browse_Num"/>
+  </resultMap>
+
+  <select id="getPlatformInfoByShoesSeq" resultType="java.util.Map">
+        SELECT si.TagPrice as tagPrice,si.SalePrice as salePrice FROM YHSROnlineSales.dbo.YHSR_OLS_ShoesInfo si WHERE si.Del =0 AND si.Shoes_Seq = #{shoesSeq}
+  </select>
+
+  <select id="queryShoesPageTotal" resultType="java.lang.Integer">
+    select count(*) from YHSROnlineSales.dbo.YHSR_OLS_ShoesInfo si
+    left join YHSmartRetail.dbo.YHSR_Goods_Shoes ygs on si.Shoes_Seq=ygs.Seq
+    WHERE si.Del=0
+    and ygs.Period_Seq in (select ygp.Seq from YHSmartRetail.dbo.YHSR_Goods_Period ygp where ygp.Brand_Seq=#{brandSeq})
+    <if test="topicSeq != null">
+      and si.Topic_Seq = #{topicSeq}
+    </if>
+  </select>
+
+  <sql id="queryShoesInfo">
+    with brandShoes as (
+    select
+    ygs.Seq as seq,ygs.Introduce as introduce,ygs.Img1 as img,
+    si.SalePrice as salePrice,ygs.GoodID as goodId,ygs.InputTime as inputTime
+    from YHSROnlineSales.dbo.YHSR_OLS_ShoesInfo si
+    left join YHSmartRetail.dbo.YHSR_Goods_Shoes ygs on si.Shoes_Seq=ygs.Seq
+    WHERE si.Del=0 and ygs.Del=0
+    <if test="categorySeq != null and categorySeq>=0">and ygs.Category_Seq=#{categorySeq}</if>
+    and ygs.Period_Seq in (select ygp.Seq from YHSmartRetail.dbo.YHSR_Goods_Period ygp where ygp.Brand_Seq=#{brandSeq}) AND si.OnSale=1
+    <if test="topicSeq!=null">
+      and si.Topic_Seq = #{topicSeq}
+    </if>
+    )
+  </sql>
+
+  <select id="queryShoesPage" resultType="java.util.Map">
+
+  </select>
+
+  <select id="queryShoesPageOrderBySales" resultType="java.util.Map">
+    <include refid="queryShoesInfo"/>
+
+    , shoesSales as (
+    select
+    E.shoesSeq as seq,sum(E.count) as stock,sum(E.num) as num
+    from 
+    (select B.Shoes_Seq AS shoesSeq, 0 AS count,0 AS num
+		from [YHSROnlineSales].[dbo].[YHSR_OLS_ShoesInfo] B
+		UNION ALL
+		select C.Shoes_Seq AS shoesSeq, 0 AS count,C.TotalSelectNum AS num from
+		[YHSROnlineSales].[dbo].[YHSR_OLS_SalesShoppingCart] C
+		UNION ALL
+		select D.Shoes_Seq AS shoesSeq ,0 AS count,D.TotalSelectNum AS num from
+		[YHSROnlineSales].[dbo].[YHSR_OLS_OrderCart] D
+		UNION ALL
+		select F.Shoes_Seq AS shoesSeq,sum(F.Stock) AS count,SUM(isnull(F.SetStock,0) ) AS num from
+		[YHSROnlineSales].[dbo].[YHSR_OLS_ShoesData] F group by F.Shoes_Seq) E
+    
+    left join YHSmartRetail.dbo.YHSR_Goods_Shoes ygs on E.shoesSeq=ygs.Seq
+    
+    
+    WHERE  ygs.Del=0
+    <if test="categorySeq != null and categorySeq>=0">and ygs.Category_Seq=#{categorySeq}</if>
+    and ygs.Period_Seq in (select ygp.Seq from YHSmartRetail.dbo.YHSR_Goods_Period ygp where ygp.Brand_Seq=#{brandSeq})
+    group by E.shoesSeq
+    )
+
+    select top ${limit} * from (select row_number() over(order by a.salesCount <if test="orderDir!= null">
+    ${orderDir}</if>) rownumber,* from (
+    select bs.seq,ss.num,ss.stock,ss.num as salesCount,bs.introduce,bs.img,bs.salePrice,bs.goodId from
+    brandShoes bs
+    left join shoesSales ss on bs.seq=ss.seq
+    ) a) a1 where rownumber>(${page}-1)*${limit}
+
+  </select>
+
+  <select id="queryShoesPageOrderByPrice" resultType="java.util.Map">
+    <include refid="queryShoesInfo"/>
+
+    select top ${limit} * from (select row_number() over(order by a.SalePrice <if test="orderDir!= null">
+    ${orderDir}</if>) rownumber,* from (
+    select * from brandShoes bs
+    ) a) a1 where rownumber>(${page}-1)*${limit}
+  </select>
+
+  <select id="queryShoesPageOrderByTime" resultType="java.util.Map">
+    <include refid="queryShoesInfo"/>
+
+    select top ${limit} * from (select row_number() over(order by a.inputTime <if test="orderDir!= null">
+    ${orderDir}</if>) rownumber,* from (
+    select * from brandShoes bs
+    ) a) a1 where rownumber>(${page}-1)*${limit}
+  </select>
+
+  <update id="deleteByShoesSeq">
+    update YHSROnlineSales.dbo.YHSR_OLS_ShoesInfo set Del=1 where Shoes_Seq = #{goodsSeq}
+  </update>
+
+  <update id="updateOnSale">
+    update YHSROnlineSales.dbo.YHSR_OLS_ShoesInfo set OnSale=#{onSale} where Shoes_Seq = #{goodsSeq}
+  </update>
+
+  <select id="queryCurrentAllShoes" resultType="java.util.Map">
+    SELECT
+      A.Seq as seq, A.GoodID as goodId, B.WxQRCode as wxQRCode, B.Seq as olsInfoSeq
+    FROM 
+    	YHSROnlineSales.dbo.YHSR_OLS_ShoesInfo B
+    LEFT JOIN YHSmartRetail.dbo.YHSR_Goods_Shoes A ON B.Shoes_Seq = A.Seq
+    
+    WHERE 
+    	A.Del = 0 AND B.Del = 0 AND A.Company_Seq = #{companySeq} 
+		AND A.Period_Seq IN (${periodSeqs})
+		<if test="categorySeqs!=null and categorySeqs!=''">
+		    AND A.Category_Seq IN (${categorySeqs})
+		</if>
+		<if test="goodNameId!=null and goodNameId!=''">
+		    AND (A.GoodName LIKE '%${goodNameId}%' OR A.GoodID LIKE '%${goodNameId}%')
+		</if>
+		<choose>
+			<when test="onSaleType!=null and (onSaleType==1 or onSaleType==2 or onSaleType==3 or onSaleType==4)">
+				<if test="onSaleType==2">	<!-- 小程序未上架 -->
+				   	AND B.OnSale = 0
+				</if>
+				<if test="onSaleType==4">	<!-- 小程序已上架 -->
+				   	AND B.OnSale = 1
+				</if>
+			</when>
+			<otherwise>  <!-- 全部 -->
+				AND B.OnSale IS NOT NULL
+			</otherwise>
+		</choose>
+    
+  </select>
+  
+  
+  
+  
+  <select id="getShoeInfoByShoesSeq" resultMap="shoesInfoMap">
+  	select * from YHSROnlineSales.dbo.YHSR_OLS_ShoesInfo where Shoes_Seq=#{shoesSeq}
+  </select>
+  
+  
+  <select id="queryMiniAppCodeExcelShoes" resultType="java.util.Map">
+	SELECT 
+		C.Factory AS factory, B.Category_Seq AS categorySeq, A.Shoes_Seq AS shoesSeq, A.Color_Seq AS colorSeq, B.GoodID AS goodId 
+	FROM 
+		(SELECT Shoes_Seq, Color_Seq FROM YHSROnlineSales.[dbo].[YHSR_OLS_ShoesData] WHERE Del = 0 GROUP BY Shoes_Seq, Color_Seq ) A 
+	LEFT JOIN YHSmartRetail.[dbo].[YHSR_Goods_Shoes] B ON A.Shoes_Seq = B.Seq
+	LEFT JOIN YHSROnlineSales.[dbo].[YHSR_OLS_ShoesInfo] C ON A.Shoes_Seq = C.Shoes_Seq
+	
+	WHERE 
+		B.Del = 0 AND C.Del = 0 AND B.Company_Seq = #{companySeq} 
+		AND B.Period_Seq IN (${periodSeqs})
+		<if test="categorySeqs!=null and categorySeqs!=''">
+		    AND B.Category_Seq IN (${categorySeqs})
+		</if>
+		<if test="goodNameId!=null and goodNameId!=''">
+		    AND (B.GoodName LIKE '%${goodNameId}%' OR B.GoodID LIKE '%${goodNameId}%')
+		</if>
+		<choose>
+			<when test="onSaleType!=null and (onSaleType==1 or onSaleType==2 or onSaleType==3 or onSaleType==4)">
+				<if test="onSaleType==2">	<!-- 小程序未上架 -->
+				   	AND C.OnSale = 0
+				</if>
+				<if test="onSaleType==4">	<!-- 小程序已上架 -->
+				   	AND C.OnSale = 1
+				</if>
+			</when>
+			<otherwise>  <!-- 全部 -->
+				AND C.OnSale IS NOT NULL
+			</otherwise>
+		</choose>
+	ORDER BY 
+		C.Factory, B.Category_Seq, A.Shoes_Seq ASC
+  </select>
+  
+  
+</mapper>

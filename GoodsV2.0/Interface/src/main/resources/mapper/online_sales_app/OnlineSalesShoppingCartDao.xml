@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="io.nuite.modules.online_sales_app.dao.OnlineSalesShoppingCartDao">
+
+	<!-- 可根据自己的需求，是否要使用 -->
+    <resultMap type="io.nuite.modules.online_sales_app.entity.ShoppingCartEntity" id="shoppingCartMap">
+        <result property="seq" column="Seq"/>
+        <result property="userSeq" column="User_Seq"/>
+        <result property="shoesDataSeq" column="ShoesData_Seq"/>
+        <result property="openIDLinks" column="OpenIDLinks"/>
+        <result property="companySeq" column="Company_Seq"/>
+        <result property="shopSeq" column="Shop_Seq"/>
+        <result property="buyCount" column="BuyCount"/>
+        <result property="totalPrice" column="TotalPrice"/>
+        <result property="isChecked" column="IsChecked"/>
+        <result property="inputTime" column="InputTime"/>
+        <result property="del" column="Del"/>
+    </resultMap>
+
+
+	<!-- 定义购物车resultMap，type为HashMap -->
+	<resultMap id="shoppingCartShoesMap" type="java.util.HashMap">
+	    <id column="Seq" property="seq" jdbcType="INTEGER" />
+	    <result column="OpenIDLinks" property="openIDLinks" jdbcType="VARCHAR" />
+	    <result column="ShoesDataSeq" property="shoesDataSeq" jdbcType="INTEGER" />
+	    <result column="BuyCount" property="buyCount" jdbcType="INTEGER" />
+	    <result column="IsChecked" property="isChecked" jdbcType="INTEGER" />
+	    <result column="Stock" property="stock" jdbcType="INTEGER" />
+	    <result column="ColorCode" property="colorCode" jdbcType="VARCHAR"/>
+    	<result column="ColorName" property="color" jdbcType="VARCHAR"/>
+	    <result column="SizeCode" property="sizeCode" jdbcType="VARCHAR" />
+	    <result column="SizeName" property="size" jdbcType="VARCHAR" />
+	    <result column="Img1" property="img" jdbcType="VARCHAR" />
+	    <result column="GoodName" property="goodName" jdbcType="VARCHAR" />
+	    <result column="GoodID" property="goodId" jdbcType="VARCHAR" />
+	    <result column="Introduce" property="introduce" jdbcType="VARCHAR" />
+	    <result column="SalePrice" property="salePrice" jdbcType="DECIMAL" />
+	</resultMap>
+	
+	
+	<!-- 购物车列表 -->
+	<select id="getShoppingCartListByUserSeq" resultMap="shoppingCartShoesMap">
+		SELECT
+			A.Seq AS Seq, A.OpenIDLinks, A.BuyCount, A.IsChecked, B.Seq AS ShoesDataSeq, B.Stock, E.Code AS ColorCode, E.Name AS ColorName, F.SizeCode, F.SizeName, 
+			C.Img1, C.GoodName, C.GoodID, C.Introduce, D.SalePrice
+		FROM
+			YHSROnlineSales.dbo.YHSR_OLS_ShoppingCart A
+		LEFT JOIN YHSROnlineSales.dbo.YHSR_OLS_ShoesData B ON A.ShoesData_Seq = B.Seq
+		LEFT JOIN YHSmartRetail.dbo.YHSR_Goods_Color E ON B.Color_Seq = E.Seq
+		LEFT JOIN YHSmartRetail.dbo.YHSR_Goods_Size F ON B.Size_Seq = F.Seq
+		LEFT JOIN YHSmartRetail.dbo.YHSR_Goods_Shoes C ON B.Shoes_Seq = C.Seq
+		LEFT JOIN YHSROnlineSales.dbo.YHSR_OLS_ShoesInfo D ON B.Shoes_Seq = D.Shoes_Seq
+		
+		WHERE
+			A.Del = 0 AND B.Del = 0 AND C.Del = 0 AND D.Del = 0 
+			AND A.User_Seq = #{0}
+		ORDER BY
+			A.InputTime DESC
+	</select>
+	
+
+</mapper>

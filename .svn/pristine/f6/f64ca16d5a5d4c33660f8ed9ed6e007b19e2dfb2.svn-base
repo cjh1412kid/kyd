@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>用户管理</title>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta
+	content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
+	name="viewport">
+<link rel="stylesheet" href="../../../css/bootstrap.min.css">
+<link rel="stylesheet" href="../../../css/font-awesome.min.css">
+<link rel="stylesheet"
+	href="../../../plugins/daterangepicker/daterangepicker.css">
+<link rel="stylesheet"
+	href="../../../plugins/datepicker/datepicker3.css">
+<link rel="stylesheet"
+	href="../../../plugins/jqgrid/ui.jqgrid-bootstrap.css">
+<link rel="stylesheet"
+	href="../../../plugins/ztree/css/metroStyle/metroStyle.css">
+<link rel="stylesheet" href="../../../css/main.css">
+<script src="../../../libs/jquery.min.js"></script>
+<script src="../../../plugins/layer/layer.js"></script>
+<script src="../../../libs/bootstrap.min.js"></script>
+<script src="../../../libs/vue.min.js"></script>
+<script src="../../../plugins/jqgrid/grid.locale-cn.js"></script>
+<script src="../../../plugins/jqgrid/jquery.jqGrid.min.js"></script>
+<script src="../../../plugins/ztree/jquery.ztree.all.min.js"></script>
+<script src="../../../plugins/daterangepicker/moment.min.js"></script>
+<script src="../../../plugins/daterangepicker/daterangepicker.js"></script>
+<script src="../../../plugins/datepicker/bootstrap-datepicker.js"></script>
+<script
+	src="../../../plugins/datepicker/locales/bootstrap-datepicker.zh-CN.js"></script>
+<script src="../../../js/common.js"></script>
+</head>
+<body>
+	<div id="rrapp" v-cloak>
+
+		<div v-show="showList">
+			<div class="grid-btn" style="overflow: hidden;" class="row">
+				<div style="float: left; width: 500px;" class="col-sm-2 col-md-2">
+					<a class="btn btn-default" @click="search">按购买次数排序</a> <a
+						class="btn btn-default" @click="search">按购买金额排序</a>
+				</div>
+				<div style="float: right;" class="col-sm-6 col-md-3">
+					<div class="form-group col-sm-10">
+						<input type="text" class="form-control" placeholder="关键词"
+							v-model="keywords">
+					</div>
+					<a class="btn btn-default" @click="search">搜索</a>
+				</div>
+			</div>
+
+			<nav class="navbar navbar-default" style="margin-bottom: 1px;">
+				<div class="container">
+					<div class="container-fluid">
+						<div class="nav navbar-nav">
+							<ul class="nav navbar-nav navbar-left">
+								<li class="pointer" :class="{active: orderStatus===''}"><a
+									@click="statusName('')">待审核</a></li>
+								<li class="pointer" :class="{active: orderStatus===0}"><a
+									@click="statusName(0)">已审核</a></li>
+								<li class="pointer" :class="{active: orderStatus===0}"><a
+									@click="statusName(0)">全部</a></li>
+							</ul>
+						</div>
+					</div>
+				</div>
+			</nav>
+
+			<table id="jqGrid"></table>
+			<div id="jqGridPager"></div>
+		</div>
+
+
+	</div>
+
+	<script src="../../../js/modules/system/online_sale/userManagement.js"></script>
+</body>
+</html>

@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="io.nuite.modules.system.dao.online_sale.OnlineOrderManageDao">
+
+            <!-- 定义resultMap，type为HashMap -->
+    <resultMap id="goodsList" type="java.util.HashMap">
+        <result column="buyCount" property="buyCount"/>
+        <result column="shoesSize" property="shoesSize"/>
+        <result column="color" property="color"/>
+        <result column="goodId" property="goodId"/>
+        <result column="img1" property="img1"/>
+    </resultMap>
+
+
+    <!--在同等的查询条件并且没有分页的条件下查询所有的条数-->
+    <select id="getTotalCount" resultType="Integer">
+         select count(*)
+         FROM 
+               [YHSROnlineSales].[dbo].YHSR_OLS_Order op
+                    LEFT JOIN 
+                [YHSROnlineSales].[dbo].YHSR_OLS_CustomUserInfo oc on op.User_Seq = oc.Seq
+                    LEFT JOIN  
+                 [YHSROnlineSales].[dbo].YHSR_OLS_ExpressCompany oe on op.ExpressCompany_Seq = oe.Seq
+            WHERE 
+               op.Company_Seq = #{companySeq} and op.Del = 0
+                <if test="orderStatus != null">
+                    and op.OrderStatus = #{orderStatus}
+                </if>
+                <if test="keywords != null and keywords != '' ">
+                 and  ISNULL(op.OrderNum, '')+ISNULL(op.Remark, '')+ISNULL(op.ExpressNo, '')+ISNULL(oe.Name, '') LIKE '%'+#{keywords}+'%'
+                </if>
+    </select>
+     
+    <!--根据用户的Seq返回对应公司（工厂）的Seq -->
+    <select id="getCompanyByUserSeq" resultType="java.lang.Integer">
+         SELECT Company_Seq 
+            FROM 
+            [YHSmartRetail].[dbo].YHSR_Base_User bu 
+        WHERE Seq = #{userSeq} and Del = 0
+    </select>
+    
+    <!--根据工厂的Seq、订单类型、搜扫关键词 返回对应的订单列表-->
+    <select id="orderList" resultType="io.nuite.modules.system.entity.online_sale.OnlineOrderEntity">
+    SELECT top ${num}
+            op.*,
+            oe.Name as expressName ,
+            oc.Nickname as orderingparty
+            FROM 
+                 [YHSROnlineSales].[dbo].YHSR_OLS_Order op
+                    LEFT JOIN 
+                [YHSROnlineSales].[dbo].YHSR_OLS_CustomUserInfo oc on op.User_Seq = oc.Seq
+                    LEFT JOIN  
+                 [YHSROnlineSales].[dbo].YHSR_OLS_ExpressCompany oe on op.ExpressCompany_Seq = oe.Seq
+            WHERE  op.Seq
+            not in(
+                SELECT top ${start} 
+                    op.Seq
+                FROM 
+                [YHSROnlineSales].[dbo].YHSR_OLS_Order op
+                    LEFT JOIN 
+                [YHSROnlineSales].[dbo].YHSR_OLS_CustomUserInfo oc on op.User_Seq = oc.Seq
+                    LEFT JOIN  
+                 [YHSROnlineSales].[dbo].YHSR_OLS_ExpressCompany oe on op.ExpressCompany_Seq = oe.Seq
+                WHERE 
+                    op.Company_Seq = #{companySeq} and op.Del = 0
+                <if test="orderStatus != null">
+                    and op.OrderStatus = #{orderStatus}
+                </if>
+                <if test="keywords != null and keywords != '' ">
+                 and  ISNULL(op.OrderNum, '')+ISNULL(op.Remark, '')+ISNULL(op.ExpressNo, '')+ISNULL(oe.Name, '') LIKE '%'+#{keywords}+'%'
+                </if>
+                ORDER BY  op.InputTime DESC
+            )
+            and  op.Company_Seq = #{companySeq} and op.Del = 0
+            <if test="orderStatus != null">
+                    and op.OrderStatus = #{orderStatus}
+            </if>
+            <if test="keywords != null and keywords != '' ">
+               and  ISNULL(op.OrderNum, '')+ISNULL(op.Remark, '')+ISNULL(op.ExpressNo, '')+ISNULL(oe.Name, '') LIKE '%'+#{keywords}+'%'
+            </if>
+             ORDER BY  op.InputTime DESC
+    </select>
+          
+    <!--根据订单序号删除订单-->        
+    <update id="deleteOeder" parameterType="Integer">
+        UPDATE [YHSROnlineSales].[dbo].YHSR_OLS_Order SET
+        Del = 1 WHERE Seq = #{seq}
+    </update>
+    
+    <!--获得订单序号查询该订单中的各种鞋子信息列表-->
+     <select id="getGoodsListByOrderSeq" resultMap="goodsList">
+            SELECT oo.BuyCount as buyCount ,
+                F.[SizeName] as shoesSize ,
+                E.Name as color ,
+                gs.GoodId as goodId ,
+                gs.Img1 as img1
+            from 
+        [YHSROnlineSales].[dbo].YHSR_OLS_OrderProducts oo
+        LEFT JOIN [YHSROnlineSales].[dbo].YHSR_OLS_ShoesData os on oo.ShoesData_Seq = os.Seq
+        LEFT JOIN [YHSmartRetail].[dbo].YHSR_Goods_Shoes gs on os.Shoes_Seq = gs.Seq 
+        LEFT JOIN [YHSmartRetail].[dbo].YHSR_Goods_Color E on os.Color_Seq = E.Seq 
+        LEFT JOIN [YHSmartRetail].[dbo].YHSR_Goods_Size F on os.Size_Seq = F.Seq 
+        WHERE oo.Order_Seq = #{orderSeq}
+     </select>
+    
+</mapper>

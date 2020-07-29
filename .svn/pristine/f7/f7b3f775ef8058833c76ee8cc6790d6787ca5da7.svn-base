@@ -1,0 +1,243 @@
+package io.nuite.modules.order_platform_app.service.impl;
+
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.baomidou.mybatisplus.mapper.EntityWrapper;
+import com.baomidou.mybatisplus.mapper.Wrapper;
+import com.baomidou.mybatisplus.service.impl.ServiceImpl;
+
+import io.nuite.modules.order_platform_app.dao.MeetingShoppingCartDao;
+import io.nuite.modules.order_platform_app.dao.MeetingShoppingCartDetailDao;
+import io.nuite.modules.order_platform_app.dao.MeetingShoppingCartDistributeBoxDao;
+import io.nuite.modules.order_platform_app.entity.MeetingShoppingCartDetailEntity;
+import io.nuite.modules.order_platform_app.entity.MeetingShoppingCartDistributeBoxEntity;
+import io.nuite.modules.order_platform_app.entity.MeetingShoppingCartEntity;
+import io.nuite.modules.order_platform_app.service.MeetingShoppingCartDistributeBoxService;
+import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
+
+
+@Service
+public class MeetingShoppingCartDistributeBoxServiceImpl extends ServiceImpl<MeetingShoppingCartDistributeBoxDao, MeetingShoppingCartDistributeBoxEntity> implements MeetingShoppingCartDistributeBoxService {
+
+	@Autowired
+	private MeetingShoppingCartDao meetingShoppingCartDao;
+	
+    @Autowired
+    private MeetingShoppingCartDetailDao meetingShoppingCartDetailDao;
+    
+    @Autowired
+    private MeetingShoppingCartDistributeBoxDao meetingShoppingCartDistributeBoxDao;
+    
+	
+    
+	/**
+	 * 查询用户是否加入此货号到购物车
+	 */
+	@Override
+	public MeetingShoppingCartEntity getUserMeetingShoppingCart(Integer userSeq, Integer meetingGoodsSeq) {
+		MeetingShoppingCartEntity meetingShoppingCartEntity = new MeetingShoppingCartEntity();
+		meetingShoppingCartEntity.setUserSeq(userSeq);
+		meetingShoppingCartEntity.setMeetingGoodsSeq(meetingGoodsSeq);
+		return meetingShoppingCartDao.selectOne(meetingShoppingCartEntity);
+	}
+	
+	
+	
+	
+	/**
+	 * 查询货号所有用户已加入购物车总量
+	 */
+	@Override
+	public List<Map<String, Object>> getAllUsersSelectNum(Integer meetingGoodsSeq) {
+		Wrapper<MeetingShoppingCartDistributeBoxEntity> wrapper = new EntityWrapper<MeetingShoppingCartDistributeBoxEntity>();
+		wrapper.setSqlSelect("Color_Seq AS colorSeq, SUM (ColorTotalNum) AS num").where("MeetingGoods_Seq = {0}", meetingGoodsSeq).groupBy("Color_Seq");
+		return meetingShoppingCartDistributeBoxDao.selectMaps(wrapper);
+	}
+	
+	
+	
+    
+	/**
+	 * 根据 购物车序号+颜色序号，获取配箱详情
+	 */
+	@Override
+	public MeetingShoppingCartDistributeBoxEntity getDistributeBoxEntityByShoppingCartSeqAndColor(Integer meetingShoppingCartSeq, Integer colorSeq) {
+		MeetingShoppingCartDistributeBoxEntity meetingShoppingCartDistributeBoxEntity = new MeetingShoppingCartDistributeBoxEntity();
+		meetingShoppingCartDistributeBoxEntity.setMeetingShoppingCartSeq(meetingShoppingCartSeq);
+		meetingShoppingCartDistributeBoxEntity.setColorSeq(colorSeq);
+		return meetingShoppingCartDistributeBoxDao.selectOne(meetingShoppingCartDistributeBoxEntity);
+	}
+	
+	
+	
+	
+	/**
+	 * 加入、修改购物车
+	 */
+	@Override
+    @Transactional(propagation = Propagation.REQUIRED)
+	public void addToMeetingShoppingCart(Integer meetingSeq, Integer userSeq, Integer meetingGoodsSeq, Integer totalSelectNum,
+			Integer perBoxNum, String colorAndBoxCount) {
+		Date nowDate = new Date();
+		//1.新增或修改购物车
+		//查询购物车列表，看是否已经存在此商品
+		MeetingShoppingCartEntity shoppingCartEntity = this.getUserMeetingShoppingCart(userSeq, meetingGoodsSeq);
+		//购物车不存在，新增
+		if(shoppingCartEntity == null) {
+			shoppingCartEntity = new MeetingShoppingCartEntity();
+//			Seq					int	0	0	0	-1	0	0		0	0	0	0	序号(主键)		-1			
+//			Meeting_Seq			int	0	0	0	0	0	0		0	0	0	0	订货会序号		0			
+//			User_Seq			int	0	0	0	0	0	0		0	0	0	0	用户Seq(外键:YHSR_Base_User表)		0			
+//			MeetingGoods_Seq	int	0	0	0	0	0	0		0	0	0	0	订货会鞋子序号		0			
+//			TotalSelectNum		int	0	0	-1	0	0	0		0	0	0	0	总选款数量		0		
+//			PerBoxNum			int	0	0	0	0	0	0		0	0	0	0	每箱数量（配件）		0			
+//			IsAllocated			int	0	0	0	0	0	0	((0))	0	0	0	0	是否已配码0：否 1：是		0			
+//			IsChecked			int	0	0	0	0	0	0	((1))	0	0	0	0	是否勾选，0不勾选 1勾选		0		
+//			InputTime			datetime	0	0	-1	0	0	0		0	0	0	0	插入时间		0			
+//			Del					int	0	0	0	0	0	0	((0))	0	0	0	0	删除标识(0:未删除,1:已删除)		0			
+
+			shoppingCartEntity.setMeetingSeq(meetingSeq);
+			shoppingCartEntity.setUserSeq(userSeq);
+			shoppingCartEntity.setMeetingGoodsSeq(meetingGoodsSeq);
+			shoppingCartEntity.setTotalSelectNum(totalSelectNum);
+			shoppingCartEntity.setPerBoxNum(perBoxNum);
+			shoppingCartEntity.setIsAllocated(0);
+			shoppingCartEntity.setIsChecked(0);  //这里的勾选，主要用于配码，修改为默认不选中
+			shoppingCartEntity.setInputTime(nowDate);
+			shoppingCartEntity.setDel(0);
+			meetingShoppingCartDao.insert(shoppingCartEntity);
+			
+		} else { //已存在则修改
+			shoppingCartEntity.setTotalSelectNum(totalSelectNum);
+			shoppingCartEntity.setPerBoxNum(perBoxNum);
+			shoppingCartEntity.setIsAllocated(0);
+			shoppingCartEntity.setInputTime(nowDate);
+			meetingShoppingCartDao.updateById(shoppingCartEntity);
+			
+			//删除原有的购物车配箱详情
+			Wrapper<MeetingShoppingCartDistributeBoxEntity> boxWrapper = new EntityWrapper<MeetingShoppingCartDistributeBoxEntity>();
+			boxWrapper.where("MeetingShoppingCart_Seq = {0}", shoppingCartEntity.getSeq());
+			meetingShoppingCartDistributeBoxDao.delete(boxWrapper);
+			
+			//删除原有的购物车（配码）详情
+			Wrapper<MeetingShoppingCartDetailEntity> wrapper = new EntityWrapper<MeetingShoppingCartDetailEntity>();
+			wrapper.where("MeetingShoppingCart_Seq = {0}", shoppingCartEntity.getSeq());
+			meetingShoppingCartDetailDao.delete(wrapper);
+		}
+		
+		//2.新增购物车配箱详情
+		if(StringUtils.isNotBlank(colorAndBoxCount)) {
+//			[{colorSeq:5,boxCount:10},{colorSeq:6,boxCount:20},...]
+	        JSONArray jsonArray = JSONArray.fromObject(colorAndBoxCount);
+	        for (int i = 0; i < jsonArray.size(); i++) {
+	        	JSONObject jsonObject = jsonArray.getJSONObject(i);  //{colorSeq:5,boxCount:10}
+	            int colorSeq = jsonObject.getInt("colorSeq");
+	            int boxCount = jsonObject.getInt("boxCount");
+	            if(boxCount > 0) {  //箱数为0的颜色不加入配箱表
+//			        Seq						int	0	0	0	-1	0	0		0	0	0	0	序号(主键)		-1			
+//			        MeetingShoppingCart_Seq	int	0	0	0	0	0	0		0	0	0	0	购物车序号		0			
+//			        MeetingGoods_Seq		int	0	0	0	0	0	0		0	0	0	0	订货会鞋子序号(冗余字段)		0			
+//			        Color_Seq				int	0	0	0	0	0	0		0	0	0	0	颜色seq		0			
+//			        PerBoxNum				int	0	0	0	0	0	0		0	0	0	0	每箱数量（配件） （冗余字段）		0			
+//			        BoxCount				int	0	0	0	0	0	0		0	0	0	0	箱数（件数）		0			
+//			        ColorTotalNum			int	0	0	0	0	0	0		0	0	0	0	本颜色总数量		0			
+//			        InputTime				datetime	0	0	-1	0	0	0		0	0	0	0	插入时间		0			
+		
+		            MeetingShoppingCartDistributeBoxEntity MeetingShoppingCartDistributeBoxEntity = new MeetingShoppingCartDistributeBoxEntity();
+		        	MeetingShoppingCartDistributeBoxEntity.setMeetingShoppingCartSeq(shoppingCartEntity.getSeq());
+		        	MeetingShoppingCartDistributeBoxEntity.setMeetingGoodsSeq(meetingGoodsSeq);
+		        	MeetingShoppingCartDistributeBoxEntity.setColorSeq(colorSeq);
+		        	MeetingShoppingCartDistributeBoxEntity.setPerBoxNum(perBoxNum);
+		        	MeetingShoppingCartDistributeBoxEntity.setBoxCount(boxCount);
+		        	MeetingShoppingCartDistributeBoxEntity.setColorTotalNum(perBoxNum * boxCount);
+		        	MeetingShoppingCartDistributeBoxEntity.setInputTime(nowDate);
+		        	meetingShoppingCartDistributeBoxDao.insert(MeetingShoppingCartDistributeBoxEntity);
+	            }
+	        }
+		}
+	}
+
+
+
+
+	/**
+	 * 根据购物车序号获取配箱详情列表
+	 */
+	@Override
+	public List<MeetingShoppingCartDistributeBoxEntity> getMeetingShoppingCartDistributeBoxListByShoppingCartSeq(Integer meetingShoppingCartSeq) {
+		Wrapper<MeetingShoppingCartDistributeBoxEntity> wrapper = new EntityWrapper<MeetingShoppingCartDistributeBoxEntity>();
+		wrapper.where("MeetingShoppingCart_Seq = {0}", meetingShoppingCartSeq);
+		return meetingShoppingCartDistributeBoxDao.selectList(wrapper);
+	}
+
+
+
+
+	/**
+	 * 配码
+	 */
+	@Override
+    @Transactional(propagation = Propagation.REQUIRED)
+	public void sizeAllot(Integer meetingShoppingCartSeq, Integer minSize, Integer maxSize, List<Integer> sizeAllotCode) {
+		
+		//1.删除可能已存在的配码数据
+		Wrapper<MeetingShoppingCartDetailEntity> wrapper = new EntityWrapper<MeetingShoppingCartDetailEntity>();
+		wrapper.where("MeetingShoppingCart_Seq = {0}", meetingShoppingCartSeq);
+		meetingShoppingCartDetailDao.delete(wrapper);
+		
+		
+    	//根据购物车序号，查询购物车配箱详情列表
+    	List<MeetingShoppingCartDistributeBoxEntity> meetingShoppingCartDetailEntityList = this.getMeetingShoppingCartDistributeBoxListByShoppingCartSeq(meetingShoppingCartSeq);
+    	
+    	Date nowDate = new Date();
+    	//2.添加每个颜色的配码数据
+    	for(MeetingShoppingCartDistributeBoxEntity meetingShoppingCartDistributeBoxEntity : meetingShoppingCartDetailEntityList) {
+    		
+    		//添加每个尺码的数量
+    		for(int i = 0; i < sizeAllotCode.size(); i++) {
+    			if(sizeAllotCode.get(i) <= 0) {
+    				continue;
+    			}
+    			
+    			Integer size = minSize + i;
+    			MeetingShoppingCartDetailEntity meetingShoppingCartDetailEntity = new MeetingShoppingCartDetailEntity();
+    			
+//    			Seq						int	0	0	0	-1	0	0		0	0	0	0	序号(主键)		-1			
+//    			MeetingShoppingCart_Seq	int	0	0	0	0	0	0		0	0	0	0	购物车序号		0			
+//    			MeetingGoods_Seq		int	0	0	0	0	0	0		0	0	0	0	订货会鞋子序号(冗余字段)		0			
+//    			Color_Seq				int	0	0	0	0	0	0		0	0	0	0	颜色seq		0			
+//    			Size					int	0	0	0	0	0	0		0	0	0	0	尺码		0			
+//    			SelectNum				int	0	0	-1	0	0	0		0	0	0	0	选款数量		0			
+//    			InputTime				datetime	0	0	-1	0	0	0		0	0	0	0	插入时间		0			
+    			meetingShoppingCartDetailEntity.setMeetingShoppingCartSeq(meetingShoppingCartDistributeBoxEntity.getMeetingShoppingCartSeq());
+    			meetingShoppingCartDetailEntity.setMeetingGoodsSeq(meetingShoppingCartDistributeBoxEntity.getMeetingGoodsSeq());
+    			meetingShoppingCartDetailEntity.setColorSeq(meetingShoppingCartDistributeBoxEntity.getColorSeq());
+    			meetingShoppingCartDetailEntity.setSize(size);
+    			meetingShoppingCartDetailEntity.setSelectNum(sizeAllotCode.get(i) * meetingShoppingCartDistributeBoxEntity.getBoxCount());
+    			meetingShoppingCartDetailEntity.setInputTime(nowDate);
+    			meetingShoppingCartDetailDao.insert(meetingShoppingCartDetailEntity);
+    			
+    		}
+    		
+    	}
+		
+		
+    	//3.将购物车配码状态修改为已配码
+		MeetingShoppingCartEntity meetingShoppingCartEntity = new MeetingShoppingCartEntity();
+		meetingShoppingCartEntity.setSeq(meetingShoppingCartSeq);
+		meetingShoppingCartEntity.setIsAllocated(1);
+		meetingShoppingCartDao.updateById(meetingShoppingCartEntity);
+    	
+	}
+
+
+}

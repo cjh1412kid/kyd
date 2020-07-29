@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="io.nuite.modules.system.dao.order_platform.OrderProductManagementDao">
+
+  <!-- 货品列表 -->
+  <select id="selectGoodsList" resultType="io.nuite.modules.sr_base.entity.GoodsViewEntity">
+	SELECT
+		A.*, B.OnSale AS orderPlatformOnSale, C.OnSale AS onlineSaleOnSale,sd.setStock
+	FROM 
+		[YHSmartRetail].[dbo].[YHSR_Goods_View] A
+	LEFT JOIN [YHSROrderPlatform].[dbo].[YHSR_OP_ShoesInfo] B ON A.Seq = B.Shoes_Seq AND B.Del = 0
+	LEFT JOIN [YHSROnlineSales].[dbo].[YHSR_OLS_ShoesInfo] C ON A.Seq = C.Shoes_Seq AND C.Del = 0
+      LEFT JOIN
+      (SELECT Shoes_Seq,SUM(SetStock) AS setStock FROM [YHSROnlineSales].[dbo].[YHSR_OLS_ShoesData] GROUP BY Shoes_Seq) sd
+      ON sd.Shoes_Seq = A.Seq
+	WHERE
+		A.Del = 0 AND A.Period_Seq IN (${periodSeqs})
+		<if test="categorySeqs!=null and categorySeqs!=''">
+		    AND A.Category_Seq IN (${categorySeqs})
+		</if>
+		<if test="goodNameId!=null and goodNameId!=''">
+		    AND (A.GoodName LIKE '%${goodNameId}%' OR A.GoodID LIKE '%${goodNameId}%')
+		</if>
+		<choose>
+			<when test="onSaleType!=null and (onSaleType==1 or onSaleType==2 or onSaleType==3 or onSaleType==4)">
+				<if test="onSaleType==1">	<!-- 订货平台未上架 -->
+			   		AND B.OnSale = 0
+				</if>
+				<if test="onSaleType==2">	<!-- 小程序未上架 -->
+				   	AND C.OnSale = 0
+				</if>
+				<if test="onSaleType==3">	<!-- 订货平台已上架 -->
+				   	AND B.OnSale = 1
+				</if>
+				<if test="onSaleType==4">	<!-- 小程序已上架 -->
+				   	AND C.OnSale = 1
+				</if>
+			</when>
+			<otherwise>  <!-- 全部 -->
+				AND (B.OnSale IS NOT NULL OR C.OnSale IS NOT NULL)
+			</otherwise>
+		</choose>
+  </select>
+
+
+  <!--查询所有的分类-->
+  <select id="getCategorySeqList" resultType="java.lang.Integer">
+        select Seq FROM [YHSmartRetail].[dbo].YHSR_Goods_Category where 
+    ParentSeq = #{categorySeq} and Del = 0 
+ </select>
+
+  <!--根据上级seq查询子类别列表-->
+  <select id="getCategoryByParentSeq" resultType="io.nuite.modules.sr_base.entity.GoodsCategoryEntity">
+  select * FROM [YHSmartRetail].[dbo].YHSR_Goods_Category
+        WHERE ParentSeq = #{seq} and Del = 0
+ </select>
+
+  <!--修改商品del为1 表示删除-->
+  <update id="delete" parameterType="java.lang.Integer">
+        UPDATE [YHSmartRetail].[dbo].YHSR_Goods_Shoes SET
+        Del = 1 WHERE seq = #{seq}
+ </update>
+  <!--根据用户seq查询该用户所有的波次-->
+  <select id="getPeriodSeqList" resultType="java.lang.Integer">
+  select gp.Seq 
+    FROM 
+  [YHSmartRetail].[dbo].YHSR_Base_User bu
+  LEFT JOIN [YHSmartRetail].[dbo].YHSR_Goods_Period gp on bu.Brand_Seq = gp.Brand_Seq
+        WHERE bu.Seq = #{userSeq} and gp.Del = 0
+ </select>
+
+  <!--根据Seq返回鞋子的详细信息-->
+  <select id="edit" resultType="io.nuite.modules.system.model.GoodsShoesForm">
+     select         
+                gs.Seq as seq,
+                gs.Period_Seq as periodSeq,
+                p.Name as periodName,
+                gs.Category_Seq as categorySeq,
+                gc.Name as categoryName,
+                gs.GoodName as goodName,
+                gs.GoodID as goodId,
+                gs.SX1 as sx1,
+                gs.SX2 as sx2,
+                gs.SX3 as sx3,
+                gs.SX4 as sx4,
+                gs.SX5 as sx5,
+                gs.SX6 as sx6,
+                gs.SX7 as sx7,
+                gs.SX8 as sx8,
+                gs.SX9 as sx9,
+                gs.SX10 as sx10,
+                gs.SX11 as sx11,
+                gs.SX12 as sx12,
+                gs.SX13 as sx13,
+                gs.SX14 as sx14,
+                gs.SX15 as sx15,
+                gs.SX16 as sx16,
+                gs.SX17 as sx17,
+                gs.SX18 as sx18,
+                gs.SX19 as sx19,
+                gs.SX20 as sx20,
+                gs.Introduce as introduce,
+                gs.Description as description,
+                gs.Video as video,
+                gs.Img1 as img1,
+                gs.Img2 as img2,
+                gs.Img3 as img3,
+                gs.Img4 as img4,
+                gs.Img5 as img5,
+                gs.InputTime as inputTime
+        from 
+                [YHSmartRetail].[dbo].YHSR_Goods_Shoes gs
+                LEFT JOIN [YHSmartRetail].[dbo].YHSR_Goods_Category gc on gs.Category_Seq = gc.Seq
+                LEFT JOIN [YHSmartRetail].[dbo].[YHSR_Goods_Period] p
+                ON p.Seq = gs.Period_Seq
+WHERE gs.Seq=#{seq} and gs.Del = 0 
+ </select>
+
+
+</mapper>

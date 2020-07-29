@@ -1,0 +1,23 @@
+<!--pages/goods/list/list.wxml-->
+<import src="/component/loadMore/loadmore.wxml" />
+
+<view wx:if='{{listType==-1}}' class='order_type'>
+  <view class='type_one {{orderBy==0?"selected":""}}' bindtap='orderByClick' data-sort-id='0'>综合</view>
+  <view class='type_one {{orderBy==1?"selected":""}}'  bindtap='orderByClick' data-sort-id='1'>销量</view>
+  <view class='type_one {{orderBy==2?"selected":""}}' bindtap='orderByClick' data-sort-id='2'>价格</view>
+  <view class='type_one {{orderBy==3?"selected":""}}' bindtap='orderByClick' data-sort-id='3'>上新</view>
+</view>
+<view class='goods_list'>
+  <view class='goods' wx:for='{{dataList}}' wx:key='*this' bindtap='goodsClick' data-seq='{{item.seq}}'>
+    <view class='face'>
+      <image src='{{item.imgSrc}}'></image>
+    </view>
+    <view class='title'>
+      <view class='name'>{{item.introduce}}</view>
+      <view class='price'>￥{{item.salePrice}}
+        <!--<view class='icon iconfont icon-add'></view>-->
+      </view>
+    </view>
+  </view>
+</view>
+<template is="load-more" data="{{dataList:dataList, loading:loading}}"></template>

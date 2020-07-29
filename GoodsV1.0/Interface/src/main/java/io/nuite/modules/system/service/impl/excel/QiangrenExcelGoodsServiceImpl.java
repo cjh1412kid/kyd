@@ -1,0 +1,815 @@
+package io.nuite.modules.system.service.impl.excel;
+
+import cn.afterturn.easypoi.excel.ExcelImportUtil;
+import cn.afterturn.easypoi.excel.entity.ImportParams;
+import com.baomidou.mybatisplus.mapper.EntityWrapper;
+import com.baomidou.mybatisplus.mapper.Wrapper;
+import io.nuite.common.exception.RRException;
+import io.nuite.modules.online_sales_app.dao.OnlineSalesShoesDataDao;
+import io.nuite.modules.online_sales_app.dao.OnlineSalesShoesInfoDao;
+import io.nuite.modules.order_platform_app.dao.ShoesCompanyTypeDao;
+import io.nuite.modules.order_platform_app.entity.MeetingGoodsEntity;
+import io.nuite.modules.order_platform_app.entity.ShoesCompanyTypeEntity;
+import io.nuite.modules.order_platform_app.entity.ShoesDataEntity;
+import io.nuite.modules.order_platform_app.entity.ShoesInfoEntity;
+import io.nuite.modules.order_platform_app.service.MeetingGoodsService;
+import io.nuite.modules.sr_base.dao.GoodsPeriodDao;
+import io.nuite.modules.sr_base.entity.*;
+import io.nuite.modules.sr_base.service.GoodsSXOptionService;
+import io.nuite.modules.sr_base.service.GoodsSXService;
+import io.nuite.modules.sr_base.service.GoodsShoesService;
+import io.nuite.modules.sr_base.utils.ConfigUtils;
+import io.nuite.modules.system.model.excel.qiangren.*;
+import io.nuite.modules.system.service.*;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.lang.reflect.Method;
+import java.math.BigDecimal;
+import java.util.*;
+
+@Service("qiangrenExcelGoods")
+public class QiangrenExcelGoodsServiceImpl implements ExcelGoodsService {
+    @Autowired
+    protected ConfigUtils configUtils;
+
+    @Autowired
+    private SysPeriodService sysPeriodService;
+
+    @Autowired
+    private GoodsShoesService goodsShoesService;
+
+    @Autowired
+    private SystemGoodsCategoryService systemGoodsCategoryService;
+
+    @Autowired
+    private SystemGoodsColorService systemGoodsColorService;
+
+    @Autowired
+    private SystemGoodsSizeService systemGoodsSizeService;
+
+    @Autowired
+    private io.nuite.modules.order_platform_app.service.ShoesDataService orderShoesDataService;
+
+    @Autowired
+    private io.nuite.modules.order_platform_app.service.ShoesInfoService orderShoesInfoService;
+
+    @Autowired
+    private ShoesCompanyTypeDao shoesCompanyTypeDao;
+
+    @Autowired
+    private GoodsSXService goodsSXService;
+
+    @Autowired
+    private GoodsSXOptionService goodsSXOptionService;
+    
+    @Autowired 
+    private MeetingGoodsService meetingGoodsService;
+
+    @Autowired
+    private GoodsPeriodDao goodsPeriodDao;
+
+    @Autowired
+    private OnlineSalesShoesInfoDao shoesInfoDao;
+
+    @Autowired
+    private OnlineSalesShoesDataDao shoesDataDao;
+
+    @Transactional
+    @Override
+    public void importExcel(Integer companySeq, Integer brandSeq, MultipartFile excelFile) throws Exception {
+        ImportParams params = new ImportParams();
+        params.setNeedSave(true);
+        params.setNeedVerfiy(true);
+
+        params.setStartSheetIndex(0);
+        List<Sample> sampleList = ExcelImportUtil.importExcel(excelFile.getInputStream(), Sample.class, params);
+        Map<String, Integer> sampleMap = new HashMap<>();
+        for (Sample sample : sampleList) {
+            Integer count = sampleMap.get(sample.getGoodsId());
+            if (count == null) count = 0;
+            count++;
+            sampleMap.put(sample.getGoodsId(), count);
+        }
+        List<String> idArray = new ArrayList<>();
+        for (Map.Entry<String, Integer> entry : sampleMap.entrySet()) {
+            if (entry.getValue() > 1) {
+                idArray.add(entry.getKey());
+            }
+        }
+        if (!idArray.isEmpty()) {
+            throw new RRException("文件中存在重复的货号:" + String.join(",", idArray));
+        }
+
+        StringBuilder sxExist = new StringBuilder();
+        for (int i = 1; i <= 16; i++) {
+            Set<String> sampleValue = new HashSet<>();
+            for (Sample sample : sampleList) {
+                Method sxCodeMethod = Sample.class.getMethod("getSx" + i + "Code");
+                String sxCode = (String) sxCodeMethod.invoke(sample);
+                sampleValue.add(sxCode.trim());
+            }
+
+            sxExist.append(checkSXCode(companySeq, "SX" + i, sampleValue));
+        }
+
+        if (sxExist.length() > 0) {
+            throw new RRException("属性值不存在[" + sxExist + "]");
+        }
+
+        params.setStartSheetIndex(1);
+        List<SampleColor> sampleColorList = ExcelImportUtil.importExcel(excelFile.getInputStream(), SampleColor.class, params);
+
+        params.setStartSheetIndex(2);
+        List<SampleSize> sampleSzieList = ExcelImportUtil.importExcel(excelFile.getInputStream(), SampleSize.class, params);
+
+        for (Sample sample : sampleList) {
+            GoodsShoesEntity goodsShoesEntity;
+            GoodsShoesEntity oldShoes = goodsShoesService.getGoodsByGoodId(companySeq, sample.getGoodsId());
+            if (oldShoes == null) {
+                goodsShoesEntity = new GoodsShoesEntity();
+            } else {
+                goodsShoesEntity = oldShoes;
+            }
+            goodsShoesEntity.setCompanySeq(companySeq);
+            goodsShoesEntity.setShoesBrand(sample.getBrandCode());
+            goodsShoesEntity.setMnemonic(sample.getMnemonic());
+            String sessonCode = sample.getSessionCode();
+            String sessionName;
+            switch (sessonCode) {
+                case "001":
+                    sessionName = "春季";
+                    break;
+                case "002":
+                    sessionName = "春季";
+                    break;
+                case "003":
+                    sessionName = "春季";
+                    break;
+                case "004":
+                    sessionName = "春季";
+                    break;
+                case "007":
+                    sessionName = "全年";
+                    break;
+                default:
+                    sessionName = "未定义";
+            }
+            String yearCode = sample.getYearCode();
+            Integer periodSeq = sysPeriodService.selectSeqByName(brandSeq, yearCode, sessionName);
+            goodsShoesEntity.setPeriodSeq(periodSeq);
+            String categoryCode = sample.getCategoryCode();
+            GoodsCategoryEntity goodsCategoryEntity = systemGoodsCategoryService.selectOne(new EntityWrapper<GoodsCategoryEntity>().eq("Company_Seq", companySeq)
+                    .eq("Category_Code", categoryCode));
+            Integer categorySeq = goodsCategoryEntity.getSeq();
+            goodsShoesEntity.setCategorySeq(categorySeq);
+
+            goodsShoesEntity.setGoodID(sample.getGoodsId());
+            goodsShoesEntity.setGoodName(sample.getGoodsName());
+            goodsShoesEntity.setIntroduce(sample.getIntroduce());
+            for (int i = 1; i <= 16; i++) {
+                Method sxMethod = GoodsShoesEntity.class.getMethod("setSX" + i, String.class);
+
+                Method sxCodeMethod = Sample.class.getMethod("getSx" + i + "Code");
+                String sxCode = (String) sxCodeMethod.invoke(sample);
+                sxMethod.invoke(goodsShoesEntity, sxCode);
+            }
+
+            goodsShoesService.insertOrUpdate(goodsShoesEntity);
+
+            Integer goodsSeq = goodsShoesEntity.getSeq();
+
+            //goods_shoes 处理完毕
+
+            ShoesInfoEntity shoesInfoEntity;
+            ShoesInfoEntity oldShoesInfo = orderShoesInfoService.getShoesInfoByShoesSeq(goodsSeq);
+            if (oldShoesInfo != null) {
+                shoesInfoEntity = oldShoesInfo;
+            } else {
+                shoesInfoEntity = new ShoesInfoEntity();
+            }
+            shoesInfoEntity.setShoesSeq(goodsSeq);
+            BigDecimal price2 = new BigDecimal(sample.getSalePrice());
+            shoesInfoEntity.setStorePrice(price2);
+
+            BigDecimal price1 = new BigDecimal(sample.getPurchasePrice());
+            shoesInfoEntity.setOemPrice(price1);
+            shoesInfoEntity.setSalePrice(price1);
+            shoesInfoEntity.setWholesalerPrice(price1);
+            shoesInfoEntity.setOnSale(1);
+
+            orderShoesInfoService.insertOrUpdate(shoesInfoEntity);
+            //shoes_info 处理完毕
+
+            List<SampleColor> currentColors = new ArrayList<>();
+            for (SampleColor sampleColor : sampleColorList) {
+                if (sampleColor.getGoodsId().equals(sample.getGoodsId())) {
+                    currentColors.add(sampleColor);
+                }
+            }
+
+            List<SampleSize> currentSizes = new ArrayList<>();
+            for (SampleSize sampleSize : sampleSzieList) {
+                if (sampleSize.getGoodsId().equals(sample.getGoodsId())) {
+                    currentSizes.add(sampleSize);
+                }
+            }
+
+            for (SampleColor sampleColor : currentColors) {
+                String colorCode = sampleColor.getColorCode();
+                Integer colorSeq = systemGoodsColorService.selectColorSeqByCode(companySeq, colorCode);
+                for (SampleSize sampleSize : currentSizes) {
+                    String sizeCode = sampleSize.getSizeCode();
+                    Integer sizeSeq = systemGoodsSizeService.getSizeSeqByCodeAndCompanySeq(companySeq, sizeCode);
+                    ShoesDataEntity shoesDataEntity;
+                    ShoesDataEntity oldShoesData = orderShoesDataService.selectShoesDataByColorAndSize(colorSeq, sizeSeq, goodsSeq);
+                    if (oldShoesData == null) {
+                        shoesDataEntity = new ShoesDataEntity();
+                    } else {
+                        shoesDataEntity = oldShoesData;
+                    }
+                    shoesDataEntity.setShoesSeq(goodsSeq);
+                    shoesDataEntity.setColorSeq(colorSeq);
+                    shoesDataEntity.setSizeSeq(sizeSeq);
+                    shoesDataEntity.setNum(0);
+                    shoesDataEntity.setStock(0);
+                    shoesDataEntity.setStockDate(new Date());
+                    orderShoesDataService.insertOrUpdate(shoesDataEntity);
+                }
+            }
+
+            //增加鞋子对批发、贴牌、总代可见
+            List<ShoesCompanyTypeEntity> typeEntities = shoesCompanyTypeDao.selectList(new EntityWrapper<ShoesCompanyTypeEntity>().eq("Shoes_Seq", goodsSeq));
+            List<Integer> list = new ArrayList<Integer>() {{
+                add(1);
+                add(3);
+            }};
+            if (typeEntities == null) {
+                shoesCompanyTypeDao.insertBatch(goodsSeq, list);
+            } else {
+                for (ShoesCompanyTypeEntity typeEntity : typeEntities) {
+                    list.remove(typeEntity.getCompanyTypeSeq());
+                }
+                shoesCompanyTypeDao.insertBatch(goodsSeq, list);
+            }
+        }
+    }
+
+    private String checkSXCode(Integer companySeq, String sxName, Set<String> set) {
+        GoodsSXEntity goodsSXEntity = goodsSXService.selectOne(new EntityWrapper<GoodsSXEntity>().eq("Company_Seq", companySeq).eq("SXID", sxName));
+        if (goodsSXEntity != null) {
+            Integer seq = goodsSXEntity.getSeq();
+            List<String> codeArray = new ArrayList<>();
+            for (String code : set) {
+                GoodsSXOptionEntity goodsSXOptionEntity = goodsSXOptionService.selectOne(new EntityWrapper<GoodsSXOptionEntity>().eq("SX_Seq", seq).eq("Code", code));
+                if (goodsSXOptionEntity == null) {
+                    codeArray.add(code);
+                }
+            }
+            if (codeArray.isEmpty()) {
+                return "";
+            } else {
+                return goodsSXEntity.getSXName() + ":" + String.join(",", codeArray) + ";";
+            }
+        } else {
+            return "";
+        }
+    }
+
+	@Override
+    @Transactional(rollbackFor = Exception.class)
+	public void importMeetingGoodsExcel(Integer companySeq,Integer SelectMeetingSeq, MultipartFile excelFile,Integer userSeq) throws Exception {
+        ImportParams params = new ImportParams();
+        params.setNeedSave(true);
+        params.setNeedVerfiy(true);
+
+        params.setStartSheetIndex(0);
+        List<SampleMeetingGood> sampleList = ExcelImportUtil.importExcel(excelFile.getInputStream(), SampleMeetingGood.class, params);
+        Map<String, Integer> sampleMap = new HashMap<>();
+        for (SampleMeetingGood sample : sampleList) {
+            if(sample.getGoodsId() != null) {
+                sample.setGoodsId(sample.getGoodsId().replaceAll("\\s",""));
+            }
+            if(sample.getColor1() != null) {
+                sample.setColor1(sample.getColor1().replaceAll("\\s",""));
+            }
+            if(sample.getColor2() != null) {
+                sample.setColor2(sample.getColor2().replaceAll("\\s",""));
+            }
+            if(sample.getColor3() != null) {
+                sample.setColor3(sample.getColor3().replaceAll("\\s",""));
+            }
+            if(sample.getColor4() != null) {
+                sample.setColor4(sample.getColor4().replaceAll("\\s",""));
+            }
+            if(sample.getColor5() != null) {
+                sample.setColor5(sample.getColor5().replaceAll("\\s",""));
+            }
+            if(sample.getColor6() != null) {
+                sample.setColor6(sample.getColor6().replaceAll("\\s",""));
+            }
+            if(sample.getColor7() != null) {
+                sample.setColor7(sample.getColor7().replaceAll("\\s",""));
+            }
+            if(sample.getColor8() != null) {
+                sample.setColor8(sample.getColor8().replaceAll("\\s",""));
+            }
+            if(sample.getPrice() != null) {
+                sample.setPrice(sample.getPrice().replaceAll("\\s",""));
+            }
+            if(sample.getSessionCode() != null) {
+                sample.setSessionCode(sample.getSessionCode().replaceAll("\\s",""));
+            }
+            if(sample.getSurfaceMaterial() != null) {
+                sample.setSurfaceMaterial(sample.getSurfaceMaterial().replaceAll("\\s",""));
+            }
+            if(sample.getInnerMaterial() != null) {
+                sample.setInnerMaterial(sample.getInnerMaterial().replaceAll("\\s",""));
+            }
+            if(sample.getSoleMaterial() != null) {
+                sample.setSoleMaterial(sample.getSoleMaterial().replaceAll("\\s",""));
+            }
+            if(sample.getFactory() != null) {
+                sample.setFactory(sample.getFactory().replaceAll("\\s",""));
+            }
+            if(sample.getFactoryGoodId() != null) {
+                sample.setFactoryGoodId(sample.getFactoryGoodId().replaceAll("\\s",""));
+            }
+            if(sample.getFactoryPrice() != null) {
+                sample.setFactoryPrice(sample.getFactoryPrice().replaceAll("\\s",""));
+            }
+            if(sample.getFirstCategory() != null) {
+                sample.setFirstCategory(sample.getFirstCategory().replaceAll("\\s",""));
+            }
+            if(sample.getSecondCategory() != null) {
+                sample.setSecondCategory(sample.getSecondCategory().replaceAll("\\s",""));
+            }
+            if(sample.getThirdCategory() != null) {
+                sample.setThirdCategory(sample.getThirdCategory().replaceAll("\\s",""));
+            }
+            Integer count = sampleMap.get(sample.getGoodsId());
+            if (count == null) {
+                count = 0;
+            }
+            count++;
+            sampleMap.put(sample.getGoodsId(), count);
+        }
+        List<String> idArray = new ArrayList<>();
+        for (Map.Entry<String, Integer> entry : sampleMap.entrySet()) {
+            if (entry.getValue() > 1) {
+                idArray.add(entry.getKey());
+            }
+        }
+        if (!idArray.isEmpty()) {
+            throw new RRException("文件中存在重复的货号:" + String.join(",", idArray));
+        }
+        String errorMessage = "";
+        for (SampleMeetingGood sample : sampleList) {
+            MeetingGoodsEntity meetingGoodsEntity;
+            MeetingGoodsEntity oldMeetingGoods = meetingGoodsService.getMeetingGoodsByGoodId(sample.getGoodsId(),SelectMeetingSeq);
+            if (oldMeetingGoods == null) {
+            	meetingGoodsEntity = new MeetingGoodsEntity();
+            } else {
+            	meetingGoodsEntity = oldMeetingGoods;
+            }
+
+
+            List<String> colorNames = new ArrayList<>(8);
+            if(sample.getColor1() != null) {
+                colorNames.add(sample.getColor1());
+            }
+            if(sample.getColor2() != null) {
+                colorNames.add(sample.getColor2());
+            }
+            if(sample.getColor3() != null) {
+                colorNames.add(sample.getColor3());
+            }
+            if(sample.getColor4() != null) {
+                colorNames.add(sample.getColor4());
+            }
+            if(sample.getColor5() != null) {
+                colorNames.add(sample.getColor5());
+            }
+            if(sample.getColor6() != null) {
+                colorNames.add(sample.getColor6());
+            }
+            if(sample.getColor7() != null) {
+                colorNames.add(sample.getColor7());
+            }
+            if(sample.getColor8() != null) {
+                colorNames.add(sample.getColor8());
+            }
+
+
+            StringBuffer coloreSeqs = new StringBuffer();
+            String message = "";
+            for (String colorName: colorNames) {
+                 Integer colorSeq = systemGoodsColorService.selectColorByColorName(companySeq, colorName);
+                 if(colorSeq != null) {
+                     if(coloreSeqs.length()==0) {
+                         coloreSeqs.append(colorSeq);
+                     }else {
+                         coloreSeqs.append(","+colorSeq);
+                     }
+                 }else {
+                     if(message.length() == 0) {
+                         message = "货号" + sample.getGoodsId() + ":<br>";
+                         errorMessage += message + colorName + "不存在,请先添加颜色<br>";
+                     }else {
+                         errorMessage += colorName + "不存在,请先添加颜色<br>";
+                     }
+                 }
+            }
+            meetingGoodsEntity.setGoodID(sample.getGoodsId());
+            meetingGoodsEntity.setMinSize(sample.getMinSize());
+            meetingGoodsEntity.setMaxSize(sample.getMaxSize());
+            meetingGoodsEntity.setMeetingSeq(SelectMeetingSeq);
+            meetingGoodsEntity.setOptionalColorSeqs(coloreSeqs.toString());
+            meetingGoodsEntity.setUserSeq(userSeq);
+            meetingGoodsEntity.setSurfaceMaterial(sample.getSurfaceMaterial());
+            meetingGoodsEntity.setInnerMaterial(sample.getInnerMaterial());
+            meetingGoodsEntity.setSoleMaterial(sample.getSoleMaterial());
+            if(sample.getPrice() != null) {
+                meetingGoodsEntity.setPrice(new BigDecimal(sample.getPrice()));
+            }
+            meetingGoodsEntity.setFactory(sample.getFactory());
+            meetingGoodsEntity.setFactoryGoodId(sample.getFactoryGoodId());
+            if(sample.getFactoryPrice() != null) {
+                meetingGoodsEntity.setFactoryPrice(new BigDecimal(sample.getFactoryPrice()));
+            }
+            String firstCategory = sample.getFirstCategory();
+            String secondCategory = sample.getSecondCategory();
+            String thirdCategory = sample.getThirdCategory();
+            Map<String,Object> map = getCategorySeq(firstCategory,secondCategory,thirdCategory,companySeq);
+            if(map.get("errorMessage") != null) {
+                if(message.length() == 0) {
+                    message = "货号" + sample.getGoodsId() + ":<br>";
+                    errorMessage += message + map.get("errorMessage");
+                }else {
+                    errorMessage += map.get("errorMessage");
+                }
+            }
+            if(map.get("categorySeq") != null) {
+                meetingGoodsEntity.setCategorySeq((Integer)map.get("categorySeq"));
+            }
+            if(errorMessage.length() > 0) {
+                continue;
+            }
+            meetingGoodsService.insertOrUpdate(meetingGoodsEntity);
+        }
+        if(errorMessage.length() > 0) {
+            throw new RRException(errorMessage);
+        }
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void importOnlineGoodsExcel(Integer companySeq, Integer brandSeq, MultipartFile excelFile) throws Exception {
+        ImportParams params = new ImportParams();
+        params.setNeedSave(true);
+        params.setNeedVerfiy(true);
+        params.setStartSheetIndex(0);
+        List<SampleGoods> sampleList = ExcelImportUtil.importExcel(excelFile.getInputStream(), SampleGoods.class, params);
+        for(SampleGoods sampleGoods : sampleList) {
+            GoodsShoesEntity goodsShoesEntity = new GoodsShoesEntity();
+            goodsShoesEntity.setIntroduce(sampleGoods.getIntroduce());
+            goodsShoesEntity.setGoodName(sampleGoods.getGoodName());
+            goodsShoesEntity.setGoodID(sampleGoods.getGoodId());
+            goodsShoesEntity.setDel(0);
+            goodsShoesEntity.setInputTime(new Date());
+            goodsShoesEntity.setCompanySeq(companySeq);
+            String color = "";
+            if(sampleGoods.getFirstColor() != null) {
+                color += (sampleGoods.getFirstColor() + ",");
+            }
+            if(sampleGoods.getSecondColor() != null) {
+                color += (sampleGoods.getSecondColor() + ",");
+            }
+            if(sampleGoods.getThirdColor() != null) {
+                color += (sampleGoods.getThirdColor() + ",");
+            }
+            if(sampleGoods.getForthColor() != null) {
+                color += (sampleGoods.getForthColor() + ",");
+            }
+            if(sampleGoods.getFifthColor() != null) {
+                color += (sampleGoods.getFifthColor() + ",");
+            }
+            if(sampleGoods.getSixthColor() != null) {
+                color += (sampleGoods.getSixthColor() + ",");
+            }
+            if(sampleGoods.getSeventhColor() != null) {
+                color += (sampleGoods.getSeventhColor() + ",");
+            }
+            if(sampleGoods.getEigthColor() != null) {
+                color += (sampleGoods.getEigthColor() + ",");
+            }
+            color = color.substring(0,color.length() - 1);
+            goodsShoesEntity.setColor(color);
+
+            Integer firstCategorySeq = getCategorySeq(0,sampleGoods.getFirstCategory(),1,companySeq);
+            Integer secondCategorySeq = getCategorySeq(firstCategorySeq,sampleGoods.getSecondCategory(),2,companySeq);
+            Integer thirdCategorySeq = getCategorySeq(secondCategorySeq,sampleGoods.getThirdCategory(),3,companySeq);
+            goodsShoesEntity.setCategorySeq(thirdCategorySeq);
+
+            Wrapper<GoodsPeriodEntity> periodWrapper = new EntityWrapper<>();
+            periodWrapper.eq("Year",sampleGoods.getYear()).eq("Name",sampleGoods.getPeriodName());
+            List<GoodsPeriodEntity> goodsPeriodEntities = goodsPeriodDao.selectList(periodWrapper);
+            if(goodsPeriodEntities.size() > 0) {
+                goodsShoesEntity.setPeriodSeq(goodsPeriodEntities.get(0).getSeq());
+            }else {
+                throw new RuntimeException("波次不存在");
+            }
+
+            goodsShoesEntity.setSX1(getSXOptionCode("SX1",companySeq,sampleGoods.getSx1()));
+            goodsShoesEntity.setSX2(getSXOptionCode("SX2",companySeq,sampleGoods.getSx2()));
+            goodsShoesEntity.setSX3(getSXOptionCode("SX3",companySeq,sampleGoods.getSx3()));
+            goodsShoesEntity.setSX4(getSXOptionCode("SX4",companySeq,sampleGoods.getSx4()));
+            goodsShoesEntity.setSX5(getSXOptionCode("SX5",companySeq,sampleGoods.getSx5()));
+            goodsShoesEntity.setSX6(getSXOptionCode("SX6",companySeq,sampleGoods.getSx6()));
+            goodsShoesEntity.setSX7(getSXOptionCode("SX7",companySeq,sampleGoods.getSx7()));
+            goodsShoesEntity.setSX8(getSXOptionCode("SX8",companySeq,sampleGoods.getSx8()));
+            goodsShoesEntity.setSX9(getSXOptionCode("SX9",companySeq,sampleGoods.getSx9()));
+            goodsShoesEntity.setSX10(getSXOptionCode("SX10",companySeq,sampleGoods.getSx10()));
+            goodsShoesEntity.setSX11(getSXOptionCode("SX11",companySeq,sampleGoods.getSx11()));
+            goodsShoesEntity.setSX12(getSXOptionCode("SX12",companySeq,sampleGoods.getSx12()));
+            goodsShoesEntity.setSX13(getSXOptionCode("SX13",companySeq,sampleGoods.getSx13()));
+            goodsShoesEntity.setSX14(getSXOptionCode("SX14",companySeq,sampleGoods.getSx14()));
+            goodsShoesEntity.setSX15(getSXOptionCode("SX15",companySeq,sampleGoods.getSx15()));
+            goodsShoesEntity.setSX16(getSXOptionCode("SX16",companySeq,sampleGoods.getSx16()));
+            goodsShoesEntity.setSX17(getSXOptionCode("SX17",companySeq,sampleGoods.getSx17()));
+            goodsShoesEntity.setSX18(getSXOptionCode("SX18",companySeq,sampleGoods.getSx18()));
+            goodsShoesEntity.setSX19(getSXOptionCode("SX19",companySeq,sampleGoods.getSx19()));
+            goodsShoesEntity.setSX20(getSXOptionCode("SX20",companySeq,sampleGoods.getSx20()));
+            Wrapper<GoodsShoesEntity> wrapper = new EntityWrapper<>();
+            wrapper.eq("GoodID",goodsShoesEntity.getGoodID()).eq("Company_Seq",companySeq).eq("Period_Seq",goodsShoesEntity.getPeriodSeq());
+            List<GoodsShoesEntity> goods = goodsShoesService.selectList(wrapper);
+            if(goods.size() > 0) {
+                goodsShoesEntity.setSeq(goods.get(0).getSeq());
+                goodsShoesService.updateById(goodsShoesEntity);
+            }else {
+                goodsShoesService.insert(goodsShoesEntity);
+            }
+
+
+
+            io.nuite.modules.online_sales_app.entity.ShoesInfoEntity shoesInfoEntity = new io.nuite.modules.online_sales_app.entity.ShoesInfoEntity();
+            shoesInfoEntity.setShoesSeq(goodsShoesEntity.getSeq());
+            shoesInfoEntity.setFactory(sampleGoods.getFactory());
+            shoesInfoEntity.setDel(0);
+            if("是".equals(sampleGoods.getIsHotSale())) {
+                shoesInfoEntity.setIsHotSale(1);
+            }else {
+                shoesInfoEntity.setIsHotSale(0);
+            }
+            if("是".equals(sampleGoods.getIsNewest())) {
+                shoesInfoEntity.setIsNewest(1);
+            }else {
+                shoesInfoEntity.setIsNewest(0);
+            }
+
+            shoesInfoEntity.setTagPrice(sampleGoods.getTagPrice());
+            shoesInfoEntity.setSalePrice(sampleGoods.getTagPrice());
+            if("是".equals(sampleGoods.getOnSale())) {
+                shoesInfoEntity.setOnSale(1);
+            }else {
+                shoesInfoEntity.setOnSale(0);
+            }
+            shoesInfoEntity.setDel(0);
+            Wrapper<io.nuite.modules.online_sales_app.entity.ShoesInfoEntity> shoesWrapper = new EntityWrapper<>();
+            shoesWrapper.eq("Shoes_Seq",goodsShoesEntity.getSeq());
+            List<io.nuite.modules.online_sales_app.entity.ShoesInfoEntity> shoesList = shoesInfoDao.selectList(shoesWrapper);
+            if(shoesList.size() > 0) {
+                shoesInfoEntity.setSeq(shoesList.get(0).getSeq());
+                shoesInfoDao.updateById(shoesInfoEntity);
+            }else {
+                shoesInfoDao.insert(shoesInfoEntity);
+            }
+            if(sampleGoods.getSize26() != null) {
+                insertShoesData("26",goodsShoesEntity.getSeq(),color,companySeq,sampleGoods.getSize26());
+            }
+            if(sampleGoods.getSize27() != null) {
+                insertShoesData("27",goodsShoesEntity.getSeq(),color,companySeq,sampleGoods.getSize27());
+            }
+            if(sampleGoods.getSize28() != null) {
+                insertShoesData("28",goodsShoesEntity.getSeq(),color,companySeq,sampleGoods.getSize28());
+            }
+            if(sampleGoods.getSize29() != null) {
+                insertShoesData("29",goodsShoesEntity.getSeq(),color,companySeq,sampleGoods.getSize29());
+            }
+            if(sampleGoods.getSize30() != null) {
+                insertShoesData("30",goodsShoesEntity.getSeq(),color,companySeq,sampleGoods.getSize30());
+            }
+            if(sampleGoods.getSize31() != null) {
+                insertShoesData("31",goodsShoesEntity.getSeq(),color,companySeq,sampleGoods.getSize31());
+            }
+            if(sampleGoods.getSize32() != null) {
+                insertShoesData("32",goodsShoesEntity.getSeq(),color,companySeq,sampleGoods.getSize32());
+            }
+            if(sampleGoods.getSize33() != null) {
+                insertShoesData("33",goodsShoesEntity.getSeq(),color,companySeq,sampleGoods.getSize33());
+            }
+            if(sampleGoods.getSize34() != null) {
+                insertShoesData("34",goodsShoesEntity.getSeq(),color,companySeq,sampleGoods.getSize34());
+            }
+            if(sampleGoods.getSize35() != null) {
+                insertShoesData("35", goodsShoesEntity.getSeq(), color, companySeq,sampleGoods.getSize35());
+            }
+            if(sampleGoods.getSize36() != null) {
+                insertShoesData("36", goodsShoesEntity.getSeq(), color, companySeq,sampleGoods.getSize36());
+            }
+            if(sampleGoods.getSize37() != null) {
+                insertShoesData("37", goodsShoesEntity.getSeq(), color, companySeq,sampleGoods.getSize37());
+            }
+            if(sampleGoods.getSize38() != null) {
+                insertShoesData("38", goodsShoesEntity.getSeq(), color, companySeq,sampleGoods.getSize38());
+            }
+            if(sampleGoods.getSize39() != null) {
+                insertShoesData("39", goodsShoesEntity.getSeq(), color, companySeq,sampleGoods.getSize39());
+            }
+            if(sampleGoods.getSize40() != null) {
+                insertShoesData("40", goodsShoesEntity.getSeq(), color, companySeq,sampleGoods.getSize40());
+            }
+            if(sampleGoods.getSize41() != null) {
+                insertShoesData("41", goodsShoesEntity.getSeq(), color, companySeq,sampleGoods.getSize41());
+            }
+            if(sampleGoods.getSize42() != null) {
+                insertShoesData("42", goodsShoesEntity.getSeq(), color, companySeq,sampleGoods.getSize42());
+            }
+            if(sampleGoods.getSize43() != null) {
+                insertShoesData("43", goodsShoesEntity.getSeq(), color, companySeq,sampleGoods.getSize43());
+            }
+            if(sampleGoods.getSize44() != null) {
+                insertShoesData("44", goodsShoesEntity.getSeq(), color, companySeq,sampleGoods.getSize44());
+            }
+        }
+    }
+
+    private Integer getCategorySeq(Integer categorySeq,String category,Integer num,Integer company) {
+        Wrapper<GoodsCategoryEntity> wrapper = new EntityWrapper<>();
+        wrapper.eq("parentSeq",categorySeq).eq("Name",category).eq("Company_Seq",company);
+        List<GoodsCategoryEntity> categoryList = systemGoodsCategoryService.selectList(wrapper);
+        if(categoryList.size() > 0) {
+            return categoryList.get(0).getSeq();
+        }else {
+            throw new RuntimeException("类别" + num + "中的" + category + "不存在");
+        }
+    }
+
+    private Map<String,Object> getCategorySeq(String firstCategory,String secondCategory,String thirdCategory,Integer company) {
+        Map<String,Object> map = new HashMap<>(2);
+        String errorMessage = "";
+        Integer firstCategorySeq = 0;
+        Integer secondCategorySeq = 0;
+        Integer thirdCategorySeq = 0;
+        if(firstCategory != null) {
+            Wrapper<GoodsCategoryEntity> firstWrapper = new EntityWrapper<>();
+            firstWrapper.eq("parentSeq",0).eq("Name",firstCategory).eq("Company_Seq",company);
+            List<GoodsCategoryEntity> firstCategoryList = systemGoodsCategoryService.selectList(firstWrapper);
+            if(firstCategoryList.size() > 0) {
+                firstCategorySeq = firstCategoryList.get(0).getSeq();
+            }else {
+                if(secondCategory != null) {
+                    errorMessage = "大类中的" + firstCategory + "不存在<br>小类中的" + secondCategory + "不存在<br>";
+                    if(thirdCategory != null) {
+                        errorMessage = "大类中的" + firstCategory + "不存在<br>小类中的" + secondCategory + "不存在<br>风格中的" + thirdCategory + "不存在<br>";
+                    }
+                }else {
+                    errorMessage = "大类中的" + firstCategory + "不存在<br>";
+                    if(thirdCategory != null) {
+                        errorMessage += "风格存在时小类不能为空<br>";
+                    }
+                }
+                map.put("errorMessage",errorMessage);
+                return map;
+            }
+
+        }else {
+            errorMessage = "大类不能为空";
+            map.put("errorMessage",errorMessage);
+            return map;
+        }
+
+        if(secondCategory != null) {
+            Wrapper<GoodsCategoryEntity> secondWrapper = new EntityWrapper<>();
+            secondWrapper.eq("parentSeq",firstCategorySeq).eq("Name",secondCategory).eq("Company_Seq",company);
+            List<GoodsCategoryEntity> secondCategoryList = systemGoodsCategoryService.selectList(secondWrapper);
+            if(secondCategoryList.size() > 0) {
+                secondCategorySeq = secondCategoryList.get(0).getSeq();
+            }else {
+                if(thirdCategory != null) {
+                    errorMessage = "小类中的" + secondCategory + "不存在<br>风格中的" + thirdCategory + "不存在<br>";
+                }else {
+                    errorMessage = "小类中的" + secondCategory + "不存在<br>";
+                }
+                map.put("errorMessage",errorMessage);
+                return map;
+            }
+        }else {
+            if(thirdCategory != null) {
+                errorMessage = "风格存在时小类不能为空<br>";
+                map.put("errorMessage",errorMessage);
+                return map;
+            }
+            map.put("categorySeq",firstCategorySeq);
+            return map;
+        }
+
+        if(thirdCategory != null) {
+            Wrapper<GoodsCategoryEntity> thirdWrapper = new EntityWrapper<>();
+            thirdWrapper.eq("parentSeq",secondCategorySeq).eq("Name",thirdCategory).eq("Company_Seq",company);
+            List<GoodsCategoryEntity> thirdCategoryList = systemGoodsCategoryService.selectList(thirdWrapper);
+            if(thirdCategoryList.size() > 0) {
+                thirdCategorySeq = thirdCategoryList.get(0).getSeq();
+            }else {
+                errorMessage = "风格中的" + thirdCategory + "不存在<br>";
+                map.put("errorMessage",errorMessage);
+                return map;
+            }
+            map.put("categorySeq",thirdCategorySeq);
+            return map;
+        }else {
+            map.put("categorySeq",secondCategorySeq);
+            return map;
+        }
+    }
+
+    private String getSXOptionCode(String sxName,Integer company,String sxOptionValue) {
+        if(sxOptionValue == null) {
+            return null;
+        }
+        Wrapper<GoodsSXEntity> sxEntityWrapper = new EntityWrapper<>();
+        sxEntityWrapper.eq("SXID",sxName).eq("Company_Seq",company);
+        List<GoodsSXEntity> sxEntities = goodsSXService.selectList(sxEntityWrapper);
+        Integer sxSeq = 0;
+        if(sxEntities.size() > 0) {
+            sxSeq = sxEntities.get(0).getSeq();
+        }else {
+            throw new RuntimeException(sxName + "不存在");
+        }
+        Wrapper<GoodsSXOptionEntity> sxOptionEntityWrapper = new EntityWrapper<>();
+        sxOptionEntityWrapper.eq("SX_Seq",sxSeq).eq("Value",sxOptionValue);
+        List<GoodsSXOptionEntity> sxOptionEntities = goodsSXOptionService.selectList(sxOptionEntityWrapper);
+        if(sxOptionEntities.size() > 0) {
+            return sxOptionEntities.get(0).getCode();
+        }else {
+            throw new RuntimeException(sxOptionValue + "不存在");
+        }
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    private void insertShoesData(String size,Integer shoesSeq,String color,Integer company,String value) {
+        Integer sizeValue = checkChar(value);
+        if(size == null) {
+            return;
+        }
+        String[] colorArray = color.split(",");
+        for(String colorName : colorArray) {
+            io.nuite.modules.online_sales_app.entity.ShoesDataEntity shoesDataEntity = new io.nuite.modules.online_sales_app.entity.ShoesDataEntity();
+            Wrapper<GoodsSizeEntity> sizeWrapper = new EntityWrapper<>();
+            sizeWrapper.eq("SizeName",size).eq("Company_Seq",company).setSqlSelect("Seq");
+            List<GoodsSizeEntity> goodsSizeList = systemGoodsSizeService.selectList(sizeWrapper);
+            if(goodsSizeList.size() > 0) {
+                shoesDataEntity.setSizeSeq(goodsSizeList.get(0).getSeq());
+            }else {
+                throw new RuntimeException(size + "码不存在");
+            }
+
+
+            Wrapper<GoodsColorEntity> colorWrapper = new EntityWrapper<>();
+            colorWrapper.eq("Name",colorName).eq("Company_Seq",company);
+            List<GoodsColorEntity> colorList = systemGoodsColorService.selectList(colorWrapper);
+            if(colorList.size() > 0) {
+                shoesDataEntity.setColorSeq(colorList.get(0).getSeq());
+            }else {
+                throw new RuntimeException(colorName + "不存在");
+            }
+
+            shoesDataEntity.setShoesSeq(shoesSeq);
+            shoesDataEntity.setDel(0);
+            shoesDataEntity.setNum(sizeValue);
+            shoesDataEntity.setStock(sizeValue);
+            Wrapper<io.nuite.modules.online_sales_app.entity.ShoesDataEntity> shoesDataWrapper = new EntityWrapper<>();
+            shoesDataWrapper.eq("Shoes_Seq",shoesSeq).eq("Color_Seq",colorList.get(0).getSeq()).eq("Size_Seq",goodsSizeList.get(0).getSeq());
+            List<io.nuite.modules.online_sales_app.entity.ShoesDataEntity> shoesDataList = shoesDataDao.selectList(shoesDataWrapper);
+            if(shoesDataList.size() > 0) {
+                shoesDataEntity.setSeq(shoesDataList.get(0).getSeq());
+                shoesDataDao.updateById(shoesDataEntity);
+            }else {
+                shoesDataDao.insert(shoesDataEntity);
+            }
+        }
+    }
+
+    private Integer checkChar(String value) {
+        value = value.replaceAll("\\s","");
+        for(int i = 0;i < value.length();i++) {
+            char num = value.charAt(i);
+            if(!(num >= '0' && num <= '9')) {
+                return 1;
+            }
+        }
+        return Integer.parseInt(value);
+    }
+}

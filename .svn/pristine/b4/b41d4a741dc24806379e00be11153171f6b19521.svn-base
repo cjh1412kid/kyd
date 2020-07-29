@@ -1,0 +1,103 @@
+<!--pages/order/upload/upload.wxml-->
+<view class='detail_address'>
+  <view class='content'>
+    <view class='title' bindtap='chooseAddress'>收货地址
+      <view class='icon iconfont icon-gengduo'></view>
+    </view>
+    <view class='name'>收货人：{{address.recipientsName}}
+      <text class='phone'>{{address.telephone}}</text>
+    </view>
+    <view class='address'>收货地址：{{address.address}}</view>
+  </view>
+</view>
+<view class='detail_content'>
+  <view class='content'>
+    <view class='title'>订单内容：
+      <text class='time'></text>
+    </view>
+    <view class='goods'>
+      <view wx:for='{{goodsList}}' wx:key='*this' class='one_good'>
+        <view class='image' >
+          <image src='{{item.img}}' class='{{isOrder==0?"dim":""}}'></image>
+        </view>
+        <view class='detail'>
+          <view class='name'>
+            <view class='title_name'>{{item.introduce}}</view>
+            <text class='prices'>￥{{item.salePrice}}</text>
+          </view>
+          <view class='color_num'>
+            <text class='color'>  
+             <block wx:for="{{item.detail.salesCartDistributeBoxMapList}}" wx:for-item="salesDistributeBox" wx:key="{{item}}">
+          {{salesDistributeBox.colorName}}色：{{salesDistributeBox.salesCartDistributeBoxEntity.colorTotalNum}}双<block wx:for="{{salesDistributeBox.salesCartDetailMapList}}" wx:for-item="salesDetail" wx:key="{{item}}"><text> {{salesDetail.size}}码/{{salesDetail.salesShoppingCartDetailEntity.selectNum}}</text>
+            </block>
+            </block>
+            </text>
+            <text class='number'>x{{item.totalSelectNum}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+    <view class='total'>
+      <view class='numbers'>
+        <view class='good_prices'>商品总价
+          <text>￥{{totalGoodsPrice}}</text>
+        </view>
+        <!-- <view class='express_prices'>运费
+          <text>￥{{expressPrice}}</text>
+        </view> -->
+      </view>
+    </view>
+  </view>
+</view>
+<view class="expectedTime">
+  <picker mode="date" value="{{date}}" start="{{noDate}}" end="2020-01-01" bindchange="bindDateChange">
+    <view class="picker">
+      期 望 到 货 时 间:
+      <text style='margin-left:290rpx;'> {{date}}</text>
+    </view>
+  </picker>
+</view>
+<view class='isCart'>是 否 有 贴 牌 要 求:</view>
+<view style=" display: inline-block;">
+  <radio-group class="radio-group" bindchange="radioChange" name="isOem">
+    <label class="radio" wx:for="{{items}}" wx:key="{{item}}">
+      <radio value="{{item.value}}" checked="{{item.checked}}" color='#ff9059' />{{item.name}}
+    </label>
+  </radio-group>
+</view>
+<block wx:if="{{isOem==1}}">
+  <view>
+    <view class='uploadOem' bindtap='chooseImg'>上传贴牌
+    </view>
+    <image src='{{file}}' class='img'></image>
+  </view>
+</block>
+<view class='remark'>
+  <view style='font-size:30rpx;'>备注： </view>
+  <textarea class="textarea" bindblur="remark"></textarea>
+</view>
+
+
+<!-- <view class='self_pick_line'>
+  <view class='self_pick_select' bindtap='selfPickClick'>
+    <view class='icon iconfont icon-xuanzhong {{selfPick?"icon_select":"icon_de_select"}}'></view>
+  </view> 到店自取
+</view>
+<view class='self_pick_text noselect' wx:if='{{!selfPick}}'>
+  未选择自提的订单，需等待线上发货
+</view> -->
+<view class='self_pick_text' wx:if='{{selfPick}}'>
+  自提地点：
+  <view class='icon iconfont icon-location'></view>南京金鹰建邺店-RLRW人来人往
+</view>
+<view class='self_pick_map' wx:if='{{selfPick}}'>
+  <text>现场分布图</text>
+  <image src='https://www.fyweather.com/SmartSale/picture/RLRW_store_map.png'></image>
+</view>
+<view></view>
+<view class='pay_group'>
+  <view class='pay_money'>合计
+    <text>￥{{totalGoodsPrice+expressPrice}}</text>
+  </view>
+  <button class='pay_btn' bindtap='uploadOrder' disabled="{{disabled}}" style='background-color:#ff6f71;color:#fff'>提交订单</button>
+</view>

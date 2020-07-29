@@ -1,0 +1,54 @@
+/* pages/goods/search/search.wxss */
+@import "/assets/wxss/goodsDetail.wxss";
+
+/* 搜索框-行样式 */
+
+.search_top {
+  padding: 21rpx;
+  display: flex;
+  background-color: #fff;
+  border: solid 1px #e0e0e0;
+  align-items: center;
+  justify-content: center;
+}
+
+.search_top .search_cancel {
+  font-size: 29rpx;
+  color: #ff6363;
+}
+
+.search_top .top_search {
+  margin: auto 14rpx;
+  width: 600rpx;
+  height: 60rpx;
+  background-color: #f6f6f6;
+  border-radius: 30rpx;
+  border: solid 1rpx #7b7b7b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.top_search .search_icon {
+  font-size: 40rpx;
+  margin: auto 10rpx;
+}
+
+.top_search .text_input {
+  flex: 1;
+  font-size: 29rpx;
+  color: #999;
+}
+
+.goods_list {
+  margin-top: 4rpx;
+}
+
+.goods_detail_content .message_content .price_count .count {
+  width: 60rpx;
+}
+
+.goods_detail_content .message_content .price_count .count .icon {
+  color: #ff9059;
+  font-size: 45rpx;
+}

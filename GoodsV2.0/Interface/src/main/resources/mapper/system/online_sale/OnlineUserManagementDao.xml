@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="io.nuite.modules.system.dao.online_sale.OnlineUserManagementDao">
+
+  <!-- 定义resultMap，type为HashMap -->
+  <resultMap id="userList" type="java.util.HashMap">
+    <result column="seq" property="seq"/>
+    <result column="openid" property="openid"/>
+    <result column="allPrice" property="allPrice"/>
+    <result column="allFrequency" property="allFrequency"/>
+  </resultMap>
+
+  <select id="getUsersList" resultMap="userList">
+            SELECT  top 10
+                oc.Seq as seq ,
+                oc.Openid as openid ,
+                SUM(oo.OrderPrice)as allPrice ,
+                COUNT(oc.Seq) as allFrequency
+            from
+            [YHSROnlineSales].[dbo].YHSR_OLS_CustomUserInfo oc
+            LEFT JOIN
+            [YHSROnlineSales].[dbo].YHSR_OLS_Order oo on oc.Seq = oo.User_Seq
+            where oc.Seq not in (
+                SELECT  top 0
+                oc.Seq
+                from
+                [YHSROnlineSales].[dbo].YHSR_OLS_CustomUserInfo oc
+                LEFT JOIN
+                [YHSROnlineSales].[dbo].YHSR_OLS_Order oo on oc.Seq = oo.User_Seq
+                where oo.Company_Seq = 1
+                GROUP BY oc.Seq
+            )
+            and oo.Company_Seq = 1
+            GROUP BY oo.User_Seq ,oc.Openid, oc.Seq
+            ORDER BY allPrice DESC
+     </select>
+
+</mapper>

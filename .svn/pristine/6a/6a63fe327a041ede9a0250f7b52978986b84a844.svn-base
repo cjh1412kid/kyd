@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="io.nuite.modules.system.dao.MeetingDeviceDao">
+
+	<!-- 可根据自己的需求，是否要使用 -->
+    <resultMap type="io.nuite.modules.system.entity.MeetingDeviceEntity" id="meetingDeviceMap">
+        <result property="seq" column="Seq"/>
+        <result property="deviceName" column="DeviceName"/>
+        <result property="deviceType" column="DeviceType"/>
+        <result property="address" column="Address"/>
+        <result property="uUID" column="UUID"/>
+        <result property="companySeq" column="CompanySeq"/>
+        <result property="inputTime" column="InputTime"/>
+        <result property="del" column="Del"/>
+    </resultMap>
+
+
+</mapper>

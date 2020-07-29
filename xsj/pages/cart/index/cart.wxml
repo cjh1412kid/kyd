@@ -1,0 +1,72 @@
+<!--pages/cart/index/cart.wxml-->
+<view class='container'>
+  <view class='cart_container' wx:if="{{cartData.length > 0}}">
+    <view class='top_tips'>向左滑动删除商品</view>
+    <view class='goods_detail' wx:for="{{cartData}}" wx:key="index">
+      <view style="{{item.txtStyle}}" bindtouchstart="touchS" bindtouchmove="touchM" bindtouchend="touchE" data-index="{{index}}" data-seq='{{item.seq}}' data-shoesseq='{{item.shoesSeq}}' bindtap='gotoDetail' class="goods_detail_inner goods_detail_top">
+        <view class='goods_detail_select' catchtap='checkBtnClick' data-index="{{index}}">
+          <view class='icon iconfont icon-xuanzhong {{item.isChecked==1?"icon_select":"icon_de_select"}}'></view>
+        </view>
+        <view class='goods_detail_content'>
+          <view class='image_content' >
+            <image src='{{item.img}}' class='{{isOrder==0?"dim":""}}'></image>
+          </view>
+          <view class='message_content'>
+            <!-- <view class='description'>{{item.introduce}}</view> -->
+              <view class='price_count' style='margin-top:29rpx;'>
+            <view class='goodId'>{{item.goodId}}</view>
+            <view class='goodId'>{{item.cateName}}</view>
+            </view>
+            <view class='price_count' style='margin-top:20rpx;'>
+              <view class='prices'>￥{{item.salePrice}}元</view>
+              <view class='count'style="margin-left:108rpx;" >
+                <text style='font-size:20rpx;'>订货量：{{item.totalSelectNum}}</text>
+              </view>
+            </view>
+            <view class='price_count' style='font-size:20rpx;margin-top:10rpx;'>
+
+                 <block wx:for="{{item.detail.salesCartDistributeBoxMapList}}" wx:for-item="salesDistributeBox" wx:key="{{item}}">
+          {{salesDistributeBox.colorName}}色：{{salesDistributeBox.salesCartDistributeBoxEntity.colorTotalNum}}双
+          <block wx:for="{{salesDistributeBox.salesCartDetailMapList}}" wx:for-item="salesDetail" wx:key="{{item}}">
+           <text>    {{salesDetail.size}}码/{{salesDetail.salesShoppingCartDetailEntity.selectNum}}</text>
+          </block>
+        </block>  
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <!--这里是左滑按钮部分----start-->
+      <view bindtap="delItem" class="goods_detail_inner goods_detail_menu">
+        <view class="del" data-index="{{index}}" catchtap="delCartData">删除</view>
+      </view>
+
+   
+       
+
+      <!--这里是左滑按钮部分----end-->
+    </view>
+
+    <!--列表底部占位-->
+    <view class='goods_detail_bottom'></view>
+    <!--固定底部结算按钮-->
+    <view class='balance_content'>
+      <view class='prices'>
+        <!-- <view class='select_line'>
+          <view class='icon iconfont icon-xuanzhong {{allIsChecked?"icon_select":"icon_de_select"}}'></view>
+          <text>全选</text>
+        </view> -->
+        <view class='total_prices'>
+          <text class='money'>￥{{totalPrice}}元</text>
+           <text class='express'>总双数：{{totalNum}}双</text> 
+        </view>
+      </view>
+      <view class='blance_button' bindtap='generateOrder' >结 算</view>
+    </view>
+  </view>
+  <view class='cart_container' wx:else>
+    <view class='no_goods_title no_goods_text'>购物车快饿瘪了 T.T</view>
+    <view class='no_goods_second_title no_goods_text'>快给我挑点宝贝</view>
+    <view class='no_goods_stroll' hover-class='no_goods_stroll_hover' bindtap='strollClick'>去逛逛</view>
+  </view>
+</view>

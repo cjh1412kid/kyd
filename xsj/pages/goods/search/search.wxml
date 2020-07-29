@@ -1,0 +1,26 @@
+<!--pages/goods/search/search.wxml-->
+<!-- 搜索栏 -->
+<view class='search_top'>
+  <view class='top_search'>
+    <view class='search_icon iconfont icon-31sousuo'></view>
+    <input class='text_input' placeholder='商品搜索' bindconfirm='searchInputConfirm'></input>
+  </view>
+  <view class='search_cancel' focus='true' bindtap='searchCancel'>取消</view>
+</view>
+<view class='goods_list'>
+  <view class='goods_detail_content'>
+    <view class='image_content'>
+      <image></image>
+    </view>
+    <view class='message_content'>
+      <view class='description'>123</view>
+      <view class='color_size'>23,223</view>
+      <view class='price_count'>
+        <view class='prices'>￥199.00</view>
+        <view class='count'>
+          <view class='icon iconfont icon-add'></view>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

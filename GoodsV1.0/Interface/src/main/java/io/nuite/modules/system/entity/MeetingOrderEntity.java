@@ -1,0 +1,182 @@
+package io.nuite.modules.system.entity;
+
+import com.baomidou.mybatisplus.annotations.TableField;
+import com.baomidou.mybatisplus.annotations.TableId;
+import com.baomidou.mybatisplus.annotations.TableLogic;
+import com.baomidou.mybatisplus.annotations.TableName;
+import io.nuite.datasources.DatabaseNames;
+import lombok.Data;
+
+import java.io.Serializable;
+import java.math.BigDecimal;
+import java.util.Date;
+
+/**
+ * 订货会订单
+ *
+ * @author yangchuang
+ * @date 2019-04-17 13:42:11
+ */
+
+@Data
+@TableName(DatabaseNames.SR_ORDER_PLATFORM + "YHSR_OP_MeetingOrder")
+public class MeetingOrderEntity implements Serializable {
+    private static final long serialVersionUID = 1L;
+    
+    /**
+     * 订单序号
+     */
+    @TableId(value = "Seq")
+    private Integer seq;
+    /**
+     * 订单号
+     */
+    @TableField(value = "OrderNum")
+    private String orderNum;
+    /**
+     * 定货方序号
+     */
+    @TableField(value = "User_Seq")
+    private Integer userSeq;
+    /**
+     * 定货会序号
+     */
+    @TableField(value = "Meeting_Seq")
+    private Integer meetingSeq;
+    /**
+     * 公司序号
+     */
+    @TableField(value = "Company_Seq")
+    private Integer companySeq;
+    /**
+     * 收件人
+     */
+    @TableField(value = "ReceiverName")
+    private String receiverName;
+    /**
+     * 联系电话
+     */
+    @TableField(value = "Telephone")
+    private String telephone;
+    /**
+     * 收件地址
+     */
+    @TableField(value = "Address")
+    private String address;
+    /**
+     * 创建时间
+     */
+    @TableField(value = "InputTime")
+    private Date inputTime;
+    /**
+     * 删除状态（1,已删 0，未删）
+     */
+    @TableLogic
+    @TableField(value = "Del")
+    private Integer del;
+    
+    /**
+     * 物流名称
+     */
+    @TableField(value = "ExpressName")
+    private String expressName;
+    
+    /**
+     * 物流电话
+     */
+    @TableField(value = "ExpressPhone")
+    private String expressPhone;
+    
+    /**
+     * 订货会名称
+     */
+    @TableField(exist = false)
+    private String meetingName;
+    /**
+     * 订货方
+     */
+    @TableField(exist = false)
+    private String username;
+    /**
+     * 订单货品订货总量
+     */
+    @TableField(exist = false)
+    private Integer total;
+    /**
+     * 备注消息
+     */
+    @TableField(exist = false)
+    private String message;
+
+    /**
+     * 供应价
+     */
+    @TableField(exist = false)
+    private BigDecimal factoryPrice;
+
+    /**
+     * 尺码
+     */
+    @TableField(exist = false)
+    private String colorName;
+
+    /**
+     * 颜色总数
+     */
+    @TableField(exist = false)
+    private Integer colorNum;
+
+    /**
+     * 金额
+     */
+    @TableField(exist = false)
+    private BigDecimal money;
+
+    /**
+     * 货号
+     */
+    @TableField(exist = false)
+    private String goodId;
+
+    /**
+     * 配码箱序号
+     */
+    @TableField(exist = false)
+    private Integer distributeBoxSeq;
+
+    /**
+     * 配码箱序号
+     */
+    @TableField(exist = false)
+    private Integer goodSeq;
+
+    /**
+     * 配码箱序号
+     */
+    @TableField(exist = false)
+    private Integer colorSeq;
+
+    /**
+     * 批发价
+     */
+    @TableField(exist = false)
+    private BigDecimal price;
+
+    /**
+     * 订单数
+     */
+    @TableField(exist = false)
+    private Integer orderCount;
+
+    /**
+     * 款数
+     */
+    @TableField(exist = false)
+    private Integer goodCount;
+
+    /**
+     * sku数
+     */
+    @TableField(exist = false)
+    private Integer skuCount;
+}

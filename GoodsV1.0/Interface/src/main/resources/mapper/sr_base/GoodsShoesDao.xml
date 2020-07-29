@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="io.nuite.modules.sr_base.dao.GoodsShoesDao">
+
+	<!-- 可根据自己的需求，是否要使用 -->
+	<resultMap
+		type="io.nuite.modules.sr_base.entity.GoodsShoesEntity"
+		id="goodsShoesMap">
+		<result property="seq" column="Seq" />
+		<result property="companySeq" column="Company_Seq" />
+		<result property="periodSeq" column="Period_Seq" />
+		<result property="categorySeq" column="Category_Seq" />
+		<result property="goodName" column="GoodName" />
+		<result property="goodID" column="GoodID" />
+		<result property="color" column="Color" />
+		<result property="surfaceMaterial" column="SurfaceMaterial" />
+		<result property="innerMaterial" column="InnerMaterial" />
+		<result property="popularElement" column="PopularElement" />
+		<result property="soleMaterial" column="SoleMaterial" />
+		<result property="closeForm" column="CloseForm" />
+		<result property="heelShape" column="HeelShape" />
+		<result property="toeStyle" column="ToeStyle" />
+		<result property="heelHeight" column="HeelHeight" />
+		<result property="introduce" column="Introduce" />
+		<result property="description" column="Description" />
+		<result property="video" column="Video" />
+		<result property="img1" column="Img1" />
+		<result property="img2" column="Img2" />
+		<result property="img3" column="Img3" />
+		<result property="img4" column="Img4" />
+		<result property="img5" column="Img5" />
+		<result property="inputTime" column="InputTime" />
+		<result property="del" column="Del" />
+		<result property="SX1" column="SX1" />
+		<result property="SX2" column="SX2" />
+		<result property="SX3" column="SX3" />
+		<result property="SX4" column="SX4" />
+		<result property="SX5" column="SX5" />
+		<result property="SX6" column="SX6" />
+		<result property="SX7" column="SX7" />
+		<result property="SX8" column="SX8" />
+		<result property="SX9" column="SX9" />
+		<result property="SX10" column="SX10" />
+		<result property="SX11" column="SX11" />
+		<result property="SX12" column="SX12" />
+		<result property="SX13" column="SX13" />
+		<result property="SX14" column="SX14" />
+		<result property="SX15" column="SX15" />
+		<result property="SX16" column="SX16" />
+		<result property="SX17" column="SX17" />
+		<result property="SX18" column="SX18" />
+		<result property="SX19" column="SX19" />
+		<result property="SX20" column="SX20" />
+	</resultMap>
+
+	<select id="selectGoodsIDsByCompanySeq"
+		resultType="java.lang.String">
+		SELECT GoodID
+		FROM [YHSmartRetail].[dbo].[YHSR_Goods_Shoes]
+		WHERE Company_Seq = #{companySeq} AND Del=0
+	</select>
+
+	<select id="selectGoodsSeqByGoodsID"
+		resultType="java.lang.Integer">
+		SELECT Seq
+		FROM [YHSmartRetail].[dbo].[YHSR_Goods_Shoes]
+		WHERE GoodID = #{goodsId} and Company_Seq =#{companySeq} AND Del=0
+	</select>
+
+	<!--查找属性选项是否与商品有关联 -->
+	<select id="getCountBySXAndOption"
+		resultType="java.lang.Integer">
+		select COUNT(*)
+		from [YHSmartRetail].[dbo].[YHSR_Goods_Shoes]
+		where Company_Seq = #{companySeq} and ${sxid}=#{optCode} and Del=0
+	</select>
+
+	<select id="selectGoodsByCompanySeq" resultMap="goodsShoesMap">
+		SELECT *
+		FROM [YHSmartRetail].[dbo].[YHSR_Goods_Shoes]
+		WHERE Company_Seq = #{companySeq} AND Del=0
+	</select>
+
+	<!--用于查询同步到erp的订单商品信息 -->
+	<select id="getShoesDataToERP"
+		resultType="io.nuite.modules.system.erp.entity.GoodsVo">
+		SELECT
+		s.[Seq] seq
+		,[GoodName] name
+		,[GoodID] code
+		,p.[Name] seasonName
+		,[Year] year
+		,[Category_Code] categoryCode
+		,[SX1] sx1
+		,[SX2] sx2
+		,[SX3] sx3
+		,[SX4] sx4
+		,[SX5] sx5
+		,[SX6] sx6
+		,[SX7] sx7
+		,[SX8] sx8
+		,[SX9] sx9
+		,[SX10] sx10
+		,[SX11] sx11
+		,[SX12] sx12
+		,[SX13] sx13
+		,[SX14] sx14
+		,[SX15] sx15
+		,[SX16] sx16
+		,[ShoesBrand] brand
+		,[Mnemonic] ZJF
+		,info.WholesalerPrice wholesalePrice
+		,info.StorePrice basePrice
+		FROM (SELECT * FROM [YHSmartRetail].[dbo].[YHSR_Goods_Shoes]
+		where Del=0 and Seq in
+		<foreach collection="list" item="seq" open="(" separator=","
+			close=")">
+			#{seq}
+		</foreach>
+		) s
+		join [YHSmartRetail].[dbo].[YHSR_Goods_Period] p
+		on s.Period_Seq=p.Seq
+		join [YHSmartRetail].[dbo].[YHSR_Goods_Category] c
+		on c.Seq=s.Category_Seq
+		join [YHSROrderPlatform].[dbo].[YHSR_OP_ShoesInfo] info
+		on s.Seq = info.Shoes_Seq
+	</select>
+
+	<select id="getRankList" resultType="java.util.Map">
+		select E.shoesSeq AS shoesSeq,sum(E.count) AS count,sum(E.num) as num
+		from [YHSmartRetail].[dbo].[YHSR_Goods_Shoes] A left JOIN  [YHSROnlineSales].[dbo].[YHSR_OLS_ShoesInfo] H ON A.Seq =H.Shoes_Seq left JOIN
+		(select B.Shoes_Seq AS shoesSeq, isnull(B.Browse_Num,0) AS count,0 AS num
+		from [YHSROnlineSales].[dbo].[YHSR_OLS_ShoesInfo] B
+		UNION ALL
+		select C.Shoes_Seq AS shoesSeq, 1 AS count,C.TotalSelectNum AS num from
+		[YHSROnlineSales].[dbo].[YHSR_OLS_SalesShoppingCart] C
+		UNION ALL
+		select D.Shoes_Seq AS shoesSeq ,1 AS count,D.TotalSelectNum AS num from
+		[YHSROnlineSales].[dbo].[YHSR_OLS_OrderCart] D
+		UNION ALL
+		select F.Shoes_Seq AS shoesSeq,0 AS count,SUM(isnull(F.SetStock,0) ) AS num from
+		[YHSROnlineSales].[dbo].[YHSR_OLS_ShoesData] F group by F.Shoes_Seq
+		) E ON E.shoesSeq=A.Seq
+		where A.Company_Seq=#{companySeq} AND A.Period_Seq=#{periodSeq} AND A.Del
+		=0 AND OnSale=1
+		<if test="categorySeq != null">
+			AND A.Category_Seq =#{categorySeq}
+		</if>
+		GROUP BY E.shoesSeq HAVING  
+		<if test="type==1">
+		sum(E.count)>0
+		order by sum(E.count) asc
+		</if>
+		<if test="type==2">
+		 sum(E.num)>0 
+		order by sum(E.num) asc
+		</if>
+	</select>
+	<select id="getCategory" resultType="java.util.Map">
+		select F.Seq AS categorySeq,sum(E.count) AS count,sum(E.num) as num from
+		[YHSmartRetail].[dbo].[YHSR_Goods_Category] F left join
+		[YHSmartRetail].[dbo].[YHSR_Goods_Category] G on G.parentSeq=F.Seq left join
+		[YHSmartRetail].[dbo].[YHSR_Goods_Category] H on H.parentSeq=G.Seq
+		left join
+		[YHSmartRetail].[dbo].[YHSR_Goods_Shoes] A on (F.Seq= A.Category_Seq or G.Seq = A.Category_Seq or H.Seq= A.Category_Seq ) left JOIN
+		(select B.Shoes_Seq AS shoesSeq, isnull(B.Browse_Num,0) AS count,0 AS
+		num from [YHSROnlineSales].[dbo].[YHSR_OLS_ShoesInfo] B
+		UNION ALL
+		select C.Shoes_Seq AS shoesSeq, 1 AS count,C.TotalSelectNum AS num from
+		[YHSROnlineSales].[dbo].[YHSR_OLS_SalesShoppingCart] C
+		UNION ALL
+		select D.Shoes_Seq AS shoesSeq ,1 AS count,D.TotalSelectNum AS num from
+		[YHSROnlineSales].[dbo].[YHSR_OLS_OrderCart] D
+		UNION ALL
+		select F.Shoes_Seq AS shoesSeq,0 AS count,SUM(isnull(F.SetStock,0) ) AS num from
+		[YHSROnlineSales].[dbo].[YHSR_OLS_ShoesData] F group by F.Shoes_Seq
+		) E ON E.shoesSeq=A.Seq
+		where A.Company_Seq=#{companySeq} AND A.Period_Seq=#{periodSeq} AND A.Del
+		=0
+		AND F.ParentSeq=#{categorySeq} AND F.Company_Seq=#{companySeq}
+		GROUP BY F.Seq HAVING
+		 <if test="type==1">
+		sum(E.count)>0
+		order by sum(E.count) desc
+		</if>
+		<if test="type==2">
+		 sum(E.num)>0 
+		order by sum(E.num) desc
+		</if>
+	</select>
+	
+	<select id="getSumRankList" resultType="java.util.Map">
+		select top 30 E.shoesSeq AS shoesSeq ,sum(E.num) as num
+		from [YHSmartRetail].[dbo].[YHSR_Goods_Shoes] A left JOIN   [YHSROnlineSales].[dbo].[YHSR_OLS_ShoesInfo] H ON A.Seq =H.Shoes_Seq left JOIN
+		(
+		select C.Shoes_Seq AS shoesSeq,C.TotalSelectNum AS num from
+		[YHSROnlineSales].[dbo].[YHSR_OLS_SalesShoppingCart] C
+		UNION ALL
+		select D.Shoes_Seq AS shoesSeq ,D.TotalSelectNum AS num from
+		[YHSROnlineSales].[dbo].[YHSR_OLS_OrderCart] D
+		UNION ALL
+		select F.Shoes_Seq AS shoesSeq,SUM(isnull(F.SetStock,0) ) AS num from
+		[YHSROnlineSales].[dbo].[YHSR_OLS_ShoesData] F group by F.Shoes_Seq
+		) E ON E.shoesSeq=A.Seq
+		where A.Company_Seq=#{companySeq} AND A.Period_Seq=#{periodSeq} AND A.Del
+		=0 AND H.OnSale=1
+		GROUP BY E.shoesSeq HAVING   sum(E.num)>0 order by sum(E.num) desc 
+		
+	</select>
+</mapper>

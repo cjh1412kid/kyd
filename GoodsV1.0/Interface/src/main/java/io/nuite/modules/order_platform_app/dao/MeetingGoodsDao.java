@@ -1,0 +1,61 @@
+package io.nuite.modules.order_platform_app.dao;
+
+import java.util.List;
+import java.util.Map;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import com.baomidou.mybatisplus.mapper.BaseMapper;
+import com.baomidou.mybatisplus.plugins.Page;
+
+import io.nuite.modules.order_platform_app.entity.MeetingGoodsEntity;
+
+/**
+ * ${comments}
+ * 
+ * @author wanghao
+ * @email barryhippo@163.com
+ * @date 2019-04-16 10:12:39
+ */
+@Mapper
+public interface MeetingGoodsDao extends BaseMapper<MeetingGoodsEntity> {
+
+	List<Map<String, Object>> getMeetingGoodsAreaRank(@Param("meetingGoodsSeqs")String meetingGoodsSeqs);
+
+	List<Map<String, Object>> getMeetingGoodsIdRank(@Param("meetingSeq")Integer meetingSeq);
+
+	List<Map<String, Object>> getAreaMeetingGoodsIdRank(@Param("meetingSeq")Integer meetingSeq, @Param("areaSeq")Integer areaSeq);
+	
+	List<Map<String, Object>> getMeetingGoodsNumRank(@Param("meetingSeq")Integer meetingSeq);
+	/**
+	 * 货品列表
+	 * @param page
+	 * @param map
+	 * @return
+	 */
+	List<MeetingGoodsEntity> selectGoodsList(Page<MeetingGoodsEntity> page, Map<String, Object> map);
+	
+	List<Map<String, Object>> getGoodsAreaRank(@Param("meetingGoodsSeqs")String meetingGoodsSeqs,@Param("totalNum")Integer totalNum);
+
+	List<Map<String, Object>> getGoodsIdRank(@Param("meetingSeq")Integer meetingSeq,@Param("totalNum")Integer totalNum);
+	
+	 List<Map<String, Object>> getUserRank(@Param("meetingSeq")Integer meetingSeq,@Param("totalNum")Integer totalNum);
+
+	/**
+	 * 货品列表(不分页)
+	 * @param map
+	 * @return
+	 */
+	List<MeetingGoodsEntity> selectMeetingGoodsList(Map<String, Object> map);
+	
+	List<Map<String, Object>> getCategory(@Param("companySeq")Integer companySeq,@Param("meetingSeq")Integer meetingSeq,@Param("categorySeq") Integer categorySeq,@Param("showType")Integer showType);
+
+	List<Map<String, Object>> getCategoryList(@Param("companySeq")Integer companySeq,@Param("meetingSeq")Integer meetingSeq,@Param("categorySeq") Integer categorySeq);
+
+	List<Map<String, Object>> getRankByCategorySeq(@Param("meetingSeq")Integer meetingSeq,@Param("categorySeq") Integer categorySeq);
+
+	List<Map<String, Object>> getNumRankByCategorySeq(@Param("meetingSeq")Integer meetingSeq,@Param("categorySeq") Integer categorySeq);
+
+	List<String> getColorSeqsByMeetingSeq(@Param("meetingSeq")Integer meetingSeq);
+}

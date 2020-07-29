@@ -1,0 +1,27 @@
+package io.nuite.modules.order_platform_app.service;
+
+import java.util.List;
+import java.util.Map;
+
+import com.baomidou.mybatisplus.service.IService;
+import io.nuite.modules.order_platform_app.entity.MeetingShoppingCartDistributeBoxEntity;
+import io.nuite.modules.order_platform_app.entity.MeetingShoppingCartEntity;
+
+
+public interface MeetingShoppingCartDistributeBoxService extends IService<MeetingShoppingCartDistributeBoxEntity> {
+
+	MeetingShoppingCartEntity getUserMeetingShoppingCart(Integer userSeq, Integer meetingGoodsSeq);
+	
+	List<Map<String, Object>> getAllUsersSelectNum(Integer meetingGoodsSeq);
+	
+	MeetingShoppingCartDistributeBoxEntity getDistributeBoxEntityByShoppingCartSeqAndColor(Integer meetingShoppingCartSeq, Integer colorSeq);
+
+	void addToMeetingShoppingCart(Integer meetingSeq, Integer userSeq, Integer meetingGoodsSeq, Integer totalSelectNum, Integer perBoxNum,
+			String colorAndBoxCount);
+
+	List<MeetingShoppingCartDistributeBoxEntity> getMeetingShoppingCartDistributeBoxListByShoppingCartSeq(Integer meetingShoppingCartSeq);
+
+	void sizeAllot(Integer meetingShoppingCartSeq, Integer minSize, Integer maxSize, List<Integer> sizeAllotCode);
+
+}
+

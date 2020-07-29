@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="io.nuite.modules.system.dao.online_sale.OnlineOrderDao">
+
+	<!-- 可根据自己的需求，是否要使用 -->
+    <resultMap type="io.nuite.modules.system.entity.online_sale.OnlineOrderEntity" id="orderMap">
+        <result property="seq" column="Seq"/>
+        <result property="userSeq" column="User_Seq"/>
+        <result property="orderNum" column="OrderNum"/>
+        <result property="orderPrice" column="OrderPrice"/>
+        <result property="paid" column="Paid"/>
+        <result property="orderStatus" column="OrderStatus"/>
+        <result property="companySeq" column="Company_Seq"/>
+        <result property="expressCompanySeq" column="ExpressCompany_Seq"/>
+        <result property="expressNo" column="ExpressNo"/>
+        <result property="expressImg" column="ExpressImg"/>
+        <result property="inputTime" column="InputTime"/>
+        <result property="requireTime" column="RequireTime"/>
+        <result property="paymentTime" column="PaymentTime"/>
+        <result property="deliverTime" column="DeliverTime"/>
+        <result property="receiveTime" column="ReceiveTime"/>
+        <result property="remark" column="Remark"/>
+        <result property="suggestion" column="Suggestion"/>
+        <result property="del" column="Del"/>
+    </resultMap>
+	
+
+</mapper>

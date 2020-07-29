@@ -1,0 +1,132 @@
+.detail_address {
+  background-color: #fff;
+  width: 750rpx;
+  margin-top: 8rpx;
+}
+
+.detail_address .content {
+  width: 701rpx;
+  margin: 0 auto;
+  padding: 23rpx 0;
+  font-size: 25rpx;
+  color: #666;
+}
+
+.detail_address .content .title {
+  font-size: 29rpx;
+  color: #666;
+  padding-bottom: 23rpx;
+  border-bottom: solid 1px #e2e2e2;
+  margin-bottom: 23rpx;
+}
+
+.detail_address .content .title .icon {
+  float: right;
+  font-size: 35rpx;
+  color: #323232;
+  padding-top: 1rpx;
+}
+
+.detail_address .content .name {
+  margin-bottom: 23rpx;
+}
+
+.detail_address .content .name .phone {
+  float: right;
+}
+
+.detail_content {
+  background-color: #fff;
+  margin-top: 8rpx;
+  width: 750rpx;
+}
+
+.detail_content .content {
+  width: 701rpx;
+  margin: 0 auto;
+  padding: 23rpx 0;
+}
+
+.detail_content .content .title {
+  font-size: 29rpx;
+  color: #666;
+  padding-bottom: 23rpx;
+  border-bottom: solid 1px #e2e2e2;
+}
+
+.detail_content .content .title .time {
+  font-size: 21rpx;
+  color: #b5b5b5;
+  float: right;
+}
+
+.goods .one_good {
+  margin-top: 15rpx;
+  display: flex;
+  padding-bottom: 20rpx;
+  border-bottom: solid 1px #e2e2e2;
+}
+
+.goods .one_good .image {
+  margin-right: 56rpx;
+}
+
+.goods .one_good .image, .goods .one_good .image image {
+  width: 154rpx;
+  height: 140rpx;
+}
+
+.goods .one_good .detail {
+  flex: 1;
+  font-size: 25rpx;
+  color: #666;
+}
+
+.goods .one_good .detail .name .title_name {
+  width: 360rpx;
+  display: inline-block;
+}
+
+.goods .one_good .detail .name .prices,
+.goods .one_good .detail .color_num .number {
+  float: right;
+}
+
+.goods .one_good .detail .color_num {
+  margin-top: 20rpx;
+}
+
+.detail_content .total {
+  margin: 20rpx 0;
+}
+
+.total .numbers {
+  padding-bottom: 20rpx;
+  font-size: 25rpx;
+  color: #666;
+}
+
+.total .numbers text {
+  float: right;
+  color: #b5b5b5;
+}
+
+.total .numbers .good_prices {
+  margin-bottom: 20rpx;
+}
+
+.total .total_prices {
+  border-top: solid 1px #e2e2e2;
+  padding-top: 20rpx;
+  text-align: right;
+  color: #666;
+  font-size: 33rpx;
+}
+
+.total_prices text {
+  color: #999;
+}
+
+.total_prices.paid text {
+  color: #ff6f71;
+}

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="io.nuite.modules.sr_base.dao.GoodsColorDao">
+
+	<!-- 可根据自己的需求，是否要使用 -->
+    <resultMap type="io.nuite.modules.sr_base.entity.GoodsColorEntity" id="goodsColorMap">
+        <result property="seq" column="Seq"/>
+        <result property="companySeq" column="Company_Seq"/>
+        <result property="name" column="Name"/>
+        <result property="code" column="Code"/>
+        <result property="inputTime" column="InputTime"/>
+        <result property="del" column="Del"/>
+    </resultMap>
+
+
+    <select id="selectColorSeqByCode" resultType="java.lang.Integer">
+      SELECT [Seq]
+      FROM [YHSmartRetail].[dbo].[YHSR_Goods_Color]
+      WHERE Company_Seq = #{companySeq} and Code = #{code}  and Del=0
+    </select>
+	<select id="selectColorByColorName" resultType="java.lang.Integer">
+      SELECT [Seq]
+      FROM [YHSmartRetail].[dbo].[YHSR_Goods_Color]
+      WHERE Company_Seq = #{companySeq} and Name = #{name}  and Del=0
+    </select>
+</mapper>

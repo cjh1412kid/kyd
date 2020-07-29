@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.nuite.modules.erp.bserp.dao.DingdanDao">
+  <resultMap type="com.nuite.modules.erp.bserp.entity.Dingdan" id="dingdanMaps">
+    <result column="DJBH" property="orderNum"/>
+    <result column="RQ" property="inputTime"/>
+    <result column="YDJH" property="ydjh"/>
+    <result column="FPLX" property="fplx"/>
+    <result column="DAYS" property="days"/>
+    <result column="DM1" property="accountName"/>
+    <result column="JE" property="orderPrice"/>
+    <result column="BZJE" property="paid"/>
+    <result column="DM4" property="remark"/>
+    <result column="JZRQ" property="storeTime"/>
+    <collection property="mxList" ofType="com.nuite.modules.erp.bserp.entity.DingdanMX" select="getDingdanMX"
+                column="DJBH">
+    </collection>
+    <collection property="expressList" ofType="com.nuite.modules.erp.bserp.entity.DingdanPh" select="getDingdanPh"
+                column="DJBH">
+    </collection>
+  </resultMap>
+
+  <resultMap type="com.nuite.modules.erp.bserp.entity.DingdanMX" id="dingdanMxMaps">
+    <result column="DJBH" property="orderNum"/>
+    <result column="MIBH" property="nbBH"/>
+    <result column="MXBH" property="seq"/>
+    <result column="SPDM" property="goodsSeq"/>
+    <result column="GG1DM" property="colorSeq"/>
+    <result column="GG2DM" property="sizeSeq"/>
+    <result column="SL" property="buyCount"/>
+    <result column="SL_2" property="deliverNum"/>
+    <result column="DJ" property="productPrice"/>
+  </resultMap>
+
+  <select id="getDingdan" resultMap="dingdanMaps">
+    select jrd.DJBH,jrd.RQ,jrd.YDJH,jrd.FPLX,jrd.DAYS,jrd.DM1,jrd.JE,jrd.BZJE,jrd.DM4,pse.JZRQ
+    from PHJRD jrd
+    left join (select top 1 ps.LXDJ,ps.JZRQ from PSEND ps where ps.Is_Move=0 and ps.JZ=1 order by ps.RQ) pse on pse.LXDJ=jrd.DJBH
+    where jrd.RQ <![CDATA[ >= ]]> #{startDate} and Is_Move=0
+  </select>
+
+  <select id="getDingdanMX" resultMap="dingdanMxMaps">
+    select jrdmx.DJBH,jrdmx.MIBH,jrdmx.MXBH,jrdmx.SPDM,jrdmx.GG1DM,jrdmx.GG2DM,jrdmx.SL,jrdmx.SL_2,jrdmx.DJ
+    from PHJRDMX jrdmx where jrdmx.DJBH=#{orderNum} order by jrdmx.MIBH
+  </select>
+
+  <resultMap type="com.nuite.modules.erp.bserp.entity.DingdanPh" id="dingdanPhMaps">
+    <result column="DJBH" property="expressNum"/>
+    <result column="LXDJ" property="orderNum"/>
+    <result column="RQ" property="inputTime"/>
+    <collection property="mxList" ofType="com.nuite.modules.erp.bserp.entity.DingdanPhMX" select="getDingdanPhMx"
+                column="DJBH">
+    </collection>
+  </resultMap>
+
+  <resultMap type="com.nuite.modules.erp.bserp.entity.DingdanPhMX" id="dingdanPhMxMaps">
+    <result column="DJBH" property="expressNum"/>
+    <result column="SPDM" property="goodsNum"/>
+    <result column="GG1DM" property="colorNum"/>
+    <result column="GG2DM" property="sizeNum"/>
+    <result column="SL" property="num"/>
+  </resultMap>
+
+  <select id="getDingdanPh" resultMap="dingdanPhMaps">
+    select sdphd.DJBH,sdphd.LXDJ,sdphd.RQ
+    from SDPHD sdphd where sdphd.LXDJ=#{OrderNum} and sdphd.Is_Move=0
+  </select>
+
+  <select id="getDingdanPhMx" resultMap="dingdanPhMxMaps">
+    select phdmx.DJBH,phdmx.SPDM,phdmx.GG1DM,phdmx.GG2DM,phdmx.SL from SDPHDMX phdmx where phdmx.DJBH=#{ExpressNum} and phdmx.Is_Move=0
+  </select>
+
+  <select id="selectDingdanYGDM" resultType="java.lang.String">
+    select ck.YGDM from CANGKU ck where ck.CKDM=#{UserCode}
+  </select>
+</mapper>

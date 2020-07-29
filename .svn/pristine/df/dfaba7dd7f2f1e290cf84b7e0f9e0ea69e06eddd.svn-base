@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="io.nuite.modules.order_platform_app.dao.MeetingOrderCartDao">
+
+	<!-- 可根据自己的需求，是否要使用 -->
+    <resultMap type="io.nuite.modules.order_platform_app.entity.MeetingOrderCartEntity" id="meetingOrderCartMap">
+        <result property="seq" column="Seq"/>
+        <result property="meetingSeq" column="Meeting_Seq"/>
+        <result property="userSeq" column="User_Seq"/>
+        <result property="meetingGoodsSeq" column="MeetingGoods_Seq"/>
+        <result property="totalSelectNum" column="TotalSelectNum"/>
+        <result property="perBoxNum" column="PerBoxNum"/>
+        <result property="isAllocated" column="IsAllocated"/>
+        <result property="isChecked" column="IsChecked"/>
+        <result property="inputTime" column="InputTime"/>
+        <result property="del" column="Del"/>
+        <result property="meetingGoodsID" column="MeetingGoodsID"/>
+        <result property="userGoodID" column="UserGoodID"/>
+        <result property="meetingOrderSeq" column="MeetingOrderSeq"/>
+    </resultMap>
+
+    <select id="selectOrderDetailMoney" parameterType="java.util.Map" resultType="java.math.BigDecimal">
+        SELECT
+        SUM(moc.TotalSelectNum * mg.Price)
+        FROM
+        [YHSROrderPlatform].[dbo].[YHSR_OP_MeetingOrderCart] moc
+        LEFT JOIN
+        [YHSROrderPlatform].[dbo].[YHSR_OP_MeetingGoods] mg
+        ON moc.MeetingGoods_Seq = mg.Seq
+        WHERE mg.GoodID = #{goodId} AND moc.Del = 0 AND moc.MeetingOrderSeq = #{meetingOrderSeq}
+    </select>
+
+    <select id="selectOrderMoney" parameterType="java.util.Map" resultType="java.math.BigDecimal">
+        SELECT
+        SUM(moc.TotalSelectNum * mg.Price)
+        FROM
+        [YHSROrderPlatform].[dbo].[YHSR_OP_MeetingOrderCart] moc
+        LEFT JOIN
+        [YHSROrderPlatform].[dbo].[YHSR_OP_MeetingGoods] mg
+        ON mg.Seq = moc.MeetingGoods_Seq
+        WHERE moc.MeetingOrderSeq = #{meetingOrderSeq}
+    </select>
+</mapper>

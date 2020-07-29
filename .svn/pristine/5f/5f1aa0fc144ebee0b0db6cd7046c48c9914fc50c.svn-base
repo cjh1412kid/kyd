@@ -1,0 +1,159 @@
+package io.nuite.modules.system.dao;
+
+import com.baomidou.mybatisplus.mapper.BaseMapper;
+import io.nuite.modules.system.entity.MeetingOrderProductEntity;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * 订货会订单货品
+ *
+ * @author yangchuang
+ * @date 2019-04-17 13:42:11
+ */
+@Mapper
+public interface MeetingOrderProductDao extends BaseMapper<MeetingOrderProductEntity> {
+    
+    /**
+     * 查询指定订单号的商品详情
+     *
+     * @param meetingOrderSeq
+     * @return
+     */
+    List<MeetingOrderProductEntity> selectProductInfoByMeetingOrderSeq(@Param("seq") Integer meetingOrderSeq,@Param("keywords") String keywords);
+    
+    /**
+     * 计算订单下货品订货总量
+     *
+     * @param meetingOrderSeq
+     * @return
+     */
+    Integer computedSumByMeetingOrderSeq(@Param("seq") Integer meetingOrderSeq);
+
+    /**
+     * 查询指定订货会的所有货品
+     * @param companySeq
+     * @param meetingSeq
+     * @param keywords
+     * @param isCancel
+     * @return
+     */
+    List<MeetingOrderProductEntity> selectGoodsOrderByMeetingSeq(@Param("companySeq") Integer companySeq, @Param("meetingSeq") Integer meetingSeq, @Param("keywords") String keywords,@Param("isCancel")Integer isCancel);
+    
+    /**
+     * 查询指定订货会的所有货品(按区域统计)
+     *
+     * @param companySeq
+     * @param meetingSeq
+     * @return
+     */
+    List<MeetingOrderProductEntity> selectAreaOrderByMeetingSeq(@Param("companySeq") Integer companySeq, @Param("meetingSeq") Integer meetingSeq, @Param("areaSeq") Integer areaSeq);
+    
+    /**
+     * 获取订单关联的定货方
+     *
+     * @param meetingOrderSeq
+     * @return
+     */
+    List<String> getAccountNameByMeetingOrderSeq(@Param("seq") Integer meetingOrderSeq);
+    
+    /**
+     * 获取货号和颜色关联的所有定货方
+     *
+     * @param companySeq
+     * @param goodSeq
+     * @param colorSeq
+     * @return
+     */
+    List<String> getAccountNameByGoodSeqAndColorSeq(@Param("companySeq") Integer companySeq,
+                                                    @Param("goodSeq") Integer goodSeq,
+                                                    @Param("colorSeq") Integer colorSeq);
+    
+    /**
+     * 获取货号关联的所有定货方
+     *
+     * @param companySeq
+     * @param goodSeq
+     * @return
+     */
+    List<String> getAccountNameByGoodSeq(@Param("companySeq") Integer companySeq,
+                                         @Param("goodSeq") Integer goodSeq);
+    
+    /**
+     * 更新所有货号-尺码的取消状态
+     *
+     * @param companySeq
+     * @param goodSeq
+     * @param colorSeq
+     * @param isCancel
+     */
+    void updateGoodColorCancel(@Param("companySeq") Integer companySeq,
+                         @Param("goodSeq") Integer goodSeq,
+                         @Param("colorSeq") Integer colorSeq,
+                         @Param("isCancel") Integer isCancel);
+    
+    /**
+     * 更新所有货号-尺码的取消状态
+     *
+     * @param companySeq
+     * @param goodSeq
+     * @param isCancel
+     */
+    void updateGoodCancel(@Param("companySeq") Integer companySeq,
+                         @Param("goodSeq") Integer goodSeq,
+                         @Param("isCancel") Integer isCancel);
+    
+    Integer getTotalCountByMeetingSeq(@Param("meetingSeq") Integer meetingSeq,@Param("meetingUserSeq")Integer meetingUserSeq);
+
+    /**
+     * 获取取消款数
+     * @param map
+     * @return
+     * @throws Exception
+     */
+    Integer selectCancelGoodNum(Map<String,Object> map) throws Exception;
+
+    /**
+     * 获取取消双数
+     * @param map
+     * @return
+     * @throws Exception
+     */
+    Integer selectCancelTotal(Map<String,Object> map) throws Exception;
+
+    /**
+     * 获取取消金额
+     * @param map
+     * @return
+     * @throws Exception
+     */
+    BigDecimal selectCancelMoney(Map<String,Object> map) throws Exception;
+
+    /**
+     * 获取所有订单订单号和是否取消去重列表
+     * @param map
+     * @return
+     * @throws Exception
+     */
+    List<MeetingOrderProductEntity> selectCancelOrder(Map<String,Object> map) throws Exception;
+
+    /**
+     * 根据订单序号获取取消金额
+     * @param map
+     * @return
+     * @throws Exception
+     */
+    BigDecimal selectCancelMoneyByOrderSeq(Map<String,Object> map) throws Exception;
+
+    /**
+     * 获取取消sku数
+     * @param map
+     * @return
+     * @throws Exception
+     */
+    Integer selectCancelSku(Map<String,Object> map) throws Exception;
+}

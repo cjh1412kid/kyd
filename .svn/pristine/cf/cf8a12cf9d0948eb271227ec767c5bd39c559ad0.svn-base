@@ -1,0 +1,866 @@
+package io.nuite.modules.system.controller;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URLEncoder;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
+
+import javax.servlet.ServletOutputStream;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import com.baomidou.mybatisplus.mapper.EntityWrapper;
+import com.baomidou.mybatisplus.mapper.Wrapper;
+import io.nuite.modules.order_platform_app.service.MeetingRankService;
+import io.nuite.modules.sr_base.entity.GoodsCategoryEntity;
+import io.nuite.modules.sr_base.service.GoodsCategoryService;
+import io.nuite.modules.system.entity.MeetingEntity;
+import org.apache.poi.hssf.usermodel.HSSFCell;
+import org.apache.poi.hssf.usermodel.HSSFCellStyle;
+import org.apache.poi.hssf.usermodel.HSSFFont;
+import org.apache.poi.hssf.usermodel.HSSFPatriarch;
+import org.apache.poi.hssf.usermodel.HSSFRow;
+import org.apache.poi.hssf.usermodel.HSSFSheet;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import io.nuite.common.exception.RRException;
+import io.nuite.common.utils.FileUtils;
+import io.nuite.common.utils.PageUtils;
+import io.nuite.common.utils.R;
+import io.nuite.common.utils.SpringContextUtils;
+import io.nuite.common.utils.ZipUtils;
+import io.nuite.modules.order_platform_app.entity.MeetingGoodsEntity;
+import io.nuite.modules.order_platform_app.service.MeetingGoodsService;
+import io.nuite.modules.sr_base.dao.GoodsColorDao;
+import io.nuite.modules.sr_base.entity.GoodsColorEntity;
+import io.nuite.modules.sr_base.utils.ConfigUtils;
+import io.nuite.modules.system.service.ExcelGoodsService;
+import io.nuite.modules.system.service.MeetingService;
+
+
+@RestController
+@RequestMapping("/system/meetingGoods" )
+
+public class SysMeetingGoodsController extends AbstractController  {
+
+	  private Logger logger = LoggerFactory.getLogger(getClass());
+	  
+	  @Autowired
+	  private MeetingGoodsService meetingGoodsService;
+	  
+	  @Autowired
+	  private MeetingService meetingService;
+	  
+	  @Autowired
+	    protected ConfigUtils configUtils;
+	  
+	  @Autowired
+	    private GoodsColorDao goodsColorDao;
+
+	  @Autowired
+	  private MeetingRankService meetingRankService;
+
+	  @Autowired
+	  private GoodsCategoryService goodsCategoryService;
+	  
+	    @PostMapping("/getGoodsList")
+	    public R productList(@RequestParam Map<String, Object> params,HttpServletRequest request) {
+	        try {
+	        	   Integer companySeq = getUser().getCompanySeq();
+		            //解压路径
+		            String uploadUrl = getMeetingGoodsUploadUrl(request);
+	            // 货品列表
+	            PageUtils goodsPage = meetingGoodsService.getMeetingGoodsList(getUserSeq(), params);
+	            // 循环拼接图片路径
+	            return R.ok().put("page", goodsPage);
+	        } catch (Exception e) {
+	            e.printStackTrace();
+	            logger.error(e.getMessage(), e);
+	            return R.error("服务器异常");
+	        }
+	    }
+	  
+	    /**
+	     * 获取当前用户订货会列表
+	     */
+	    @GetMapping("/meetings")
+	    
+	    public R getUserMeetings() {
+	        Map result = meetingService.getUserMeetings(getUser());
+	        return R.ok().put("meetings", result);
+	    }
+	    
+	    /**
+	     * 商品的删除操作
+	     */
+	    @GetMapping("/delete")
+	   
+	    public R delete( @RequestParam("seq") Integer seq) {
+	     try {
+	    	
+	            Boolean flag = meetingGoodsService.hasGoodsInOrders(seq);
+	            if (flag) {
+	                return R.error("该货品已被使用，不可删除");
+	            }	  
+	            meetingGoodsService.deleteById(seq);
+	        return R.ok();
+	    	  } catch (Exception e) {
+	              e.printStackTrace();
+	              logger.error(e.getMessage(), e);
+	              return R.error("服务器开小差啦~");
+	          }
+	        
+	    }
+	    
+	    /**
+	     * 根据鞋子的seq返回鞋子的基本信息
+	     */
+	    @GetMapping("/edit")
+	   
+	    public R edit( @RequestParam("seq") Integer seq) {
+	        return R.ok().put("goods", meetingGoodsService.edit(seq));
+	    }
+	    
+	    /**
+	     * 获取当前正在进行的订货会
+	     */
+	    @GetMapping("/meeting")
+	    public R meeting() {
+	    	return R.ok().put("meeting", meetingService.getNowMeetingEntity(getUser().getCompanySeq()));
+	    }
+	    
+	    
+	    
+	    /**
+	     * 导入素材压缩包
+	     *//*
+	    @PostMapping("uploadSourceZip")
+
+	    public R uploadSourceZip( @RequestParam(value = "sourceZipFile", required = false) MultipartFile sourceZipFile,HttpServletRequest request) {
+	    	
+	        try {
+	            if (sourceZipFile.isEmpty()) {
+	                return R.error("文件不存在！");
+	            }
+
+	            Integer companySeq = getUser().getCompanySeq();
+	            //解压路径
+	            String uploadUrl = getMeetingGoodsUploadUrl(request);
+	            //解压素材文件
+	            Map<String, Map<String, String>> map = ZipUtils.unZipFile(uploadUrl, sourceZipFile,getUser().getSeq());
+	            //根据解压结果，修改商品
+	            if (map != null && map.size() > 0) {
+	                Map<String, String> Dmap = map.get("Dmap");    //商品图片
+	                //遍历轮播图Mmap, 获取并修改商品
+	                for (Entry<String, String> entry : Dmap.entrySet()) {
+
+	                    String gooId = entry.getKey(); //货号
+	                    String DImg = entry.getValue(); //轮播图个数
+	                    //根据货号获取商品
+	                    MeetingGoodsEntity meetingEntity = meetingGoodsService.getMeetingGoodsByGoodId(gooId);
+	                    if (meetingEntity == null) {
+	                        return R.error("导入失败，货号：" + gooId + " 不存在，请先新增货品");
+	                    }
+	                    meetingEntity.setImg(DImg);
+	                    meetingGoodsService.updateAllColumnById(meetingEntity);
+	                }
+
+	                return R.ok("导入成功");
+	            } else {
+	                return R.error("导入失败！");
+	            }
+
+	        } catch (Exception e) {
+	            e.printStackTrace();
+	            logger.error(e.getMessage(), e);
+	            return R.error("导入失败:" + e.getMessage());
+	        }
+
+	    }*/
+
+
+	/**
+	 * 导入素材压缩包
+	 */
+	@PostMapping("uploadSourceZip")
+	public R uploadSourceZip( @RequestParam(value = "sourceZipFile", required = false) List<MultipartFile> sourceZipFile,HttpServletRequest request) {
+
+		try {
+			if (sourceZipFile.isEmpty()) {
+				return R.error("文件不存在！");
+			}
+			//上传路径
+			String uploadUrl = getMeetingGoodsUploadUrl(request);
+			//上传文件
+			List<Map<String,Object>> fileNames = ZipUtils.uploadPicture(uploadUrl,sourceZipFile,getUser().getSeq());
+			for(Map<String,Object> map : fileNames) {
+				for(Map.Entry<String,Object> entry : map.entrySet()) {
+					String goodId = entry.getKey();
+					String fileName = entry.getValue().toString();
+					Wrapper<MeetingGoodsEntity> meetingGoodsEntityWrapper = new EntityWrapper<>();
+					meetingGoodsEntityWrapper.eq("GoodID",goodId);
+					List<MeetingGoodsEntity> meetingGoodsEntities = meetingGoodsService.selectList(meetingGoodsEntityWrapper);
+					if(meetingGoodsEntities.size() > 0) {
+						MeetingGoodsEntity meetingGoodsEntity = meetingGoodsEntities.get(0);
+						meetingGoodsEntity.setImg(fileName);
+						meetingGoodsService.updateById(meetingGoodsEntity);
+					}
+				}
+
+			}
+			return R.ok("导入成功");
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.error(e.getMessage(), e);
+			return R.error("导入失败:" + e.getMessage());
+		}
+	}
+
+	    @PostMapping("uploadGoodsExcel")
+	    public R uploadExcelFile(MultipartFile goodsExcelFile, @RequestParam("SelectMeetingSeq") Integer SelectMeetingSeq) {
+	    	logger.info("-----------------------------------------");
+	    	if (goodsExcelFile.isEmpty()) {
+	            return R.error("文件不存在！");
+	        }
+	        Integer companySeq = getUser().getCompanySeq();
+	        try {
+	            ExcelGoodsService excelGoodsService = SpringContextUtils.getBean("qiangrenExcelGoods", ExcelGoodsService.class);
+	            excelGoodsService.importMeetingGoodsExcel(companySeq,SelectMeetingSeq, goodsExcelFile,getUser().getSeq());
+	            return R.ok();
+	        } catch (RRException e) {
+	            return R.error(e.getMsg());
+	        } catch (Exception e) {
+	            logger.error("解析文件失败", e);
+	            if(e.getMessage() != null && e.getMessage().contains("请先添加颜色")) {
+					return R.error("解析文件失败:" + e.getMessage());
+				}
+	            return R.error("文件解析失败");
+	        }
+	    }
+	    
+	    /**
+	     * 导出订货平台商品二维码
+	     *
+	     * @param response
+	     */
+	    @GetMapping("exportQRCode")
+	    public void exportQRCode(HttpServletResponse response,HttpServletRequest request) {
+	        ServletOutputStream out = null;
+	        HSSFWorkbook wb = null;
+	        try {
+	            response.setCharacterEncoding("UTF-8");
+	            response.setHeader("content-Type", "application/vnd.ms-excel");
+	            response.setHeader("Content-Disposition", "attachment;filename=" + URLEncoder.encode("货号二维码.xls", "UTF-8"));
+	            // 创建excel
+	            wb = new HSSFWorkbook();
+
+	            //列标题单元格样式
+	            HSSFCellStyle headCellStyle = wb.createCellStyle();
+	            //设置居中:
+	            headCellStyle.setAlignment(HSSFCellStyle.ALIGN_CENTER); // 居中
+	            headCellStyle.setVerticalAlignment(HSSFCellStyle.VERTICAL_CENTER);//垂直居中
+	            //设置字体:
+	            HSSFFont font = wb.createFont();
+	            font.setFontName("仿宋_GB2312");
+	            font.setBoldweight(HSSFFont.BOLDWEIGHT_BOLD);//粗体显示
+	            font.setFontHeightInPoints((short) 12);
+	            headCellStyle.setFont(font);//选择需要用到的字体格式
+
+	            //内容单元格样式
+	            HSSFCellStyle contentCellStyle = wb.createCellStyle();
+	            //设置居中:
+	            contentCellStyle.setAlignment(HSSFCellStyle.ALIGN_CENTER); // 居中
+	            contentCellStyle.setVerticalAlignment(HSSFCellStyle.VERTICAL_CENTER);//垂直居中
+
+	            // 创建sheet页
+	            HSSFSheet sheet = wb.createSheet("sheet1");
+	            //默认宽度和高度
+	            sheet.setDefaultColumnWidth(15);
+	            sheet.setDefaultRowHeightInPoints(18);
+	            //不同列的宽度
+	            sheet.setColumnWidth(0, 18 * 256);
+	            sheet.setColumnWidth(1, 18 * 256);
+	            sheet.setColumnWidth(2, 40 * 256);
+
+
+	            String[] title = {"货品序号","货品货号"};
+	            HSSFRow row = sheet.createRow(0);
+	            row.setHeightInPoints(24);
+	            for (int i = 0; i < title.length; i++) {
+	                HSSFCell cell = row.createCell(i);
+	                cell.setCellStyle(headCellStyle);
+	                cell.setCellValue(title[i]);
+	            }
+
+
+	            // 订货平台全部已上架货品列表
+	            Map<String, Object> params = new HashMap<String, Object>();
+	            params.put("periodSeq", "");
+	            params.put("categorySeq", "");
+	            params.put("onSale", "3");
+	            params.put("page", "1");
+	            params.put("limit", "5000");
+	            String uploadUrl = getMeetingGoodsUploadUrl(request);
+	            PageUtils shoesPage = meetingGoodsService.getMeetingGoodsList(getUserSeq(), params);
+	            List<MeetingGoodsEntity> meetingGoodList = (List<MeetingGoodsEntity>) shoesPage.getList();
+
+
+	            // 画图的顶级管理器，一个sheet只能获取一个（一定要注意这点）
+	            HSSFPatriarch patriarch = sheet.createDrawingPatriarch();
+	            // 循环多少次
+	            int h = 1;
+	            HSSFCell cell;
+	            for (int i = 0; i < meetingGoodList.size(); i++) {
+	            	 MeetingGoodsEntity meetingGoodsEntity = meetingGoodList.get(i);// 获得行对象
+	            	
+	            	 String colorSeqs=meetingGoodsEntity.getOptionalColorSeqs();
+	            	   String[] seqs=colorSeqs.split(",");
+	            	   for (String Colorseq : seqs) {
+	            		   GoodsColorEntity goodsColorEntity=goodsColorDao.selectById(Integer.parseInt(Colorseq));
+		          			String colorName=goodsColorEntity.getName();
+	            		row = sheet.createRow(h++);// 创建行
+	   	                row.setHeightInPoints(50);//行高度
+	   	                cell = row.createCell(0);
+	   	                cell.setCellStyle(contentCellStyle);
+	   	                cell.setCellValue(meetingGoodsEntity.getSeq());
+	   	                
+	   	                cell = row.createCell(1);
+	   	                cell.setCellStyle(contentCellStyle);
+	   	                cell.setCellValue(meetingGoodsEntity.getGoodID()+colorName);
+	            	   }
+	            	 
+	               
+
+//	                // anchor主要用于设置图片的属性
+//	                HSSFClientAnchor anchor = new HSSFClientAnchor(0, 0, 1023, 255, (short) 2, h - 1, (short) 2, h - 1);
+//	                // 插入图片
+//	                patriarch.createPicture(anchor, wb.addPicture(QrcodeUtils.createQrcode(meetingGoodsEntity.getSeq().toString(), 280, null), HSSFWorkbook.PICTURE_TYPE_JPEG));
+//
+//	                sheet.createRow(h++);
+	            }
+	            // 获取输出流，写入excel并关闭
+	            out = response.getOutputStream();
+	            wb.write(out);
+	            out.flush();
+	        } catch (Exception e) {
+	            e.printStackTrace();
+	            logger.error("货品二维码导出失败: " + e.getMessage(), e);
+	        } finally {
+	            try {
+	                if (out != null) {
+	                    out.close();
+	                }
+	                if (wb != null) {
+	                    wb.close();
+	                }
+	            } catch (IOException e) {
+	                e.printStackTrace();
+	            }
+
+	        }
+
+	    }
+	    
+	    
+	
+		protected String getMeetingGoodsUploadUrl(HttpServletRequest request) {
+			return orderPlatformUploadDir(request) + configUtils.getOrderPlatformApp().getMeetingGoods() +"/";
+		}
+		
+		private String orderPlatformUploadDir(HttpServletRequest request) {
+//			//tomcat实际路径
+//			String path = request.getSession().getServletContext().getRealPath("/");
+//			//上传项目路径
+//			String uploadProject1 = path.substring(0, path.length() - 11) + configUtils.getPictureBaseUploadProject() +"/";
+			String uploadProject = FileUtils.getWebAppsPath() + configUtils.getPictureBaseUploadProject() +"/";
+			return uploadProject + configUtils.getOrderPlatformApp().getOrderPlatformDir() + "/";
+		}
+
+	@PostMapping("/exportMeetingGoods")
+	public R exportMeetingGoods(@RequestParam Map<String, Object> params,HttpServletResponse response,HttpServletRequest request) {
+		try {
+			ServletOutputStream out = null;
+			HSSFWorkbook wb = null;
+			try {
+				response.setCharacterEncoding("UTF-8");
+				response.setHeader("content-Type", "application/vnd.ms-excel");
+				response.setHeader("Content-Disposition", "attachment;filename=" + URLEncoder.encode("订货会货品(仅用于打印二维码).xls", "UTF-8"));
+				// 创建excel
+				wb = new HSSFWorkbook();
+
+				//列标题单元格样式
+				HSSFCellStyle headCellStyle = wb.createCellStyle();
+				//设置居中:
+				headCellStyle.setAlignment(HSSFCellStyle.ALIGN_CENTER); // 居中
+				headCellStyle.setVerticalAlignment(HSSFCellStyle.VERTICAL_CENTER);//垂直居中
+				//设置字体:
+				HSSFFont font = wb.createFont();
+				font.setFontName("仿宋_GB2312");
+				font.setBoldweight(HSSFFont.BOLDWEIGHT_BOLD);//粗体显示
+				font.setFontHeightInPoints((short) 12);
+				headCellStyle.setFont(font);//选择需要用到的字体格式
+
+				//内容单元格样式
+				HSSFCellStyle contentCellStyle = wb.createCellStyle();
+				//设置居中:
+				contentCellStyle.setAlignment(HSSFCellStyle.ALIGN_CENTER); // 居中
+				contentCellStyle.setVerticalAlignment(HSSFCellStyle.VERTICAL_CENTER);//垂直居中
+
+				// 创建sheet页
+				HSSFSheet sheet = wb.createSheet("sheet1");
+				//默认宽度和高度
+				sheet.setDefaultColumnWidth(15);
+				sheet.setDefaultRowHeightInPoints(18);
+				//不同列的宽度
+				sheet.setColumnWidth(0, 18 * 256);
+				sheet.setColumnWidth(1, 18 * 256);
+				sheet.setColumnWidth(2, 40 * 256);
+
+
+				String[] title = {"序号","货品货号","最小尺码","最大尺码","面料","里料","底料","价格","厂家","厂家货号","供应价","大类","小类","风格","颜色"};
+				HSSFRow row = sheet.createRow(0);
+				row.setHeightInPoints(24);
+				for (int i = 0; i < title.length; i++) {
+					HSSFCell cell = row.createCell(i);
+					cell.setCellStyle(headCellStyle);
+					cell.setCellValue(title[i]);
+				}
+
+
+				List<MeetingGoodsEntity> meetingGoodList = meetingGoodsService.selectMeetingGoodsList(getUserSeq(), params);
+
+
+				// 画图的顶级管理器，一个sheet只能获取一个（一定要注意这点）
+				HSSFPatriarch patriarch = sheet.createDrawingPatriarch();
+				// 循环多少次
+				int h = 1;
+				HSSFCell cell;
+
+				for (int i = 0; i < meetingGoodList.size(); i++) {
+					MeetingGoodsEntity meetingGoodsEntity = meetingGoodList.get(i);// 获得行对象
+
+					String colorSeqs=meetingGoodsEntity.getOptionalColorSeqs();
+					String[] seqs=colorSeqs.split(",");
+					for (String Colorseq : seqs) {
+						row = sheet.createRow(h++);// 创建行
+						row.setHeightInPoints(50);//行高度
+						//序号
+						cell = row.createCell(0);
+						cell.setCellStyle(contentCellStyle);
+						cell.setCellValue(meetingGoodsEntity.getSeq());
+
+						//货品货号
+						cell = row.createCell(1);
+						cell.setCellStyle(contentCellStyle);
+						cell.setCellValue(meetingGoodsEntity.getGoodID());
+
+						//最小尺码
+						cell = row.createCell(2);
+						cell.setCellStyle(contentCellStyle);
+						cell.setCellValue(meetingGoodsEntity.getMinSize());
+
+						//最大尺码
+						cell = row.createCell(3);
+						cell.setCellStyle(contentCellStyle);
+						cell.setCellValue(meetingGoodsEntity.getMaxSize());
+
+						//面料
+						cell = row.createCell(4);
+						cell.setCellStyle(contentCellStyle);
+						cell.setCellValue(meetingGoodsEntity.getSurfaceMaterial());
+
+						//里料
+						cell = row.createCell(5);
+						cell.setCellStyle(contentCellStyle);
+						cell.setCellValue(meetingGoodsEntity.getInnerMaterial());
+
+						//底料
+						cell = row.createCell(6);
+						cell.setCellStyle(contentCellStyle);
+						cell.setCellValue(meetingGoodsEntity.getSoleMaterial());
+
+						//价格
+						cell = row.createCell(7);
+						cell.setCellStyle(contentCellStyle);
+						if(meetingGoodsEntity.getPrice() != null) {
+							String money = meetingGoodsEntity.getPrice().toString();
+							String[] cut = money.split("\\.");
+							if("00".equals(cut[1])) {
+								cell.setCellValue(cut[0]);
+							}else {
+								cell.setCellValue(money);
+							}
+						}
+
+						//厂家
+						cell = row.createCell(8);
+						cell.setCellStyle(contentCellStyle);
+						cell.setCellValue(meetingGoodsEntity.getFactory());
+
+						//厂家货号
+						cell = row.createCell(9);
+						cell.setCellStyle(contentCellStyle);
+						cell.setCellValue(meetingGoodsEntity.getFactoryGoodId());
+
+						//供应价
+						cell = row.createCell(10);
+						cell.setCellStyle(contentCellStyle);
+						if(meetingGoodsEntity.getFactoryPrice() != null) {
+							String money = meetingGoodsEntity.getFactoryPrice().toString();
+							String[] cut = money.split("\\.");
+							if("00".equals(cut[1])) {
+								cell.setCellValue(cut[0]);
+							}else {
+								cell.setCellValue(money);
+							}
+						}
+
+						//大类
+						cell = row.createCell(11);
+						cell.setCellStyle(contentCellStyle);
+						cell.setCellValue(meetingGoodsEntity.getFirstCategory());
+
+						//小类
+						cell = row.createCell(12);
+						cell.setCellStyle(contentCellStyle);
+						cell.setCellValue(meetingGoodsEntity.getSecondCategory());
+
+						//风格
+						cell = row.createCell(13);
+						cell.setCellStyle(contentCellStyle);
+						cell.setCellValue(meetingGoodsEntity.getThirdCategory());
+
+						GoodsColorEntity goodsColorEntity=goodsColorDao.selectById(Integer.parseInt(Colorseq));
+						String colorName=goodsColorEntity.getName();
+						row.setHeightInPoints(50);//行高度
+						cell = row.createCell(14);
+						cell.setCellStyle(contentCellStyle);
+						cell.setCellValue(colorName);
+					}
+				}
+				out = response.getOutputStream();
+				wb.write(out);
+				out.flush();
+			} catch (Exception e) {
+				e.printStackTrace();
+				logger.error("货品导出失败: " + e.getMessage(), e);
+			} finally {
+				try {
+					if (out != null) {
+						out.close();
+					}
+					if (wb != null) {
+						wb.close();
+					}
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+
+			}
+		}catch (Exception e) {
+			logger.error(e.getMessage(),e);
+			e.printStackTrace();
+		}
+		return R.error();
+	}
+
+	@PostMapping("/exportMeetingGoodsRank")
+	public R exportMeetingGoodsRank(@RequestParam("meetingSeq") Integer meetingSeq,HttpServletResponse response) {
+		try {
+			ServletOutputStream out = null;
+			HSSFWorkbook wb = null;
+			try {
+				response.setCharacterEncoding("UTF-8");
+				response.setHeader("content-Type", "application/vnd.ms-excel");
+				response.setHeader("Content-Disposition", "attachment;filename=" + URLEncoder.encode("订货会货品选款次数排行导出.xls", "UTF-8"));
+				// 创建excel
+				wb = new HSSFWorkbook();
+
+				//列标题单元格样式
+				HSSFCellStyle headCellStyle = wb.createCellStyle();
+				//设置居中:
+				headCellStyle.setAlignment(HSSFCellStyle.ALIGN_CENTER); // 居中
+				headCellStyle.setVerticalAlignment(HSSFCellStyle.VERTICAL_CENTER);//垂直居中
+				//设置字体:
+				HSSFFont font = wb.createFont();
+				font.setFontName("仿宋_GB2312");
+				font.setBoldweight(HSSFFont.BOLDWEIGHT_BOLD);//粗体显示
+				font.setFontHeightInPoints((short) 12);
+				headCellStyle.setFont(font);//选择需要用到的字体格式
+
+				//内容单元格样式
+				HSSFCellStyle contentCellStyle = wb.createCellStyle();
+				//设置居中:
+				contentCellStyle.setAlignment(HSSFCellStyle.ALIGN_CENTER); // 居中
+				contentCellStyle.setVerticalAlignment(HSSFCellStyle.VERTICAL_CENTER);//垂直居中
+
+				// 创建sheet页
+				HSSFSheet sheet = wb.createSheet("sheet1");
+				//默认宽度和高度
+				sheet.setDefaultColumnWidth(15);
+				sheet.setDefaultRowHeightInPoints(18);
+				//不同列的宽度
+				sheet.setColumnWidth(0, 12 * 256);
+				sheet.setColumnWidth(1, 10 * 256);
+				sheet.setColumnWidth(2, 10 * 256);
+
+
+				String[] title = {"货品货号","选款次数","选款排行","大类","小类","风格"};
+				HSSFRow row = sheet.createRow(0);
+				row.setHeightInPoints(24);
+				for (int i = 0; i < title.length; i++) {
+					HSSFCell cell = row.createCell(i);
+					cell.setCellStyle(headCellStyle);
+					cell.setCellValue(title[i]);
+				}
+
+
+				List<Map<String, Object>> numRankList = new ArrayList<Map<String,Object>>();
+				//查询鞋子订货次数排行
+				numRankList = meetingRankService.getMeetingGoodsNumRank(meetingSeq);
+				for(int i = 0; i < numRankList.size(); i++) {
+					Map<String, Object> map = numRankList.get(i);
+					if(i > 0 && map.get("goodsCount").equals(numRankList.get(i - 1).get("goodsCount"))) {
+						map.put("rank", numRankList.get(i - 1).get("rank"));
+					}else {
+						map.put("rank", i + 1);
+					}
+					Integer meetingGoodsSeq = (Integer) map.get("meetingGoodsSeq");
+					MeetingGoodsEntity meetingGoodsEntity = meetingGoodsService.selectById(meetingGoodsSeq);
+					List<String> categories = new ArrayList<>(10);
+					categories = getCategory(meetingGoodsEntity.getCategorySeq(),categories);
+					if(categories != null) {
+						if(categories.size() == 1) {
+							map.put("firstCategory",categories.get(0));
+						}else if(categories.size() == 2) {
+							map.put("firstCategory",categories.get(1));
+							map.put("secondCategory",categories.get(0));
+						}else if(categories.size() == 3) {
+							map.put("firstCategory",categories.get(2));
+							map.put("secondCategory",categories.get(1));
+							map.put("thirdCategory",categories.get(0));
+						}
+					}
+					map.put("goodId", meetingGoodsEntity.getGoodID());
+				}
+
+				// 画图的顶级管理器，一个sheet只能获取一个（一定要注意这点）
+				HSSFPatriarch patriarch = sheet.createDrawingPatriarch();
+				// 循环多少次
+				int h = 1;
+				HSSFCell cell;
+
+				for (int i = 0; i < numRankList.size(); i++) {
+					Map<String,Object> numRank = numRankList.get(i);// 获得行对象
+
+					row = sheet.createRow(h++);// 创建行
+					row.setHeightInPoints(50);//行高度
+					//货品货号
+					cell = row.createCell(0);
+					cell.setCellStyle(contentCellStyle);
+					cell.setCellValue(numRank.get("goodId").toString());
+
+					//选款次数
+					cell = row.createCell(1);
+					cell.setCellStyle(contentCellStyle);
+					cell.setCellValue(numRank.get("goodsCount").toString());
+
+					//选款排行
+					cell = row.createCell(2);
+					cell.setCellStyle(contentCellStyle);
+					cell.setCellValue(numRank.get("rank").toString());
+
+					//大类
+					cell = row.createCell(3);
+					cell.setCellStyle(contentCellStyle);
+					if(numRank.get("firstCategory") != null) {
+						cell.setCellValue(numRank.get("firstCategory").toString());
+					}
+
+
+					//小类
+					cell = row.createCell(4);
+					cell.setCellStyle(contentCellStyle);
+					if(numRank.get("secondCategory") != null) {
+						cell.setCellValue(numRank.get("secondCategory").toString());
+					}
+
+					//风格
+					cell = row.createCell(5);
+					cell.setCellStyle(contentCellStyle);
+					if(numRank.get("thirdCategory") != null) {
+						cell.setCellValue(numRank.get("thirdCategory").toString());
+					}
+				}
+				out = response.getOutputStream();
+				wb.write(out);
+				out.flush();
+			} catch (Exception e) {
+				e.printStackTrace();
+				logger.error("选款次数排行导出失败: " + e.getMessage(), e);
+			} finally {
+				try {
+					if (out != null) {
+						out.close();
+					}
+					if (wb != null) {
+						wb.close();
+					}
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+
+			}
+		}catch (Exception e) {
+			logger.error(e.getMessage(),e);
+			e.printStackTrace();
+		}
+		return R.error();
+	}
+
+	private List<String> getCategory(Integer categorySeq,List<String> categories) {
+		GoodsCategoryEntity goodsCategoryEntity = goodsCategoryService.selectById(categorySeq);
+		if(goodsCategoryEntity != null && goodsCategoryEntity.getParentSeq() != null) {
+			categories.add(goodsCategoryEntity.getName());
+			if(goodsCategoryEntity.getParentSeq() != 0) {
+				getCategory(goodsCategoryEntity.getParentSeq(),categories);
+			}
+		}
+		return categories;
+	}
+
+	@PostMapping("/insertMeetingGoods")
+	public R insertMeetingGoods(MeetingGoodsEntity meetingGoodsEntity,HttpServletRequest request) {
+		try {
+			String uploadUrl = getMeetingGoodsUploadUrl(request);
+			if(meetingGoodsService.insertMeetingGoods(getUser().getSeq(),meetingGoodsEntity,uploadUrl)) {
+				return R.ok("新增成功");
+			}
+		}catch (Exception e) {
+			logger.error(e.getMessage(),e);
+			e.printStackTrace();
+			if("货号已存在".equals(e.getMessage())) {
+				return R.error("货号已存在");
+			}
+		}
+		return R.error("新增失败");
+	}
+
+	@PostMapping("/updateMeetingGoods")
+	public R updateMeetingGoods(MeetingGoodsEntity meetingGoodsEntity,HttpServletRequest request) {
+		try {
+			String uploadUrl = getMeetingGoodsUploadUrl(request);
+			if(meetingGoodsService.updateMeetingGoods(getUser().getSeq(),meetingGoodsEntity,uploadUrl)) {
+				return R.ok("修改成功");
+			}
+		}catch (Exception e) {
+			logger.error(e.getMessage(),e);
+			e.printStackTrace();
+		}
+		return R.error("修改失败");
+	}
+
+	@GetMapping("/selectBySeq")
+	public R selectBySeq(@RequestParam Integer seq,HttpServletRequest request) {
+		try {
+			MeetingGoodsEntity meetingGoodsEntity = meetingGoodsService.selectById(seq);
+			if(meetingGoodsEntity.getImg() != null) {
+				meetingGoodsEntity.setImg(configUtils.getPictureBaseUrl() + "/" + configUtils.getOrderPlatformApp().getOrderPlatformDir() + "/" + configUtils.getOrderPlatformApp().getMeetingGoods() + "/" + meetingGoodsEntity.getGoodID() + "/" + meetingGoodsEntity.getImg());
+			}
+			MeetingEntity meetingEntity = meetingService.selectById(meetingGoodsEntity.getMeetingSeq());
+			if(meetingGoodsEntity.getCategorySeq() != null) {
+				GoodsCategoryEntity categoryEntity = goodsCategoryService.selectById(meetingGoodsEntity.getCategorySeq());
+				meetingGoodsEntity.setCategoryName(categoryEntity.getName());
+			}
+			meetingGoodsEntity.setColorSeqs(new ArrayList<>(10));
+			meetingGoodsEntity.setMeetingName(meetingEntity.getName());
+			String colorSeqs = meetingGoodsEntity.getOptionalColorSeqs();
+			String[] colorSeqArray = colorSeqs.split(",");
+			for(int i = 0;i < colorSeqArray.length;i++) {
+				Integer colorSeq = Integer.parseInt(colorSeqArray[i]);
+				meetingGoodsEntity.getColorSeqs().add(colorSeq);
+				if(i == 0) {
+					meetingGoodsEntity.setColor1(colorSeq);
+				}
+				if(i == 1) {
+					meetingGoodsEntity.setColor2(colorSeq);
+				}
+				if(i == 2) {
+					meetingGoodsEntity.setColor3(colorSeq);
+				}
+				if(i == 3) {
+					meetingGoodsEntity.setColor4(colorSeq);
+				}
+				if(i == 4) {
+					meetingGoodsEntity.setColor5(colorSeq);
+				}
+				if(i == 5) {
+					meetingGoodsEntity.setColor6(colorSeq);
+				}
+				if(i == 6) {
+					meetingGoodsEntity.setColor7(colorSeq);
+				}
+				if(i == 7) {
+					meetingGoodsEntity.setColor8(colorSeq);
+				}
+			}
+			return R.ok(meetingGoodsEntity);
+		}catch (Exception e) {
+			logger.error(e.getMessage(),e);
+			e.printStackTrace();
+		}
+		return R.error();
+	}
+
+	@PostMapping("/downGoodImg")
+	public R downGoodImg(@RequestParam Integer meetingSeq,HttpServletRequest request, HttpServletResponse response) {
+		try {
+			response.setCharacterEncoding("UTF-8");
+			response.setHeader("Content-Type","application/octect-stream");
+			response.setHeader("Content-Disposition", "attachment;filename=" + URLEncoder.encode("货品图片.zip", "UTF-8"));
+			Wrapper<MeetingGoodsEntity> meetingGoodsEntityWrapper = new EntityWrapper<>();
+			meetingGoodsEntityWrapper.eq("Meeting_Seq",meetingSeq);
+			List<MeetingGoodsEntity> meetingGoodsEntities = meetingGoodsService.selectList(meetingGoodsEntityWrapper);
+			ServletOutputStream outputStream = response.getOutputStream();
+			ZipOutputStream zipOut = new ZipOutputStream(outputStream);
+			byte[] buffer = new byte[5*1024];
+			int length = 0;
+			String uploadUrl = getMeetingGoodsUploadUrl(request);
+			for(MeetingGoodsEntity meetingGoodsEntity : meetingGoodsEntities) {
+				String img = meetingGoodsEntity.getImg();
+				if(img == null || "".equals(img)) {
+					continue;
+				}
+				String[] imgPath = img.split("_");
+				String imgName = imgPath[imgPath.length - 1].split("\\.")[0];
+				String imgUrl =  uploadUrl + imgName + "/" + img;
+				zipOut.putNextEntry(new ZipEntry(imgName + ".jpg"));
+				File file = new File(imgUrl);
+				InputStream jpgInputStream = new FileInputStream(file);
+				while ((length = jpgInputStream.read(buffer)) != -1) {
+					zipOut.write(buffer, 0, length);
+				}
+				jpgInputStream.close();
+				zipOut.flush();
+			}
+			zipOut.close();
+			return R.ok("货品图片导出成功");
+		}catch (Exception e) {
+			logger.error(e.getMessage(),e);
+			e.printStackTrace();
+		}
+		return R.error("货品图片导出失败");
+	}
+}

@@ -1,0 +1,55 @@
+package io.nuite.modules.order_platform_app.controller;
+
+import io.nuite.common.utils.R;
+import io.nuite.modules.order_platform_app.annotation.Login;
+import io.nuite.modules.order_platform_app.annotation.LoginUser;
+import io.nuite.modules.sr_base.entity.BaseUserEntity;
+import io.nuite.modules.sr_base.entity.UeditorRecordEntity;
+import io.nuite.modules.system.service.order_platform.UeditorService;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import springfox.documentation.annotations.ApiIgnore;
+
+/**
+ * @Author: yangchuang
+ * @Date: 2018/7/11 9:30
+ * @Version: 1.0
+ * @Description:
+ */
+
+@RestController
+@RequestMapping("/order/app/homepage")
+@Api(tags = "app-首页定制", description = "")
+public class UeditorAPPController {
+
+    private Logger logger = LoggerFactory.getLogger(getClass());
+
+    @Autowired
+    UeditorService ueditorService;
+
+    @Login
+    @RequestMapping("ueditorHtml")
+    @ApiOperation("App首页定制")
+    public R getUeditorContent(@ApiIgnore @LoginUser BaseUserEntity loginUser) {
+        try {
+            Integer company_Seq = loginUser.getCompanySeq();
+            UeditorRecordEntity ur = ueditorService.getByCompanySeqAndUsed(company_Seq);
+            String ueditorContent = "";
+            if (ur != null) {
+                ueditorContent = ur.getContent();
+            }
+            
+            String[] uc = {ueditorContent};
+            return R.ok().put("result", uc);
+        } catch (Exception e) {
+            e.printStackTrace();
+            logger.error(e.getMessage(), e);
+            return R.error();
+        }
+    }
+}

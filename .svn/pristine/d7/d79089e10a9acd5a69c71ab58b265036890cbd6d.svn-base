@@ -1,0 +1,143 @@
+/* pages/myself/index/myself.wxss */
+
+.author_line {
+  display: flex;
+  margin: 10rpx 0;
+}
+
+.author_line text {
+  flex: 1;
+  font-size: 30rpx;
+  margin-left: 20rpx;
+}
+
+.author_line button {
+  width: 150rpx;
+  height: 40rpx;
+  font-size: 30rpx;
+  line-height: 40rpx;
+  margin-right: 20rpx;
+}
+
+.container {
+  height: auto;
+  min-height: auto;
+}
+
+.top_margin {
+  margin-top: 8rpx;
+  padding: 0 22rpx;
+  background-color: #fff;
+  width: 706rpx;
+}
+
+.top_margin .title_line {
+  padding: 27rpx 0;
+  display: flex;
+  align-items: center;
+  border-bottom: solid 1px #e0e0e0;
+}
+
+.top_margin .title_line .text {
+  flex: 1;
+  font-size: 29rpx;
+  color: #505050;
+}
+
+.top_margin .title_line .extend_text {
+  flex: 1;
+  font-size: 25rpx;
+  color: #999;
+  text-align: right;
+}
+
+.top_margin .title_line .icon {
+  float: right;
+  font-size: 35rpx;
+  color: #999;
+  padding-top: 1rpx;
+}
+
+.top_icon {
+  width: 750rpx;
+  height: 362rpx;
+  background-color: #fff;
+  background-image: url(https://www.fyweather.com/SmartSale/picture/online_sales_app/myself/bg.png);
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+}
+
+.top_icon .nick_header {
+  width: 147rpx;
+  height: 147rpx;
+  margin: 88rpx auto 26rpx auto;
+}
+
+.top_icon image {
+  width: 147rpx;
+  height: 147rpx;
+  border-radius: 100%;
+}
+
+.top_icon .nick_name {
+  text-align: center;
+  color: #fff;
+  font-size: 29rpx;
+}
+
+.my_order .status_select {
+  margin: 28rpx 0;
+  display: flex;
+}
+
+.my_order .status_select .status {
+  flex: 1;
+}
+
+.status .status_header {
+  width: 55rpx;
+  height: 60rpx;
+  margin: 0 auto;
+}
+
+.status .status_header image {
+  width: 55rpx;
+  height: 60rpx;
+}
+
+.status .status_name {
+  font-size: 25rpx;
+  color: #666;
+  text-align: center;
+  margin-top: 18rpx;
+}
+
+.my_commission .commission_status {
+  margin: 28rpx 0;
+  display: flex;
+}
+
+.commission_status .column {
+  flex: 1;
+}
+
+.commission_status .column .prices {
+  text-align: center;
+  color: #ff6f71;
+  font-size: 33rpx;
+}
+
+.commission_status .column .des {
+  text-align: center;
+  color: #505050;
+  font-size: 25rpx;
+  margin-top: 24rpx;
+}
+
+.my_leagure .title_line.integral, .my_address .title_line {
+  border-bottom: none;
+}
+
+.my_address {
+  margin-bottom: 8rpx;
+}

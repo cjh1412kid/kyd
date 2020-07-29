@@ -1,0 +1,84 @@
+<!--pages/order/detail/detail.wxml-->
+<view class='container'>
+  <view class='detail_status status_cancle' wx:if='{{orderDetail.orderStatus==4}}'>订单已取消</view>
+  <view class='detail_status status_nopaid' wx:if='{{orderDetail.orderStatus==0}}'>订单未支付</view>
+  <view class='detail_status status_payment' wx:if='{{orderDetail.orderStatus==1}}'>
+    <view class='text'>商品未发货</view>
+    <view class='btn_content'>
+      <view class='btn' bindtap='noteShopShip'>提醒商家发货</view>
+    </view>
+  </view>
+  <view class='detail_status status_shipped' wx:if='{{orderDetail.orderStatus==2}}'>商品正在配送</view>
+  <view class='detail_status status_completed' wx:if='{{orderDetail.orderStatus==3}}'>
+    <view class='text'>订单已完成</view>
+    <view class='btn_content'>
+      <view class='btn' bindtap='pickGoods'>提货码</view>
+    </view>
+  </view>
+
+  <view class='detail_address'>
+    <view class='content'>
+      <view class='name'>收货人：{{orderDetail.receiverName}}
+        <text class='phone'>{{orderDetail.telephone}}</text>
+      </view>
+      <view class='address'>收货地址：{{orderDetail.fullAddress}}</view>
+    </view>
+  </view>
+  <view class='detail_content'>
+    <view class='content'>
+      <view class='title'>订单编号：{{orderDetail.orderNum}}
+        <text class='time'>{{orderDetail.inputTime}}</text>
+      </view>
+      <view class='goods'>
+        <view wx:for='{{orderDetail.orderProductsList}}' wx:key='*this' class='one_good'>
+          <view class='image'>
+            <image src='{{item.img}}'></image>
+          </view>
+          <view class='detail'>
+            <view class='name'>
+              <view class='title_name'>{{item.introduce}}</view>
+              <text class='prices'>￥{{item.SalePrice}}</text>
+            </view>
+            <view class='color_num'>
+              <text class='color'>{{item.colorName}},{{item.Size}}</text>
+              <text class='number'>x{{item.BuyCount}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+      <view class='total'>
+        <view class='numbers'>
+          <view class='good_prices'>商品总价
+            <text>￥{{orderDetail.orderPrice}}</text>
+          </view>
+          <view class='express_prices'>运费
+            <text>￥0.00</text>
+          </view>
+        </view>
+        <view class='total_prices' wx:if='{{orderDetail.orderStatus==4}}'>合计：
+          <text>￥{{orderDetail.orderPrice}}</text>
+        </view>
+        <view class='total_prices paid' wx:if='{{orderDetail.orderStatus!=4 && orderDetail.orderStatus!=0}}'>已支付：
+          <text>￥{{orderDetail.orderPrice}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+  <view class='self_pick_text' wx:if='{{orderDetail.orderStatus==3 && orderDetail.selfPick==1}}'>
+    <view class='icon iconfont icon-location'></view>南京金鹰建邺店-RLRW人来人往
+  </view>
+  <view class='order_cancel' wx:if='{{orderDetail.orderStatus==0}}' bindtap='cancelBtnClick'>取消订单</view>
+
+  <view class='detail_delete' wx:if='{{orderDetail.orderStatus==4 || orderDetail.orderStatus==3 || orderDetail.orderStatus==0}}'></view>
+  <view class='delete_btn' wx:if='{{orderDetail.orderStatus==4}}' bindtap='deleteBtnClick'>删除订单</view>
+  <view class='delete_btn pay_line' wx:if='{{orderDetail.orderStatus==0}}'>
+    <view class='total_prices paid'>合计：
+      <text>￥{{orderDetail.orderPrice}}</text>
+    </view>
+    <view class='pay_btn' bindtap='payBtnClick'>支 付</view>
+  </view>
+</view>
+
+<view class='pick_qrcode' wx:if='{{pickQRCodeShow}}' catchtap='hideQRCode'>
+  <image src='{{pickQRCodeUrl}}'></image>
+</view>

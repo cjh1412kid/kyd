@@ -1,0 +1,120 @@
+ <view class="weui-flex">
+            <view class="weui-flex__item" bindtap='choose' data-index='1' ><view class="placeholder {{type==1?'typeColor':''}}"
+            
+            >关注度排行</view></view>
+            <view class="weui-flex__item" bindtap='choose' data-index='2' ><view class="placeholder {{type==2?'typeColor':''}}"
+            
+            >订货量排行</view></view>
+        </view>
+
+<view class='page'>
+<!--第一个饼状图-->
+<view class='pie1'>
+<view class='name'>
+<view><view class='line'></view><view class='name'>{{name1}}
+<!-- <text class='tap'>点击饼图选择品类</text> -->
+</view></view>
+</view>
+  <view class="contain1">
+    <ec-canvas class='mychart-dom-pie' id="mychart-dom-pie1" canvas-id="mychart-dom-pie1" ec="{{ ec1 }}" ></ec-canvas>
+  </view>
+  <view class='total'>
+  <view><text class='cate1'><block wx:if="{{type==1}}">总关注度:{{totalCount}}
+  </block><block wx:else>总订货量：{{totalNum}}
+  </block>
+  </text></view>
+  <block wx:for="{{goodsCategoryList}}" wx:key="{{item}}">
+
+  <block wx:if="{{index==0}}">
+  <view><view class='radius1' style='background:#5786F7'></view><text class='cate1'>{{item.categoryName}}:<block wx:if="{{type==1}}">{{item.count}}
+    </block><block wx:else>{{item.num}}
+  </block>
+  </text></view>
+  </block>
+
+  <block wx:if="{{index==1}}">
+  <view><view class='radius1' style='background:#FF4C4E'></view><text class='cate1'>{{item.categoryName}}:<block wx:if="{{type==1}}">{{item.count}}
+    </block><block wx:else>{{item.num}}
+  </block>
+  </text></view>
+  </block>
+
+ <block wx:if="{{index==2}}">
+  <view><view class='radius1' style='background:#61A0A8'></view><text class='cate1'>{{item.categoryName}}:<block wx:if="{{type==1}}">{{item.count}}
+    </block><block wx:else>{{item.num}}
+  </block>
+  </text></view>
+  </block>
+
+
+</block>
+
+  </view>
+</view>
+
+<view class='pie2'>
+<view class='name'>
+<view><view class='line'></view><view class='name'>{{name2}}</view></view>
+</view>
+ <view class="contain2">
+    <ec-canvas class='mychart-dom-pie' id="mychart-dom-pie2" canvas-id="mychart-dom-pie2" ec="{{ ec2 }}"></ec-canvas>
+  </view>
+
+  <cover-view class='womanOther'>
+  <block wx:if="{{womanCategoryOther!=''}}">
+  <cover-view style='font-size:30rpx;'>其他：</cover-view>
+  </block>
+  <block wx:for="{{womanCategoryOther}}" wx:key="{{item}}">
+    <block wx:if="{{type==1}}">
+    <cover-view  style='{{index%2==0?"float:left":"position:relative;left:14rpx"}}'>{{item.categoryName}}:{{item.count}}</cover-view>
+    </block>
+       <block wx:if="{{type==2}}">
+    <cover-view style='{{index%2==0?"float:left":"position:relative;left:14rpx"}}'>{{item.categoryName}}:{{item.num}}</cover-view>
+    </block>
+  </block>
+  </cover-view>
+</view>
+
+<view class='pie3'>
+<view class='name'>
+<view><view class='line'></view><view class='name'>{{name4}}</view></view>
+</view>
+ <view class="contain4">
+    <ec-canvas class='mychart-dom-pie' id="mychart-dom-pie4" canvas-id="mychart-dom-pie4" ec="{{ ec4}}"></ec-canvas>
+  </view>
+
+  
+  <cover-view class='manOther'>
+ <block wx:if="{{manCategoryOther!=''}}">
+  <cover-view style='font-size:30rpx;'>其他：</cover-view>
+  </block>
+  <block wx:for="{{manCategoryOther}}" wx:key="{{item}}">
+    <block wx:if="{{type==1}}">
+    <cover-view style='{{index%2==0?"float:left":"position:relative;left:14rpx"}}'>{{item.categoryName}}:{{item.count}}</cover-view>
+    </block>
+       <block wx:if="{{type==2}}">
+    <cover-view style='{{index%2==0?"float:left":"position:relative;left:14rpx"}}'>{{item.categoryName}}:{{item.num}}</cover-view>
+    </block>
+  </block>
+  </cover-view>
+</view>
+
+
+<view>
+<view class='name'>
+<view><view class='line'></view><view class='name'>{{name3}}</view></view>
+</view>
+<cover-view class='good'>货号</cover-view>
+
+<view class="contain3">
+    <ec-canvas class='ec-canvas' id="mychart-dom-bar" canvas-id="mychart-bar" ec="{{ ec3 }}" 
+    style='height:{{chartHeight}}rpx'></ec-canvas>
+  </view>
+<view class='gotos'>
+<block wx:for="{{seqList}}" wx:key="{{item}}">
+  <view class='goto' bindtap='goto'  data-seq='{{item}}'><image src="/assets/images/goto.png" style='height:40rpx;width:100rpx'></image></view>
+</block>
+</view>
+</view>
+
+</view>

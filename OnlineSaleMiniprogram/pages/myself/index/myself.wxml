@@ -1,0 +1,91 @@
+<!--pages/myself/index/myself.wxml-->
+<view class='container'>
+  <view class='top_icon'>
+    <view class='nick_header'>
+      <image src='http://222.93.105.42:9191/picture/online_sales_app/myself/1/header.png'></image>
+    </view>
+    <view class='nick_name'>1111</view>
+  </view>
+
+  <view class='top_margin my_order'>
+    <view class='title_line' bindtap='orderBtnClick' data-order-status='0'>
+      <view class='text'>我的订单</view>
+      <view class='extend_text'>查看全部</view>
+      <view class='icon iconfont icon-gengduo'></view>
+    </view>
+    <view class='status_select'>
+      <view class='status status_unpaid' bindtap='orderBtnClick' data-order-status='1'>
+        <view class='status_header'>
+          <image src='/assets/images/order/unpaid.png'></image>
+        </view>
+        <view class='status_name'>待支付</view>
+      </view>
+      <view class='status status_payment' bindtap='orderBtnClick' data-order-status='2'>
+        <view class='status_header'>
+          <image src='/assets/images/order/payment.png'></image>
+        </view>
+        <view class='status_name'>代发货</view>
+      </view>
+      <view class='status status_shipped' bindtap='orderBtnClick' data-order-status='3'>
+        <view class='status_header'>
+          <image src='/assets/images/order/shipped.png'></image>
+        </view>
+        <view class='status_name'>已发货</view>
+      </view>
+      <view class='status status_completed' bindtap='orderBtnClick' data-order-status='4'>
+        <view class='status_header'>
+          <image src='/assets/images/order/completed.png'></image>
+        </view>
+        <view class='status_name'>已完成</view>
+      </view>
+    </view>
+  </view>
+
+  <view class='top_margin my_commission'>
+    <view class='title_line'>
+      <view class='text'>我的收益</view>
+      <view class='extend_text'>查看更多</view>
+      <view class='icon iconfont icon-gengduo'></view>
+    </view>
+    <view class='commission_status'>
+      <view class='column total'>
+        <view class='prices'>0.00</view>
+        <view class='des'>累计总收益</view>
+      </view>
+      <view class='column can_use'>
+        <view class='prices'>0.00</view>
+        <view class='des'>可用收益</view>
+      </view>
+      <view class='column groom'>
+        <view class='prices'>0.00</view>
+        <view class='des'>推荐人收益</view>
+      </view>
+    </view>
+  </view>
+
+  <view class='top_margin my_leagure '>
+    <view class='title_line '>
+      <view class='text '>我的会员卡</view>
+      <view class='icon iconfont icon-gengduo '></view>
+    </view>
+    <view class='title_line '>
+      <view class='text '>我的优惠券</view>
+      <view class='icon iconfont icon-gengduo '></view>
+    </view>
+    <view class='title_line '>
+      <view class='text '>我的优惠码</view>
+      <view class='icon iconfont icon-gengduo '></view>
+    </view>
+    <view class='title_line integral '>
+      <view class='text '>我的积分</view>
+      <view class='icon iconfont icon-gengduo '></view>
+    </view>
+  </view>
+
+  <view class='top_margin my_address '>
+    <view class='title_line ' bindtap='openAddress'>
+      <view class='text '>收货地址设置</view>
+      <view class='icon iconfont icon-gengduo '></view>
+    </view>
+  </view>
+</view>

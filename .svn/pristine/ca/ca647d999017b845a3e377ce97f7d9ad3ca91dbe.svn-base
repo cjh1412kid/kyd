@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="io.nuite.modules.order_platform_app.dao.MeetingShoppingCartDetailDao">
+
+	<!-- 可根据自己的需求，是否要使用 -->
+    <resultMap type="io.nuite.modules.order_platform_app.entity.MeetingShoppingCartDetailEntity" id="meetingShoppingCartDetailMap">
+        <result property="seq" column="Seq"/>
+        <result property="meetingShoppingCartSeq" column="MeetingShoppingCart_Seq"/>
+        <result property="meetingShoppingCartDistributeBoxSeq" column="MeetingShoppingCartDistributeBox_Seq"/>
+        <result property="meetingGoodsSeq" column="MeetingGoods_Seq"/>
+        <result property="colorSeq" column="Color_Seq"/>
+        <result property="size" column="Size"/>
+        <result property="selectNum" column="SelectNum"/>
+        <result property="inputTime" column="InputTime"/>
+    </resultMap>
+
+
+  	<!-- 当前用户能查看的全部鞋款的货号 -->
+  	<select id="selectGroupedMeetingShoppingCartDetail" resultMap="meetingShoppingCartDetailMap">
+		SELECT 
+		 	A.MeetingGoods_Seq, A.Color_Seq, A.[Size], SUM(A.SelectNum*(CASE B.AllocatedType WHEN 1 THEN B.BoxCount WHEN 2 THEN 1 END)) AS SelectNum 
+		FROM 
+			YHSROrderPlatform.dbo.YHSR_OP_MeetingShoppingCartDetail A
+		LEFT JOIN YHSROrderPlatform.dbo.YHSR_OP_MeetingShoppingCartDistributeBox B ON A.MeetingShoppingCartDistributeBox_Seq = B.Seq
+		WHERE 
+			A.MeetingShoppingCart_Seq = #{meetingShoppingCartSeq}
+		GROUP BY 
+			A.MeetingGoods_Seq, A.Color_Seq, A.[Size] 
+	</select>
+	
+	
+</mapper>

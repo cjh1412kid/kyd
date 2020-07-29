@@ -1,0 +1,64 @@
+<!--pages/order/list/list.wxml-->
+<import src="/component/loadMore/loadmore.wxml" />
+
+<view class='container'>
+  <view class="weui-navbar">
+    <block wx:for="{{tabs}}" wx:key="*this">
+      <view id="{{index}}" class="weui-navbar__item {{activeIndex == index ? 'weui-bar__item_on' : ''}}" bindtap="tabClick" data-index='{{index}}'>
+        <view class="weui-navbar__title">{{item}}</view>
+      </view>
+    </block>
+  </view>
+
+  <block wx:if='{{orderList && orderList.length>0}}' wx:key='*this'>
+    <view class="order_list">
+      <view wx:for='{{orderList}}' wx:key='*this' class='order_line'>
+        <view class='order_line_content' bindtap='orderDetailClick' data-seq='{{item.seq}}'>
+          <view class='title'>
+            <view class='order_code'>订单编号：{{item.orderNum}}</view>
+            <view class='status cancle' wx:if='{{item.orderStatus==4}}'>已取消</view>
+            <view class='status nopaid' wx:if='{{item.orderStatus==0}}'>待支付</view>
+            <view class='status payment' wx:if='{{item.orderStatus==1}}'>待发货</view>
+            <view class='status shipped' wx:if='{{item.orderStatus==2}}'>已发货</view>
+            <view class='status completed' wx:if='{{item.orderStatus==3}}'>已完成</view>
+          </view>
+          <view class='content'>
+            <!--<view class='one_content' wx:if='{{index%2==0}}'>
+              <view class='image'>
+                <image src='http://192.168.2.186:8080/picture/sr_base/Goods_Shoes/YCA805860/YCA805870.jpg'></image>
+              </view>
+              <view class='detail'>
+                <view class='name'>2018年春季夏款</view>
+                <view class='color_num'>
+                  <view class='color'>黑色，36</view>
+                  <view class='number'>x1</view>
+                </view>
+              </view>
+            </view>-->
+            <view class='multi_content'>
+              <view class='image' wx:for='{{item.shoesImgList}}' wx:for-item='imgItem' wx:key='*this'>
+                <image src='{{imgItem}}'></image>
+              </view>
+            </view>
+          </view>
+          <view class='foot'>
+            <view class='prices'>金额：
+              <text class='money'>￥{{item.orderPrice}}</text>
+              <text class='number'>({{item.shoesTotalNum}}件商品)</text>
+            </view>
+            <view class='time'>{{item.inputTime}}</view>
+          </view>
+        </view>
+      </view>
+    </view>
+    <template is="load-more" data="{{dataList:orderList, loading:loading}}"></template>
+  </block>
+  <block wx:else>
+    <view class='no_order'>
+      <view class='icon'>
+        <image src=''></image>
+      </view>
+      <view class='text'>暂无订单</view>
+    </view>
+  </block>
+</view>

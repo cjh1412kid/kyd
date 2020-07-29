@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="io.nuite.modules.online_sales_app.dao.OnlineSalesShoesDataDao">
+
+  <!-- 可根据自己的需求，是否要使用 -->
+  <resultMap type="io.nuite.modules.online_sales_app.entity.ShoesDataEntity" id="shoesDataMap">
+    <result property="seq" column="Seq"/>
+    <result property="shoesSeq" column="Shoes_Seq"/>
+    <result property="num" column="Num"/>
+    <result property="stockDate" column="StockDate"/>
+    <result property="stock" column="Stock"/>
+    <result property="del" column="Del"/>
+  </resultMap>
+
+
+  <select id="getStockByShoesSeq" resultType="java.util.Map">
+		SELECT sum(sd.Num) as number,sum(sd.Stock) as stock FROM
+		YHSROnlineSales.dbo.YHSR_OLS_ShoesData sd
+		WHERE sd.Del = 0 AND sd.Shoes_Seq = #{shoesSeq}
+		group by sd.Shoes_Seq
+	</select>
+
+
+  <!-- 修改库存 -->
+  <update id="changeShoesDataStock">
+		UPDATE
+			YHSROnlineSales.dbo.YHSR_OLS_ShoesData
+		SET
+			Stock = (Stock + #{changNum})
+		WHERE
+			Seq = #{shoesDataSeq};
+	</update>
+
+
+  <select id="queryDataAndColorName" resultType="io.nuite.modules.online_sales_app.entity.ShoesDataEntity">
+		SELECT
+			A.*,
+			B.Name AS colorName,
+			B.Code AS code,
+			C.SizeCode AS sizeCode,
+			C.SizeName AS sizeName
+		FROM
+			YHSROnlineSales.dbo.YHSR_OLS_ShoesData A
+		LEFT JOIN YHSmartRetail.dbo.YHSR_Goods_Color B ON A.Color_Seq = B.Seq
+		LEFT JOIN YHSmartRetail.dbo.YHSR_Goods_Size C ON A.Size_Seq = C.Seq
+		WHERE 
+			A.Shoes_Seq = #{goodsSeq} AND A.Del = 0
+	</select>
+
+
+  <select id="queryGoodsDetail" resultType="java.util.Map">
+		SELECT
+			C.SizeName AS sizeName, B.GoodID AS goodId
+		FROM
+			YHSROnlineSales.dbo.YHSR_OLS_ShoesData A
+		LEFT JOIN YHSmartRetail.dbo.YHSR_Goods_Size C ON A.Size_Seq = C.Seq
+		LEFT JOIN YHSmartRetail.dbo.YHSR_Goods_Shoes B ON A.Shoes_Seq = B.Seq
+		WHERE
+			A.Seq = #{shoesDataSeq} AND A.Del = 0
+	</select>
+
+  <update id="deleteByShoesSeq">
+		UPDATE [YHSROnlineSales].[dbo].YHSR_OLS_ShoesData SET
+        Del = 1 WHERE Shoes_Seq = #{seq}
+	</update>
+</mapper>

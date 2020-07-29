@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="io.nuite.modules.system.dao.SizeAllotTemplateDetailDao">
+
+	<!-- 可根据自己的需求，是否要使用 -->
+    <resultMap type="io.nuite.modules.system.entity.SizeAllotTemplateDetailEntity" id="sizeAllotTemplateDetailMap">
+        <result property="seq" column="Seq"/>
+        <result property="templateSeq" column="TemplateSeq"/>
+        <result property="size" column="Size"/>
+        <result property="per" column="Per"/>
+    </resultMap>
+
+
+</mapper>

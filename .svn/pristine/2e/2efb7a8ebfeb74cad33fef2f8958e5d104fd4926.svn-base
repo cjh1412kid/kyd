@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>订货会管理</title>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
+  <link rel="stylesheet" href="../../../css/bootstrap.min.css">
+  <link rel="stylesheet" href="../../../css/font-awesome.min.css">
+  <link rel="stylesheet" href="../../../plugins/jqgrid/ui.jqgrid-bootstrap.css">
+  <link rel="stylesheet" href="../../../plugins/ztree/css/metroStyle/metroStyle.css">
+  <link rel="stylesheet" href="../../../plugins/select2/select2.min.css">
+  <link rel="stylesheet" href="../../../plugins/daterangepicker/daterangepicker.css">
+  <link rel="stylesheet" href="../../../css/main.css">
+
+  <style>
+
+    html, body {
+      height: 100%;
+    }
+
+    .select-wrapper {
+      display: inline-block;
+      /*font-size: 16px;*/
+      margin-right: 20px;
+    }
+
+    .select-wrapper span {
+      color: #3c8dbc;
+      font-weight: bold;
+    }
+
+    .select-wrapper select {
+      /*background-color: #eee;*/
+      width: 160px;
+      height: 30px;
+      margin-right: 20px;
+    }
+  </style>
+</head>
+<body>
+<div id="rrapp" v-cloak>
+	<div id="menuLayer" style="display: none; padding: 10px;">
+    <div class="form-group" style="height: 50px">
+      <div class="col-sm-4 control-label">订单备注</div>
+      <div class="col-sm-8">
+      	<textarea rows="3" cols="3" placeholder="订单备注" v-model="agreementContent"></textarea>
+      </div>
+    </div>
+    
+  </div>
+  <div v-show="showList" style="padding-top: 50px;">
+    <div class="grid-btn" style="position: absolute;top: 0;width: 100%; background: white;">
+      <button class="btn" :style="tableType==1?'background:#3c8dbc;color:white':''" @click="changeTableType(1)">按定货方统计
+      </button>
+      <button class="btn" :style="tableType==2?'background:#3c8dbc;color:white':''" @click="changeTableType(2)">按货号统计
+      </button>
+      <button class="btn" :style="tableType==3?'background:#3c8dbc;color:white':''" @click="changeTableType(3)">按区域统计
+      </button>
+      <button type="button" class="btn btn-link" @click="exportExcel">下载订单
+      </button>
+  	<button type="button" class="btn btn-link" @click="exportDistributeBoxExcel">下载配码
+      </button>
+      	<button type="button" class="btn btn-link" @click="printExcel"  v-show="tableType==1">打印订单
+      </button> 
+      <div style="float:right;margin-right: 40px;">
+        <div class="select-wrapper">
+          <span>年份</span>&nbsp;&nbsp;
+          <select v-model="selectYear" @change="changeYear">
+            <option value="-1">全部</option>
+            <option v-for="item in yearList" :value="item">{{item}}</option>
+          </select>
+        </div>
+        <div class="select-wrapper">
+          <span>订货会</span>&nbsp;&nbsp;
+          <select v-model="selectMeetingSeq" @change="changeMeeting" style="width: 250px;">
+            <option value="-1">全部</option>
+            <option v-for="item in meetingList" :value="item.seq">{{item.meetingName}}</option>
+          </select>
+        </div>
+        <div class="select-wrapper" v-show="tableType==1">
+          <span>订货方</span>&nbsp;&nbsp;
+          <select v-model="selectMeetingUserSeq">
+            <option value="-1">全部</option>
+            <option v-for="item in meetingUserList" :value="item.seq">{{item.meetingUserName}}</option>
+          </select>
+        </div>
+        <div class="select-wrapper" v-show="tableType==2">
+          <span>货号</span>&nbsp;&nbsp;
+          <input type="text" placeholder="货品名称" v-model="keywords">
+        </div>
+
+        <div class="select-wrapper" v-show="tableType==2">
+          <span>是否取消</span>&nbsp;&nbsp;
+          <select v-model="selectCancel">
+            <option value="-1">全部</option>
+            <option v-for="item in cancelList" :value="item.value">{{item.name}}</option>
+          </select>
+        </div>
+        <div class="select-wrapper" v-show="tableType==3">
+          <span>区域</span>&nbsp;&nbsp;
+          <select v-model="selectAreaSeq">
+            <option value="-1">全部</option>
+            <option v-for="item in areaList" :value="item.seq">{{item.areaName}}</option>
+          </select>
+        </div>
+        <button type="button" class="btn btn-primary" @click="search">查询</button>
+      </div>
+    </div>
+
+    <div v-show="tableType==1" style="padding-top: 80px;">
+      <div class="grid-btn select-wrapper" style="position: absolute;top: 80px;width: 100%; background: white;">
+        <!--<span>总订货量：</span>&nbsp;&nbsp;<span>{{totalNum}}</span>-->
+        <span>实际订货数量：</span>&nbsp;&nbsp;<span>{{totalConfirmNum}}</span>
+        <span style="margin-left: 100px;">取消订货数量：</span>&nbsp;&nbsp;<span>{{cancelNum}}</span>
+        <span style="margin-left: 100px;">实际下单金额：</span>&nbsp;&nbsp;<span>{{totalMoney}}</span>
+        <span style="margin-left: 100px;">订单数量：</span>&nbsp;&nbsp;<span>{{totalOrderNum}}</span>
+        <span style="margin-left: 100px;">订货方数量：</span>&nbsp;&nbsp;<span>{{customNum}}</span>
+        <span style="margin-left: 100px;">取消订单量：</span>&nbsp;&nbsp;<span>{{cancelOrderNum}}</span>
+      </div>
+    </div>
+
+    <div v-show="tableType==2" style="padding-top: 80px;">
+      <div class="grid-btn select-wrapper" style="position: absolute;top: 80px;width: 100%; background: white;">
+        <span>实际订货数量：</span>&nbsp;&nbsp;<span>{{totalConfirmNum}}</span>
+        <span style="margin-left: 100px;">取消订货数量：</span>&nbsp;&nbsp;<span>{{cancelNum}}</span>
+        <span style="margin-left: 100px;">订货款数：</span>&nbsp;&nbsp;<span>{{confirmGoodNum}}</span>
+        <span style="margin-left: 100px;">取消款数：</span>&nbsp;&nbsp;<span>{{cancelGoodNum}}</span>
+        <span style="margin-left: 100px;">订货sku数：</span>&nbsp;&nbsp;<span>{{confirmSkuNum}}</span>
+        <span style="margin-left: 100px;">取消Sku数：</span>&nbsp;&nbsp;<span>{{cancelSkuNum}}</span>
+      </div>
+    </div>
+
+    <div>
+      <!--按定货方查询订单-->
+      <div v-show="tableType==1">
+        <table id="jqGrid"></table>
+        <div id="jqGridPager"></div>
+      </div>
+
+      <!--按货号统计-->
+      <div v-show="tableType==2">
+        <table class="table table-bordered">
+          <thead style="font-weight: bold;">
+          <tr>
+            <td>货号</td>
+            <td>货品图片</td>
+            <td>订货量</td>
+            <td>尺码详细</td>
+          </tr>
+          </thead>
+          <tbody>
+          <tr v-for="item in goodsOrder">
+            <td style="width: 150px;font-weight: bold;">{{item.goodID}}&nbsp;
+
+              <button type="button" class="btn btn-success btn-xs" v-if="item.goodCancel==1"
+                      @click="modifyGoodCancel(item.goodSeq,0)">恢复
+              </button>
+              <button type="button" class="btn btn-warning btn-xs" v-else
+                      @click="modifyGoodCancel(item.goodSeq,1)">取消
+              </button>
+            </td>
+            <td style="width: 100px"><img :src="item.imgSrc" style="width:80px;height: 80px; "/></td>
+            <td style="width: 80px">{{item.total}}</td>
+            <td>
+              <table class="table table-bordered">
+                <thead>
+                <tr>
+                  <th>颜色</th>
+                  <th>总数</th>
+                  <th v-for="sizeName in item.title">{{sizeName}}</th>
+                  <th>操作</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr v-for="detail in item.details">
+                  <td>{{detail.color}}</td>
+                  <td>{{detail.colorTotal}}</td>
+                  <td v-for="sizeName in item.title">{{detail.size[sizeName]}}</td>
+                  <td>
+                    <button type="button" class="btn btn-success btn-xs" v-if="detail.cancel"
+                            @click="modifyGoodColorCancel(detail.goodSeq,detail.colorSeq,0)">恢复
+                    </button>
+                    <button type="button" class="btn btn-warning btn-xs" v-else
+                            @click="modifyGoodColorCancel(detail.goodSeq,detail.colorSeq,1)">取消
+                    </button>
+                  </td>
+                </tr>
+                </tbody>
+              </table>
+            </td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!--按区域统计-->
+      <div v-show="tableType==3">
+
+        <table class="table table-bordered">
+          <thead style="font-weight: bold;">
+          <tr>
+            <td>区域</td>
+            <td>订货量</td>
+            <td>货号详细</td>
+          </tr>
+          </thead>
+          <tbody>
+          <tr v-for="area in areaOrder">
+            <td style="width: 100px;font-weight: bold">{{area.areaName}}</td>
+            <td style="width: 100px">{{area.areaTotal}}</td>
+            <td>
+              <table class="table table-bordered">
+                <thead>
+                <tr>
+                  <th>货号</th>
+                  <th>订货量</th>
+                  <th>货品图片</th>
+                  <th>尺码详细</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr v-for="item in area.areaDetail">
+                  <td style="width: 150px;font-weight: bold;">{{item.goodID}}</td>
+                  <td style="width: 150px">{{item.total}}</td>
+                  <td style="width: 100px"><img :src="item.imgSrc" style="width:80px;height: 80px; "/></td>
+                  <td>
+                    <table class="table table-bordered">
+                      <thead>
+                      <tr>
+                        <th>颜色</th>
+                        <th>总数</th>
+                        <th v-for="sizeName in item.title">{{sizeName}}</th>
+                      </tr>
+                      </thead>
+                      <tbody>
+                      <tr v-for="detail in item.details">
+                        <td style="font-weight: bold;">{{detail.color}}</td>
+                        <td>{{detail.colorTotal}}</td>
+                        <td v-for="sizeName in item.title">{{detail.size[sizeName]}}</td>
+                      </tr>
+                      </tbody>
+                    </table>
+                  </td>
+                </tr>
+                </tbody>
+              </table>
+            </td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div v-show="!showList" class="panel panel-default">
+    <div class="panel-heading" v-text="title"></div>
+    <div class="form-group" style="margin-bottom: 60px;margin-top: 20px;position: fixed;left: 150px;top: 35px; display: flex; align-items: center;">
+      <div class="col-sm-1 control-label"></div>
+      <div class="col-sm-2 control-label">
+        <input type="button" class="btn btn-primary" @click="cancelAllProducts" value="取消订单"/>
+      </div>
+      <div class="col-sm-2 control-label">
+        <input type="button" class="btn btn-info" @click="saveAllProducts" value="保存"/>
+      </div>
+      <div class="col-sm-2 control-label">
+        <input type="button" class="btn btn-warning" @click="goBack" value="返回"/>
+      </div>
+      <div style="width: 300px">
+        <div class="col-xs-6" style="width: 150px">
+          <input type="text" class="form-control" style="width: 150px" placeholder="货品名称" v-model="detailKeywords">
+        </div>
+        <div class="col-xs-3control-label">	<a class="btn btn-default" @click="detailSearch">搜索</a></div>
+      </div>
+    </div>
+
+    <form class="form-horizontal" style="width: 90%;margin-left:10px; margin-top: 50px">
+      <div class="form-group">
+        <table class="table table-bordered">
+          <thead>
+          <tr>
+            <td>货号</td>
+            <td>货品图</td>
+            <td>订货量</td>
+            <td></td>
+          </tr>
+          </thead>
+          <tbody>
+          <tr v-for="item in products">
+            <td style="width: 150px">{{item.goodID}}</td>
+            <td style="width: 100px"><img :src="item.imgSrc" style="width:80px;height: 80px; "/></td>
+            <td style="width: 80px">{{item.total}}</td>
+            <td>
+              <table class="table table-bordered">
+                <thead>
+                <tr>
+                  <th>颜色</th>
+                  <th>总数</th>
+                  <th v-for="sizeName in item.title">{{sizeName}}</th>
+                  <th>操作</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr v-for="detail in item.details">
+                  <td>{{detail.color}}</td>
+                  <td>{{detail.colorTotal}}</td>
+                  <td v-for="sizeName in item.title"><input type="text" v-model="detail.size[sizeName]" style="width: 30px"></td>
+                  <td>
+                    <button type="button" class="btn btn-success btn-xs" v-if="detail.cancel"
+                            @click="modifyProductCancel(detail.goodSeq,detail.colorSeq,0)">恢复
+                    </button>
+                    <button type="button" class="btn btn-warning btn-xs" v-else
+                            @click="modifyProductCancel(detail.goodSeq,detail.colorSeq,1)">取消
+                    </button>
+                  </td>
+                </tr>
+                </tbody>
+              </table>
+            </td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </form>
+  </div>
+
+  <!--下载配码单-->
+  <div style="display: none;">
+    <form id="exportOrderExcel" method="POST">
+      <input type="hidden" name="token">
+      <input type="hidden" name="meetingSeq">
+      <input type="hidden" name="meetingUserSeq">
+    </form>
+  </div>
+</div>
+
+</body>
+<script src="../../../libs/jquery.min.js"></script>
+<script src="../../../plugins/layer/layer.js"></script>
+<script src="../../../libs/bootstrap.min.js"></script>
+<script src="../../../libs/vue.min.js"></script>
+<script src="../../../plugins/select2/select2.full.min.js"></script>
+<script src="../../../plugins/jqgrid/grid.locale-cn.js"></script>
+<script src="../../../plugins/jqgrid/jquery.jqGrid.min.js"></script>
+<script src="../../../plugins/daterangepicker/moment.min.js"></script>
+<script src="../../../plugins/daterangepicker/daterangepicker.js"></script>
+<script src="../../../js/common.js"></script>
+<script src="../../../js/modules/system/order_meeting/meeting_order.js"></script>
+
+</html>

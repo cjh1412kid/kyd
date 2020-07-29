@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="io.nuite.modules.system.dao.MeetingPermissionDao">
+
+	<!-- 可根据自己的需求，是否要使用 -->
+    <resultMap type="io.nuite.modules.system.entity.MeetingPermissionEntity" id="meetingPermissionMap">
+        <result property="seq" column="Seq"/>
+        <result property="meetingSeq" column="Meeting_Seq"/>
+        <result property="userSeq" column="User_Seq"/>
+        <result property="inputTime" column="InputTime"/>
+        <result property="del" column="Del"/>
+    </resultMap>
+	<select id="getAllPermissionByMeetingSeq" resultMap="meetingPermissionMap">
+		 SELECT * FROM [YHSROrderPlatform].[dbo].[YHSR_OP_MeetingPermission] where Del=0 and  Meeting_Seq=#{meetingSeq}
+	</select>
+	<select id="getPermission" resultMap="meetingPermissionMap">
+		 SELECT * FROM [YHSROrderPlatform].[dbo].[YHSR_OP_MeetingPermission] where Meeting_Seq=#{meetingSeq} and User_Seq=#{userSeq}
+	</select>
+	<update id="update">
+		update [YHSROrderPlatform].[dbo].[YHSR_OP_MeetingPermission] set Del = 0 where Seq=#{seq} 
+	</update>
+</mapper>

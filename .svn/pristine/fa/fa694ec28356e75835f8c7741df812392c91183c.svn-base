@@ -1,0 +1,64 @@
+<!--pages/order/upload/upload.wxml-->
+<view class='detail_address'>
+  <view class='content'>
+    <view class='title' bindtap='chooseAddress'>收货地址
+      <view class='icon iconfont icon-gengduo'></view>
+    </view>
+    <view class='name'>收货人：{{address.recipientsName}}
+      <text class='phone'>{{address.telephone}}</text>
+    </view>
+    <view class='address'>收货地址：{{address.address}}</view>
+  </view>
+</view>
+<view class='detail_content'>
+  <view class='content'>
+    <view class='title'>订单内容：
+      <text class='time'></text>
+    </view>
+    <view class='goods'>
+      <view wx:for='{{goodsList}}' wx:key='*this' class='one_good'>
+        <view class='image'>
+          <image src='{{item.img}}'></image>
+        </view>
+        <view class='detail'>
+          <view class='name'>
+            <view class='title_name'>{{item.introduce}}</view>
+            <text class='prices'>￥{{item.salePrice}}</text>
+          </view>
+          <view class='color_num'>
+            <text class='color'>{{item.color}}，{{item.size}}</text>
+            <text class='number'>x{{item.buyCount}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+    <view class='total'>
+      <view class='numbers'>
+        <view class='good_prices'>商品总价
+          <text>￥{{totalGoodsPrice}}</text>
+        </view>
+        <view class='express_prices'>运费
+          <text>￥{{expressPrice}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>
+
+<view class='self_pick_line'>
+  <view class='self_pick_select' bindtap='selfPickClick'>
+    <view class='icon iconfont icon-xuanzhong {{selfPick?"icon_select":"icon_de_select"}}'></view>
+  </view> 到店自取
+</view>
+
+<view class='self_pick_text'>
+  自提地点：
+  <view class='icon iconfont icon-location'></view>南京金鹰建邺店-RLRW人来人往
+</view>
+<view></view>
+<view class='pay_group'>
+  <view class='pay_money'>合计
+    <text>￥{{totalGoodsPrice+expressPrice}}</text>
+  </view>
+  <view class='pay_btn' bindtap='uploadOrder'>提交订单</view>
+</view>

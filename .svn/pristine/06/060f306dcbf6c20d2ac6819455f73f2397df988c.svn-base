@@ -1,0 +1,176 @@
+/* pages/goods/detail/detail.wxss */
+@import './detail_select.wxss';
+
+.detail_swiper {
+  width: 750rpx;
+  height: 750rpx;
+}
+
+.detail_swiper image, .detail_swiper video {
+  width: 750rpx;
+  height: 750rpx;
+}
+
+.detail_margin {
+  background-color: #fff;
+  width: 686rpx;
+  padding: 17rpx 32rpx;
+  margin-bottom: 8rpx;
+}
+
+.detail_title {
+  margin-top: 1px;
+}
+
+.detail_title .name {
+  color: #444;
+  font-size: 33rpx;
+}
+
+.detail_title .price {
+  color: #f44;
+  font-size: 42rpx;
+  margin-top: 24rpx;
+}
+
+.detail_title .price text {
+  color: #999;
+  font-size: 25rpx;
+}
+
+.detail_title .numbers {
+  display: flex;
+  margin-top: 22rpx;
+}
+
+.detail_title .numbers .sale, .detail_title .numbers .stock {
+  flex: 1;
+  font-size: 25rpx;
+  color: #999;
+}
+
+.detail_select {
+  font-size: 29rpx;
+  color: #323232;
+  display: flex;
+  align-items: center;
+}
+
+.detail_select .text {
+  flex: 1;
+}
+
+.detail_select .icon {
+  float: right;
+  font-size: 35rpx;
+  color: #323232;
+  padding-top: 1rpx;
+}
+
+.detail_params .text {
+  color: #323232;
+  font-size: 29rpx;
+}
+
+.detail_params .grids {
+  overflow: hidden;
+}
+
+.detail_params .grids .grid {
+  float: left;
+  width: 50%;
+  display: flex;
+  color: #999;
+  margin-top: 27rpx;
+}
+
+.detail_params .grids .grid .name {
+  text-align: right;
+}
+
+.detail_params .grids .grid .value {
+  text-align: left;
+}
+
+.detail_params .grids .grid .name, .detail_params .grids .grid .value {
+  flex: 1;
+  font-size: 24rpx;
+}
+
+.detail_content {
+  background-color: #fff;
+}
+
+.detail_content .text {
+  color: #323232;
+  font-size: 29rpx;
+}
+
+.detail_content_images {
+  margin-bottom: 46px;
+}
+
+.detail_content_images image {
+  width: 750rpx;
+}
+
+.detail_bottom_groups {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 45px;
+  line-height: 45px;
+  display: flex;
+  text-align: center;
+  box-shadow: 0px -5px 10px 0px rgba(0, 0, 0, 0.1);
+  background-color: #fff;
+}
+
+.detail_bottom_groups .icon_text {
+  color: #505050;
+  font-size: 18rpx;
+  height: 100%;
+}
+
+.detail_bottom_groups .icon_text .icon {
+  height: 30%;
+}
+
+.detail_bottom_groups .icon_text .text {
+  height: 0;
+}
+
+.detail_bottom_groups .cart {
+  background-color: #ff9059;
+  font-size: 33rpx;
+}
+
+.detail_bottom_groups .buy {
+  background-color: #ff6363;
+  font-size: 33rpx;
+}
+
+.detail_bottom_groups .flex1 {
+  flex: 1;
+}
+
+.detail_bottom_groups .flex3 {
+  flex: 3;
+  color: #fff;
+}
+
+.detail_select_page {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  top: 100vh;
+  width: 750rpx;
+  z-index: 5;
+  background-color: rgba(255, 255, 255, 0.35);
+  transition: all 0.2s ease;
+}
+
+.detail_select_page.nochoosed {
+  top: 0;
+}

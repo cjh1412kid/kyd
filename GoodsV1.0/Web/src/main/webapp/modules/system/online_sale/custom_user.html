@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>小程序用户管理</title>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
+        name="viewport">
+  <link rel="stylesheet" href="../../../css/bootstrap.min.css">
+  <link rel="stylesheet" href="../../../css/font-awesome.min.css">
+  <link rel="stylesheet" href="../../../plugins/daterangepicker/daterangepicker.css">
+  <link rel="stylesheet" href="../../../plugins/datepicker/datepicker3.css">
+  <link rel="stylesheet" href="../../../plugins/jqgrid/ui.jqgrid-bootstrap.css">
+  <link rel="stylesheet" href="../../../plugins/ztree/css/metroStyle/metroStyle.css">
+  <link rel="stylesheet" href="../../../css/main.css">
+  <script src="../../../libs/jquery.min.js"></script>
+  <script src="../../../plugins/layer/layer.js"></script>
+  <script src="../../../libs/bootstrap.min.js"></script>
+  <script src="../../../libs/vue.min.js"></script>
+  <script src="../../../plugins/jqgrid/grid.locale-cn.js"></script>
+  <script src="../../../plugins/jqgrid/jquery.jqGrid.min.js"></script>
+  <script src="../../../plugins/ztree/jquery.ztree.all.min.js"></script>
+  <script src="../../../plugins/daterangepicker/moment.min.js"></script>
+  <script src="../../../plugins/daterangepicker/daterangepicker.js"></script>
+  <script src="../../../plugins/datepicker/bootstrap-datepicker.js"></script>
+  <script src="../../../plugins/datepicker/locales/bootstrap-datepicker.zh-CN.js"></script>
+  <script src="../../../js/common.js"></script>
+</head>
+<body>
+<div id="rrapp" v-cloak>
+  <div>
+      <div class="grid-btn" style="overflow: auto;">
+      
+      <div class="form-group col-sm-7">
+        <div class="col-xs-2 control-label">昵称状态</div>
+        <div class="col-xs-3">
+          <select class="form-control" v-model="nickNameState">
+            <option value="0">已授权</option>
+            <option value="1">未授权</option>
+          </select>
+        </div>
+        
+        <div class="col-xs-2 control-label"></div>
+        
+        <div class="col-xs-2 control-label">波次选择</div>
+        <div class="dropdown col-xs-3">
+            <a role="button" data-toggle="dropdown" class="btn btn-default">{{selectPeriodName || '波次选择'}}<span class="caret"></span></a>
+            <ul class="dropdown-menu multi-level" role="menu" aria-labelledby="dropdownMenu">
+                <li class="dropdown-submenu">
+                    <a tabindex="-1" @click="periodSelect(-1)">所有波次</a>
+                </li>
+                <li class="dropdown-submenu" v-for="(values,key) in periods">
+                    <a tabindex="-1">{{key}}</a>
+                    <ul class="dropdown-menu">
+                        <li v-for="item in values">
+                            <a tabindex="-1" @click="periodSelect(item)">{{item.name}}</a>
+                        </li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+
+      </div>
+
+      <div class="form-group col-sm-5">
+        <div class="col-xs-3 control-label">添加时间</div>
+        <div class="col-xs-9 date_picker_icon">
+          <input type="text" id="config-demo" class="form-control" readonly="readonly" v-model="start_endTime" placeholder="添加时间"/>
+          <i class="glyphicon glyphicon-calendar fa fa-calendar"></i>
+        </div>
+      </div>
+	  
+	  
+      <div class="form-group col-sm-7">
+         <div class="col-xs-2 control-label">手机号状态</div>
+         <div class="col-xs-3">
+           <select class="form-control" v-model="telephoneState">
+             <option value="0">已授权</option>
+             <option value="1">未授权</option>
+           </select>
+         </div>
+         
+         <div class="col-xs-2 control-label"></div>
+         
+         <div class="col-xs-5 control-label">
+          <a class="btn btn-default" @click="search">搜索</a>
+          <label>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;总数量： {{recordsNum}} </label>
+         </div>
+      </div>
+      
+    </div>
+    
+    <table id="jqGrid"></table>
+    <div id="jqGridPager"></div>
+
+  </div>
+</div>
+
+<script src="../../../js/modules/system/online_sale/custom_user.js"></script>
+</body>
+</html>

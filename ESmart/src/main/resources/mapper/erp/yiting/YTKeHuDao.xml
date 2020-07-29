@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.nuite.modules.erp.entity.yiting.dao.YTKeHuDao">
+
+  <select id="selectList" resultType="com.nuite.modules.erp.entity.yiting.entity.YTKeHu">
+    SELECT
+       [KHDM] as accountName
+      ,[XZDM] as userType
+      ,[KHMC] as userName
+      ,k.[QDDM] as qudaoCode
+	    ,qd.[QDMC] as qudaoName
+      ,k.[QYDM] as quyuCode
+	    ,[QYMC] as quyuName
+      ,k.[DZ] as address
+      ,k.[LXR] as linkman
+      ,k.[DH1] as tel
+      ,k.[SJ] as telephone
+  FROM (select *  from [KEHU]
+        where (KHDM not like 'D%' and (XZDM = 0 and ( KHDM like 'ZD%' or  KHDM not like 'ZD%' and KHDM not like 'HS%' )
+        or (XZDM = 2 and (KHDM like 'A%' or KHDM not like 'A%' and KHDM not like 'FH%' )))) or XZDM=3  ) k
+  join [QUYU] qy on  qy.QYDM = k.QYDM
+  join [QUDAO] qd on qd.QDDM = k.QDDM
+  </select>
+</mapper>

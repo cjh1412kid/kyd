@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="io.nuite.modules.order_platform_app.dao.ShoesInfoDao">
+	
+  	<!-- 可根据自己的需求，是否要使用 -->
+	<resultMap type="io.nuite.modules.order_platform_app.entity.ShoesInfoEntity" id="shoesInfoMap">
+    	<result property="seq" column="Seq"/>
+    	<result property="shoesSeq" column="Shoes_Seq"/>
+	    <result property="oemPrice" column="OemPrice"/>
+	    <result property="wholesalerPrice" column="WholesalerPrice"/>
+	    <result property="storePrice" column="StorePrice"/>
+	    <result property="salePrice" column="SalePrice"/>
+	    <result property="isHotSale" column="IsHotSale"/>
+	    <result property="isNewest" column="IsNewest"/>
+	    <result property="searchTimes" column="SearchTimes"/>
+	    <result property="onSale" column="OnSale"/>
+	    <result property="onSaleTime" column="OnSaleTime"/>
+	    <result property="offSaleTime" column="OffSaleTime"/>
+	    <result property="remark" column="Remark"/>
+	    <result property="del" column="Del"/>
+	</resultMap>
+
+
+	<!-- 定义全部鞋款列表的resultMap，type为HashMap -->
+	<resultMap id="shoesSeqListMap" type="java.util.HashMap">
+		<id column="Seq" property="seq" jdbcType="INTEGER"/>
+	    <result column="Img1" property="img" jdbcType="VARCHAR"/>
+	    <result column="GoodName" property="goodName" jdbcType="VARCHAR"/>
+	    <result column="GoodID" property="goodId" jdbcType="VARCHAR"/>
+	    <result column="Introduce" property="introduce" jdbcType="VARCHAR"/>
+	    <result column="InputTime" property="inputTime" jdbcType="TIMESTAMP"/>
+	   	<result column="OemPrice" property="oemPrice" jdbcType="DECIMAL" />
+	    <result column="WholesalerPrice" property="wholesalerPrice" jdbcType="DECIMAL" />
+	    <result column="StorePrice" property="storePrice" jdbcType="DECIMAL" />
+	    <result column="SalePrice" property="salePrice" jdbcType="DECIMAL" />
+	    <result column="Score" property="score" jdbcType="FLOAT"/>
+	    <result column="BuyCount" property="buyCount" jdbcType="INTEGER"/>
+	    <result column="stock" property="stock" jdbcType="INTEGER"/>
+	    <result column="SalesNum" property="salesNum" jdbcType="INTEGER"/>
+	</resultMap>
+
+
+	<!-- 定义鞋款的货号的resultMap，type为HashMap -->
+	<resultMap id="goodIdsMap" type="java.util.HashMap">
+		<id column="Seq" property="seq" jdbcType="INTEGER"/>
+	    <result column="GoodID" property="goodId" jdbcType="VARCHAR"/>
+	    <result column="Category_Seq" property="categorySeq" jdbcType="VARCHAR"/>
+	</resultMap>
+
+
+	<!-- 全部鞋款列表 -->
+	<select id="getShoesList" resultMap="shoesSeqListMap">
+		SELECT
+			TOP ${num}
+			A.Seq, A.Img1, A.GoodName, A.GoodID, A.Introduce, A.InputTime,
+			B.OemPrice, B.WholesalerPrice, B.StorePrice, B.SalePrice, E.Score, D.BuyCount, C.stock, (C.num - C.stock) AS SalesNum
+		FROM
+			YHSROrderPlatform.dbo.YHSR_OP_ShoesInfo B
+		LEFT JOIN YHSmartRetail.dbo.YHSR_Goods_Shoes A ON B.Shoes_Seq = A.Seq
+		LEFT JOIN (SELECT Shoes_Seq, SUM (Num) AS num, SUM (Stock) AS stock FROM YHSROrderPlatform.dbo.YHSR_OP_ShoesData WHERE Del = 0 GROUP BY Shoes_Seq ) AS C ON A.Seq = C.Shoes_Seq
+		LEFT JOIN (SELECT B.Shoes_Seq, SUM (A.BuyCount) AS BuyCount FROM YHSROrderPlatform.dbo.YHSR_OP_ShoppingCart A LEFT JOIN YHSROrderPlatform.dbo.YHSR_OP_ShoesData B ON A.ShoesData_Seq = B.Seq WHERE A.Del = 0 GROUP BY B.Shoes_Seq) AS D ON A.Seq = D.Shoes_Seq
+	  	LEFT JOIN (SELECT Shoes_Seq, CONVERT(DECIMAL(5,1), AVG(Score)) AS Score FROM YHSROrderPlatform.dbo.YHSR_OP_ShoesValuate WHERE Del = 0 AND Score != 0 GROUP BY Shoes_Seq) AS E ON A.Seq = E.Shoes_Seq
+		LEFT JOIN YHSROrderPlatform.dbo.YHSR_OP_ShoesCompanyType F ON A.Seq = F.Shoes_Seq
+
+		WHERE
+			A.Seq NOT IN (
+				SELECT
+					TOP ${start} A.Seq
+				FROM
+					YHSROrderPlatform.dbo.YHSR_OP_ShoesInfo B
+				LEFT JOIN YHSmartRetail.dbo.YHSR_Goods_Shoes A ON B.Shoes_Seq = A.Seq
+				LEFT JOIN (SELECT Shoes_Seq, SUM (Num) AS num, SUM (Stock) AS stock FROM YHSROrderPlatform.dbo.YHSR_OP_ShoesData WHERE Del = 0 GROUP BY Shoes_Seq ) AS C ON A.Seq = C.Shoes_Seq
+				LEFT JOIN (SELECT B.Shoes_Seq, SUM (A.BuyCount) AS BuyCount FROM YHSROrderPlatform.dbo.YHSR_OP_ShoppingCart A LEFT JOIN YHSROrderPlatform.dbo.YHSR_OP_ShoesData B ON A.ShoesData_Seq = B.Seq WHERE A.Del = 0 GROUP BY B.Shoes_Seq) AS D ON A.Seq = D.Shoes_Seq
+				LEFT JOIN YHSROrderPlatform.dbo.YHSR_OP_ShoesCompanyType F ON A.Seq = F.Shoes_Seq
+		
+				WHERE
+					A.Del = 0 AND B.Del = 0 AND F.Del = 0 AND 
+					B.OnSale = 1 AND (B.OffSaleTime IS NULL OR DateDiff(dd, GETDATE(), B.OffSaleTime) &gt;= 0) AND
+					A.Period_Seq IN (${periodSeq}) AND F.CompanyType_Seq = #{companyTypeSeq}
+					<if test="categorySeqs!=null and categorySeqs!=''">
+					    AND A.Category_Seq IN (${categorySeqs})
+					</if>
+					<if test="shoesSeqs!=null and shoesSeqs!=''">
+			    		AND A.Seq IN (${shoesSeqs})
+					</if>
+					<if test="goodNameId!=null and goodNameId!=''">
+					    AND (A.GoodName LIKE '%${goodNameId}%' OR A.GoodID LIKE '%${goodNameId}%')
+					</if>
+				ORDER BY
+					<choose>
+		            	<when test="orderBy!=null and (orderBy==1 or orderBy==2) and orderDir!=null and (orderDir==0 or orderDir==1)">
+		            		<if test="orderBy==1">
+					    		D.BuyCount
+							</if>
+							<if test="orderBy==2">
+					    		(C.num - C.stock)
+							</if>
+							<if test="orderDir==0">
+					    		DESC
+							</if>
+							<if test="orderDir==1">
+					    		ASC
+							</if>
+		                </when>
+		                <otherwise>
+		                	B.IsHOTSALE DESC, (C.num - C.stock) DESC
+		                </otherwise>
+		            </choose>
+		            , A.Seq DESC
+			) AND 
+			A.Del = 0 AND B.Del = 0 AND F.Del = 0 AND 
+			B.OnSale = 1 AND (B.OffSaleTime IS NULL OR DateDiff(dd, GETDATE(), B.OffSaleTime) &gt;= 0) AND
+			A.Period_Seq IN (${periodSeq}) AND F.CompanyType_Seq = #{companyTypeSeq}
+			<if test="categorySeqs!=null and categorySeqs!=''">
+			    AND A.Category_Seq IN (${categorySeqs})
+			</if>
+			<if test="shoesSeqs!=null and shoesSeqs!=''">
+			    AND A.Seq IN (${shoesSeqs})
+			</if>
+			<if test="goodNameId!=null and goodNameId!=''">
+			    AND (A.GoodName LIKE '%${goodNameId}%' OR A.GoodID LIKE '%${goodNameId}%')
+			</if>
+		ORDER BY
+			<choose>
+            	<when test="orderBy!=null and (orderBy==1 or orderBy==2) and orderDir!=null and (orderDir==0 or orderDir==1)">
+            		<if test="orderBy==1">
+			    		D.BuyCount
+					</if>
+					<if test="orderBy==2">
+			    		(C.num - C.stock)
+					</if>
+					<if test="orderDir==0">
+			    		DESC
+					</if>
+					<if test="orderDir==1">
+			    		ASC
+					</if>
+                </when>
+                <otherwise>
+                	B.IsHOTSALE DESC, (C.num - C.stock) DESC
+                </otherwise>
+            </choose>
+            , A.Seq DESC
+	</select>
+
+
+  	<!-- 当前用户能查看的全部鞋款的货号 -->
+  	<select id="getAllGoodIds" resultMap="goodIdsMap">
+		SELECT
+			A.Seq, A.GoodID, A.Category_Seq
+		FROM
+			YHSROrderPlatform.dbo.YHSR_OP_ShoesInfo B
+		LEFT JOIN YHSmartRetail.dbo.YHSR_Goods_Shoes A ON B.Shoes_Seq = A.Seq
+		LEFT JOIN YHSROrderPlatform.dbo.YHSR_OP_ShoesCompanyType C ON A.Seq = C.Shoes_Seq
+		
+		WHERE
+			A.Del = 0 AND B.Del = 0 AND C.Del = 0 AND
+			B.OnSale = 1 AND (B.OffSaleTime IS NULL OR DateDiff(dd, GETDATE(), B.OffSaleTime) &gt;= 0) AND
+			A.Period_Seq IN (${periodSeq}) AND C.CompanyType_Seq = #{companyTypeSeq}
+	</select>
+
+
+  	<!-- 6个热搜鞋款的货号 -->
+  	<select id="getHotSearchGoodIds" resultMap="goodIdsMap">
+		SELECT
+			TOP 6 A.Seq, A.GoodID
+		FROM
+			YHSROrderPlatform.dbo.YHSR_OP_ShoesInfo B
+		LEFT JOIN YHSmartRetail.dbo.YHSR_Goods_Shoes A ON B.Shoes_Seq = A.Seq
+		LEFT JOIN YHSROrderPlatform.dbo.YHSR_OP_ShoesCompanyType C ON A.Seq = C.Shoes_Seq
+		
+		WHERE
+			A.Del = 0 AND B.Del = 0 AND C.Del = 0 AND
+			B.OnSale = 1 AND (B.OffSaleTime IS NULL OR DateDiff(dd, GETDATE(), B.OffSaleTime) &gt;= 0) AND
+			A.Period_Seq IN (${periodSeq}) AND C.CompanyType_Seq = #{companyTypeSeq}
+		ORDER BY B.SearchTimes DESC
+	</select>
+
+
+  	<update id="deleteByShoesSeq">
+      UPDATE [YHSROrderPlatform].[dbo].YHSR_OP_ShoesInfo SET
+        Del = 1 WHERE Shoes_Seq = #{seq}
+    </update>
+
+  	<update id="updateOnSale">
+		UPDATE [YHSROrderPlatform].[dbo].YHSR_OP_ShoesInfo SET
+        OnSale=#{onSale} WHERE Shoes_Seq = #{goodsSeq}
+	</update>
+</mapper>

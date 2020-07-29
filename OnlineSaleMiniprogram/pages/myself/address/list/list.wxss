@@ -1,0 +1,135 @@
+/* pages/myself/address/list/list.wxss */
+
+.top {
+  border-top: solid 1px #d6d6d6;
+  height: 1rpx;
+}
+
+.address_container .top_tips {
+  text-align: right;
+  font-size: 25rpx;
+  margin-right: 30rpx;
+}
+
+.address_detail {
+  margin: 25rpx 0;
+  position: relative;
+  height: 120rpx;
+  line-height: 120rpx;
+  overflow: hidden;
+}
+
+.address_detail_inner {
+  position: absolute;
+  top: 0;
+}
+
+.address_detail_menu {
+  background-color: #e5e5e5;
+  width: 180rpx;
+  text-align: center;
+  z-index: 4;
+  right: 0;
+  color: #fff;
+  display: flex;
+  font-size: 25rpx;
+}
+
+.address_detail_menu .button {
+  flex: 1;
+}
+
+.address_detail_menu .button.edit {
+  background-color: #04a396;
+}
+
+.address_detail_menu .button.del {
+  background-color: #e64340;
+}
+
+.address_detail_top {
+  width: 100%;
+  z-index: 5;
+  transition: left 0.2s ease-in-out;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+}
+
+.address_default_select {
+  width: 90rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.address_default_select .icon {
+  font-size: 23rpx;
+  width: 40rpx;
+  height: 40rpx;
+  line-height: 40rpx;
+  border-radius: 50%;
+  color: white;
+  text-align: center;
+}
+
+.address_default_select .icon_select {
+  background-color: #f44;
+  border: solid 1px #f44;
+}
+
+.address_default_select .icon_de_select {
+  background-color: #fff;
+  border: solid 1px #999;
+  color: #999;
+}
+
+.address_detail_content {
+  flex: 1;
+  background-color: #fff;
+  height: 120rpx;
+  color: #999;
+  font-size: 25rpx;
+}
+
+.address_detail_content .name, .address_detail_content .address {
+  margin: 15rpx 20rpx;
+  height: 40rpx;
+  line-height: 40rpx;
+}
+
+.address_detail_content .name .phone {
+  float: right;
+}
+
+.address_container .address_bottom {
+  height: 97rpx;
+}
+
+.address_container .no_address_title {
+  text-align: center;
+  color: #666;
+  margin-top: 10rpx;
+}
+
+.button_group {
+  position: fixed;
+  bottom: 0;
+  width: 750rpx;
+  height: 97rpx;
+  display: flex;
+}
+
+.button_group .button {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 42rpx;
+}
+
+.button_group .button.add {
+  background-color: #04a396;
+  color: #fff;
+}

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="io.nuite.modules.online_sales_app.dao.SalesShoppingCartDao">
+
+	<!-- 可根据自己的需求，是否要使用 -->
+    <resultMap type="io.nuite.modules.online_sales_app.entity.SalesShoppingCartEntity" id="SalesShoppingCartMap">
+        <result property="seq" column="Seq"/>
+        <result property="goodsPeriodSeq" column="Goods_Period_Seq"/>
+        <result property="userSeq" column="User_Seq"/>
+        <result property="shoesSeq" column="Shoes_Seq"/>
+        <result property="totalSelectNum" column="TotalSelectNum"/>
+        <result property="perBoxNum" column="PerBoxNum"/>
+        <result property="isAllocated" column="IsAllocated"/>
+        <result property="isChecked" column="IsChecked"/>
+        <result property="inputTime" column="InputTime"/>
+        <result property="del" column="Del"/>
+        <result property="goodsID" column="GoodsID"/>
+        <result property="userGoodID" column="UserGoodID"/>
+    </resultMap>
+	<resultMap id="shoppingCartShoesMap" type="java.util.HashMap">
+	    <id column="Seq" property="seq" jdbcType="INTEGER" />
+	    <result column="TotalSelectNum" property="totalSelectNum" jdbcType="INTEGER" />
+	    <result column="IsChecked" property="isChecked" jdbcType="INTEGER" />
+	   	<result column="shoesSeq" property="shoesSeq" jdbcType="INTEGER" />
+	    <result column="Img1" property="img" jdbcType="VARCHAR" />
+	    <result column="GoodName" property="goodName" jdbcType="VARCHAR" />
+	    <result column="GoodID" property="goodId" jdbcType="VARCHAR" />
+	    <result column="Introduce" property="introduce" jdbcType="VARCHAR" />
+	</resultMap>
+	
+<select id="getShoppingCartListByUserSeq" resultMap="shoppingCartShoesMap">
+		SELECT
+			A.Seq AS Seq, A.TotalSelectNum, A.IsChecked, C.Seq AS shoesSeq,
+			C.Img1, C.GoodName, C.GoodID, C.Introduce
+		FROM
+			YHSROnlineSales.dbo.YHSR_OLS_SalesShoppingCart A
+		LEFT JOIN YHSmartRetail.dbo.YHSR_Goods_Shoes C ON A.Shoes_Seq = C.Seq
+		WHERE
+			A.Del = 0 AND  C.Del = 0 
+			AND A.User_Seq = #{0}
+		ORDER BY
+			A.InputTime DESC
+	</select>
+
+</mapper>

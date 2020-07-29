@@ -1,0 +1,342 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper
+	namespace="io.nuite.modules.system.dao.MeetingOrderProductDao">
+
+	<!-- 可根据自己的需求，是否要使用 -->
+	<resultMap
+		type="io.nuite.modules.system.entity.MeetingOrderProductEntity"
+		id="meetingOrderProductMap">
+		<result property="seq" column="Seq" />
+		<result property="meetingOrderSeq" column="MeetingOrder_Seq" />
+		<result property="meetingGoodsSeq" column="MeetingGoods_Seq" />
+		<result property="colorSeq" column="Color_Seq" />
+		<result property="size" column="Size" />
+		<result property="buyCount" column="BuyCount" />
+		<result property="inputTime" column="InputTime" />
+		<result property="del" column="Del" />
+		<result property="cancel" column="Cancel" />
+	</resultMap>
+
+	<update id="updateGoodColorCancel">
+		update [YHSROrderPlatform].[dbo].[YHSR_OP_MeetingOrderProduct]
+		set Cancel=#{isCancel}
+		where Seq in (
+
+		SELECT A.Seq
+		FROM [YHSROrderPlatform].[dbo].[YHSR_OP_MeetingOrderProduct]
+		A,[YHSROrderPlatform].[dbo].[YHSR_OP_MeetingOrder] B
+		where B.Company_Seq=#{companySeq} and A.MeetingGoods_Seq =#{goodSeq} and
+		A.Color_Seq=#{colorSeq} and A.Del=0
+		)
+	</update>
+
+	<update id="updateGoodCancel">
+		update [YHSROrderPlatform].[dbo].[YHSR_OP_MeetingOrderProduct]
+		set Cancel=#{isCancel}
+		where Seq in (
+
+		SELECT A.Seq
+		FROM [YHSROrderPlatform].[dbo].[YHSR_OP_MeetingOrderProduct]
+		A,[YHSROrderPlatform].[dbo].[YHSR_OP_MeetingOrder] B
+		where B.Company_Seq=#{companySeq} and A.MeetingGoods_Seq =#{goodSeq} and
+		A.Del=0
+		)
+	</update>
+
+
+	<select id="selectProductInfoByMeetingOrderSeq"
+		resultMap="meetingOrderProductMap">
+		SELECT
+		A.*,
+		C.Name as colorName,
+		D.GoodID as goodID,
+		D.Img as picName,
+		D.MinSize as minSize,
+		D.MaxSize as maxSize
+		from (
+		select *
+		FROM [YHSROrderPlatform].[dbo].[YHSR_OP_MeetingOrderProduct]
+		where MeetingOrder_Seq=#{seq} and Del=0
+		) A
+		join [YHSROrderPlatform].[dbo].[YHSR_OP_MeetingGoods] D on
+		D.Seq=A.MeetingGoods_Seq and D.Del=0
+		left join [YHSmartRetail].[dbo].[YHSR_Goods_Color] C on C.Seq=A.Color_Seq
+		<if test="keywords != null and keywords != '%\'\'%'">
+			WHERE D.GoodID LIKE #{keywords}
+		</if>
+	</select>
+
+	<select id="computedSumByMeetingOrderSeq"
+		resultType="java.lang.Integer">
+		SELECT SUM(BuyCount) as total
+		FROM [YHSROrderPlatform].[dbo].[YHSR_OP_MeetingOrderProduct]
+		where MeetingOrder_Seq=#{seq} and Del=0
+	</select>
+
+	<select id="selectGoodsOrderByMeetingSeq"
+		resultMap="meetingOrderProductMap">
+
+		select
+		C.*
+		,D.GoodID as goodID
+		,D.Img as picName
+		,D.MinSize as minSize
+		,D.MaxSize as maxSize
+		,D.Price as price
+		,E.Name as colorName
+		from (
+
+		SELECT
+		A.MeetingGoods_Seq
+		,A.Color_Seq
+		,A.Size
+		,A.BuyCount
+		,A.Cancel,
+		u.UserName AS userName,
+		A.Del
+		FROM [YHSROrderPlatform].[dbo].[YHSR_OP_MeetingOrderProduct] A JOIN
+		[YHSROrderPlatform].[dbo].[YHSR_OP_MeetingOrder] B
+		ON A.MeetingOrder_Seq= B.Seq
+		LEFT JOIN
+		[YHSmartRetail].[dbo].[YHSR_Base_User] u
+		ON u.Seq = B.User_Seq
+		where B.Company_Seq=#{companySeq} and B.Del=0 and A.Del=0
+		<if test="meetingSeq !=null and meetingSeq !=-1">
+			and B.Meeting_Seq=#{meetingSeq}
+		</if>
+		<if test="isCancel != null and isCancel != -1">
+			AND A.Cancel = #{isCancel}
+		</if>
+		) C
+		join [YHSROrderPlatform].[dbo].[YHSR_OP_MeetingGoods] D on
+		D.Seq=C.MeetingGoods_Seq
+		left join [YHSmartRetail].[dbo].[YHSR_Goods_Color] E on E.Seq=C.Color_Seq
+		WHERE C.Del = 0
+		<if test="keywords != null and keywords != '%\'\'%'">
+			AND D.GoodID LIKE #{keywords}
+		</if>
+	</select>
+	<select id="selectAreaOrderByMeetingSeq"
+		resultMap="meetingOrderProductMap">
+
+		select
+		C.*
+		,D.GoodID as goodID
+		,D.Img as picName
+		,D.MinSize as minSize
+		,D.MaxSize as maxSize
+		,E.Name as colorName
+		,G.AreaName as areaName
+		from (
+
+		SELECT
+		A.MeetingGoods_Seq
+		,A.Color_Seq
+		,A.Size
+		,A.BuyCount
+		,A.Cancel
+		,B.[User_Seq]
+		FROM [YHSROrderPlatform].[dbo].[YHSR_OP_MeetingOrderProduct]A JOIN
+		[YHSROrderPlatform].[dbo].[YHSR_OP_MeetingOrder] B
+		ON A.MeetingOrder_Seq= B.Seq
+		where Company_Seq=#{companySeq} and B.Del=0 and A.Del=0
+		<if test="meetingSeq !=null and meetingSeq !=-1">
+			and B.Meeting_Seq=#{meetingSeq}
+		</if>
+		) C
+		join [YHSROrderPlatform].[dbo].[YHSR_OP_MeetingGoods] D on
+		D.Seq=C.MeetingGoods_Seq
+		left join [YHSmartRetail].[dbo].[YHSR_Goods_Color] E on E.Seq=C.Color_Seq
+		left join [YHSROrderPlatform].[dbo].[YHSR_OP_MeetintUserArea] F on
+		F.User_Seq=C.User_Seq
+		left join [YHSROrderPlatform].[dbo].[YHSR_OP_MeetingArea] G on
+		G.Seq=F.MeetingArea_Seq
+		WHERE F.Del = 0 AND G.Del = 0
+		<if test="areaSeq != -1">
+			AND G.Seq = #{areaSeq}
+		</if>
+	</select>
+
+	<select id="getAccountNameByMeetingOrderSeq"
+		resultType="java.lang.String">
+		SELECT B.AccountName as accountName
+		FROM [YHSROrderPlatform].[dbo].[YHSR_OP_MeetingOrder]
+		A,[YHSmartRetail].[dbo].[YHSR_Base_User] B
+		where A.Seq=#{seq} and A.User_Seq=B.Seq
+	</select>
+
+	<select id="getAccountNameByGoodSeqAndColorSeq"
+		resultType="java.lang.String">
+
+
+		SELECT
+		[AccountName]
+		FROM [YHSmartRetail].[dbo].[YHSR_Base_User]
+		where Seq in (
+		SELECT distinct B.User_Seq
+		FROM [YHSROrderPlatform].[dbo].[YHSR_OP_MeetingOrderProduct]
+		A,[YHSROrderPlatform].[dbo].[YHSR_OP_MeetingOrder] B
+		where A.MeetingOrder_Seq=B.Seq and B.Company_Seq=#{companySeq} and
+		A.MeetingGoods_Seq =#{goodSeq} and A.Color_Seq=#{colorSeq} and A.Del=0
+		and B.Del=0
+		)
+	</select>
+
+	<select id="getAccountNameByGoodSeq"
+		resultType="java.lang.String">
+		SELECT
+		[AccountName]
+		FROM [YHSmartRetail].[dbo].[YHSR_Base_User]
+		where Seq in (
+
+		SELECT distinct B.User_Seq
+		FROM [YHSROrderPlatform].[dbo].[YHSR_OP_MeetingOrderProduct]
+		A,[YHSROrderPlatform].[dbo].[YHSR_OP_MeetingOrder] B
+		where A.MeetingOrder_Seq=B.Seq and B.Company_Seq=#{companySeq} and
+		A.MeetingGoods_Seq =#{goodSeq} and A.Del=0 and B.Del=0
+		)
+	</select>
+	<select id="getTotalCountByMeetingSeq"
+		resultType="java.lang.Integer">
+		SELECT sum(A.BuyCount) FROM
+		[YHSROrderPlatform].[dbo].[YHSR_OP_MeetingOrderProduct] A JOIN
+		[YHSROrderPlatform].[dbo].[YHSR_OP_MeetingOrder] B
+		ON A.MeetingOrder_Seq = B.Seq WHERE A.Cancel=0 AND B.Del=0 AND A.Del=0
+		<if test="meetingSeq != null and meetingSeq != -1">
+			and B.Meeting_Seq=#{meetingSeq}
+		</if>
+		<if test="meetingUserSeq != null and meetingUserSeq != -1">
+			and B.User_Seq=#{meetingUserSeq}
+		</if>
+	</select>
+
+	<select id="selectCancelGoodNum" parameterType="java.util.Map" resultType="java.lang.Integer">
+		SELECT COUNT(s.MeetingGoods_Seq) FROM (SELECT
+		mop.MeetingGoods_Seq
+		FROM
+		[YHSROrderPlatform].[dbo].[YHSR_OP_MeetingOrderProduct] mop
+		LEFT JOIN
+		[YHSROrderPlatform].[dbo].[YHSR_OP_MeetingOrder] mo
+		ON mo.Seq = mop.MeetingOrder_Seq
+		<if test="keywords != null and keywords != '%\'\'%'">
+			LEFT JOIN
+			[YHSROrderPlatform].[dbo].[YHSR_OP_MeetingOrderCart] moc
+			ON moc.MeetingOrderSeq = mo.Seq
+		</if>
+		WHERE mop.Del = 0 AND mop.Cancel = 1 AND mo.Company_Seq = #{companySeq} AND mo.Del = 0
+		<if test="meetingSeq != null and meetingSeq != -1">
+			AND mo.Meeting_Seq = #{meetingSeq}
+		</if>
+		<if test="userSeq != null and userSeq != -1">
+			AND mo.User_Seq = #{userSeq}
+		</if>
+		<if test="keywords != null and keywords != '%\'\'%'">
+			AND moc.MeetingGoodsID LIKE #{keywords} AND moc.Del = 0
+		</if>
+		GROUP BY mop.MeetingGoods_Seq) s
+	</select>
+
+	<select id="selectCancelTotal" parameterType="java.util.Map" resultType="java.lang.Integer">
+		SELECT
+		SUM(mop.BuyCount)
+		FROM
+		[YHSROrderPlatform].[dbo].[YHSR_OP_MeetingOrderProduct] mop
+		LEFT JOIN
+		[YHSROrderPlatform].[dbo].[YHSR_OP_MeetingOrder] mo
+		ON mo.Seq = mop.MeetingOrder_Seq
+		<if test="keywords != null and keywords != '%\'\'%'">
+			LEFT JOIN
+			[YHSROrderPlatform].[dbo].[YHSR_OP_MeetingOrderCart] moc
+			ON moc.MeetingOrderSeq = mo.Seq
+		</if>
+		WHERE mop.Del = 0 AND mop.Cancel = 1 AND mo.Company_Seq = #{companySeq} AND mo.Del = 0
+		<if test="meetingSeq != null and meetingSeq != -1">
+			AND mo.Meeting_Seq = #{meetingSeq}
+		</if>
+		<if test="userSeq != null and userSeq != -1">
+			AND mo.User_Seq = #{userSeq}
+		</if>
+		<if test="keywords != null and keywords != '%\'\'%'">
+			AND moc.MeetingGoodsID LIKE #{keywords} AND moc.Del = 0
+		</if>
+	</select>
+
+	<select id="selectCancelMoney" parameterType="java.util.Map" resultType="java.math.BigDecimal">
+		SELECT
+		SUM(mop.BuyCount * mg.Price)
+		FROM
+		[YHSROrderPlatform].[dbo].[YHSR_OP_MeetingOrderProduct] mop
+		LEFT JOIN
+		[YHSROrderPlatform].[dbo].[YHSR_OP_MeetingOrder] mo
+		ON mo.Seq = mop.MeetingOrder_Seq
+		LEFT JOIN
+		[YHSROrderPlatform].[dbo].[YHSR_OP_MeetingGoods] mg
+		ON mg.Seq = mop.MeetingGoods_Seq
+		<if test="keywords != null and keywords != '%\'\'%'">
+			LEFT JOIN
+			[YHSROrderPlatform].[dbo].[YHSR_OP_MeetingOrderCart] moc
+			ON moc.MeetingOrderSeq = mo.Seq
+		</if>
+		WHERE mop.Del = 0 AND mop.Cancel = 1 AND mo.Company_Seq = #{companySeq} AND mo.Del = 0
+		<if test="meetingSeq != null and meetingSeq != -1">
+			AND mo.Meeting_Seq = #{meetingSeq}
+		</if>
+		<if test="userSeq != null and userSeq != -1">
+			AND mo.User_Seq = #{userSeq}
+		</if>
+		<if test="keywords != null and keywords != '%\'\'%'">
+			AND moc.MeetingGoodsID LIKE #{keywords} AND moc.Del = 0
+		</if>
+	</select>
+
+	<select id="selectCancelOrder" parameterType="java.util.Map" resultType="io.nuite.modules.system.entity.MeetingOrderProductEntity">
+		SELECT
+		mop.MeetingOrder_Seq,mop.Cancel
+		FROM
+		[YHSROrderPlatform].[dbo].[YHSR_OP_MeetingOrderProduct] mop
+		WHERE mop.Del = 0 AND mop.MeetingOrder_Seq = #{meetingOrderSeq}
+		GROUP BY mop.MeetingOrder_Seq,mop.Cancel
+	</select>
+
+	<select id="selectCancelMoneyByOrderSeq" parameterType="java.util.Map" resultType="java.math.BigDecimal">
+		SELECT
+		SUM(mop.BuyCount * mg.Price)
+		FROM
+		[YHSROrderPlatform].[dbo].[YHSR_OP_MeetingOrderProduct] mop
+		LEFT JOIN
+		[YHSROrderPlatform].[dbo].[YHSR_OP_MeetingGoods] mg
+        ON mg.Seq = mop.MeetingGoods_Seq
+        WHERE mop.MeetingOrder_Seq = #{meetingOrderSeq} AND mop.Cancel = 1
+	</select>
+
+	<select id="selectCancelSku" parameterType="java.util.Map" resultType="java.lang.Integer">
+		SELECT COUNT(s.Category_Seq) FROM (SELECT
+		mg.Category_Seq AS Category_Seq
+		FROM
+		[YHSROrderPlatform].[dbo].[YHSR_OP_MeetingOrderProduct] mop
+		LEFT JOIN
+		[YHSROrderPlatform].[dbo].[YHSR_OP_MeetingOrder] mo
+		ON mo.Seq = mop.MeetingOrder_Seq
+		LEFT JOIN
+		[YHSROrderPlatform].[dbo].[YHSR_OP_MeetingGoods] mg
+		ON mg.Seq = mop.MeetingGoods_Seq
+		<if test="keywords != null and keywords != '%\'\'%'">
+			LEFT JOIN
+			[YHSROrderPlatform].[dbo].[YHSR_OP_MeetingOrderCart] moc
+			ON moc.MeetingOrderSeq = mo.Seq
+		</if>
+		WHERE mop.Del = 0 AND mop.Cancel = 1 AND mo.Company_Seq = #{companySeq} AND mo.Del = 0
+		<if test="meetingSeq != null and meetingSeq != -1">
+			AND mo.Meeting_Seq = #{meetingSeq}
+		</if>
+		<if test="userSeq != null and userSeq != -1">
+			AND mo.User_Seq = #{userSeq}
+		</if>
+		<if test="keywords != null and keywords != '%\'\'%'">
+			AND moc.MeetingGoodsID LIKE #{keywords}
+		</if>
+		GROUP BY mg.Category_Seq)s
+	</select>
+</mapper>

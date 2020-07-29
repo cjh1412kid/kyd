@@ -1,0 +1,50 @@
+.goods_list {
+  overflow: hidden;
+  margin-bottom: 4rpx;
+}
+
+.goods_list .goods {
+  background-color: #fff;
+  width: 371rpx;
+  height: 460rpx;
+  float: left;
+  margin-top: 4rpx;
+  margin-bottom: 4rpx;
+}
+
+.goods_list .goods:nth-child(odd) {
+  margin-right: 4rpx;
+}
+
+.goods_list .goods:nth-child(even) {
+  margin-left: 4rpx;
+}
+
+.goods_list .goods .face {
+  width: 371rpx;
+  height: 371rpx;
+}
+
+.goods_list .goods .face image {
+  width: 371rpx;
+  height: 371rpx;
+}
+
+.goods_list .goods .title {
+  width: 334rpx;
+  margin: 12rpx auto;
+}
+
+.goods_list .goods .title .name {
+  color: #505050;
+  font-size: 25rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.goods_list .goods .title .price {
+  color: #e93b3d;
+  font-size: 29rpx;
+  text-align: center;
+}

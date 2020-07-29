@@ -1,0 +1,12 @@
+<component name="libraryTable">
+  <library name="Gradle: com.antfortune.freeline:runtime-no-op-0.8.7">
+    <CLASSES>
+      <root url="file://$USER_HOME$/.gradle/caches/transforms-1/files-1.1/runtime-no-op-0.8.7.aar/73157fc4ff902f7f10dc79635e49743f/res" />
+      <root url="jar://$USER_HOME$/.gradle/caches/transforms-1/files-1.1/runtime-no-op-0.8.7.aar/73157fc4ff902f7f10dc79635e49743f/jars/classes.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.antfortune.freeline/runtime-no-op/0.8.7/e50a9020f0c173379de3400ebbceeb95ab2668dd/runtime-no-op-0.8.7-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

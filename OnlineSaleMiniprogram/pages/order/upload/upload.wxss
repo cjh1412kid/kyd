@@ -1,0 +1,77 @@
+/* pages/order/upload/upload.wxss */
+@import '../order_detail.wxss';
+
+.detail_content {
+  margin-bottom: 70rpx;
+}
+
+.pay_group {
+  width: 750rpx;
+  height: 97rpx;
+  position: fixed;
+  bottom: 0;
+  display: flex;
+  background-color: #fff;
+}
+
+.pay_group .pay_money, .pay_group .pay_btn {
+  line-height: 97rpx;
+  flex: 1;
+  text-align: center;
+}
+
+.pay_group .pay_money {
+  font-size: 33rpx;
+  color: #666;
+}
+
+.pay_group .pay_money text {
+  font-size: 45rpx;
+  color: #ff6f71;
+}
+
+.pay_group .pay_btn {
+  background-color: #ff6f71;
+  color: #fff;
+}
+
+.self_pick_line {
+  display: flex;
+  color: #666;
+  font-size: 30rpx;
+}
+
+.self_pick_select {
+  width: 90rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.self_pick_select .icon {
+  font-size: 23rpx;
+  width: 40rpx;
+  height: 40rpx;
+  line-height: 40rpx;
+  border-radius: 50%;
+  color: white;
+  text-align: center;
+}
+
+.self_pick_select .icon_select {
+  background-color: #f44;
+  border: solid 1px #f44;
+}
+
+.self_pick_select .icon_de_select {
+  background-color: #fff;
+  border: solid 1px #999;
+  color: #999;
+}
+
+.self_pick_text {
+  text-align: left;
+  margin: 20rpx;
+  color: #1a87b4;
+  font-size: 30rpx;
+}

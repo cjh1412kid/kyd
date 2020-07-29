@@ -1,0 +1,8 @@
+<!--pages/authorize/authorize.wxml-->
+  <view class="page">
+  <image src='{{img}}' class='main'></image>
+  <view class="weui-btn-area">
+    <navigator open-type="exit" target="miniProgram" class="exit">{{exit}}</navigator>
+      <button class="weui-btn" disabled='{{disabled}}' style='background-color:{{color}};' open-type='{{bintap}}' bindgetuserinfo='onGotUserInfo' bindgetphonenumber='onGotPhoneNum' lang="zh_CN" hidden='{{buttHidden}}'>{{character}}</button>
+  </view>
+</view>

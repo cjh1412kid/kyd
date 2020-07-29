@@ -1,0 +1,624 @@
+package io.nuite.modules.order_platform_app.controller;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
+
+import com.baomidou.mybatisplus.mapper.EntityWrapper;
+import com.baomidou.mybatisplus.mapper.Wrapper;
+import com.baomidou.mybatisplus.plugins.Page;
+import io.nuite.modules.system.entity.MeetingOrderProductEntity;
+import io.nuite.modules.system.service.SysMeetingOrderProductService;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+
+import io.nuite.common.utils.R;
+import io.nuite.modules.order_platform_app.annotation.Login;
+import io.nuite.modules.order_platform_app.annotation.LoginUser;
+import io.nuite.modules.order_platform_app.dao.MeetingGoodsColorImgsDao;
+import io.nuite.modules.order_platform_app.dao.MeetingGoodsDao;
+import io.nuite.modules.order_platform_app.entity.MeetingGoodsColorImgsEntity;
+import io.nuite.modules.order_platform_app.entity.MeetingGoodsEntity;
+import io.nuite.modules.order_platform_app.service.MeetingGoodsColorImgsService;
+import io.nuite.modules.order_platform_app.service.MeetingGoodsService;
+import io.nuite.modules.sr_base.entity.BaseUserEntity;
+import io.nuite.modules.sr_base.entity.GoodsColorEntity;
+import io.nuite.modules.sr_base.service.GoodsColorService;
+import io.nuite.modules.system.entity.MeetingEntity;
+import io.nuite.modules.system.service.MeetingService;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import springfox.documentation.annotations.ApiIgnore;
+
+/**
+ * 订货平台2期 - 订货会商品录入接口
+ * @author yy
+ * @date 2018-08-16 13:47
+ */
+@RestController
+@RequestMapping("/order/app/meetingGoods")
+@Api(tags = "订货平台2期 - 订货会商品录入接口")
+public class MeetingGoodsController extends BaseController {
+	
+	private Logger logger = LoggerFactory.getLogger(getClass());
+    
+    @Autowired
+    private MeetingService meetingService;
+    
+    @Autowired
+    private MeetingGoodsService meetingGoodsService;
+    
+    @Autowired
+    private GoodsColorService goodsColorService;
+    
+    @Autowired
+    private MeetingGoodsDao meetingGoodsDao;
+    
+    @Autowired
+    private MeetingGoodsColorImgsService meetingGoodsColorImgsService;
+    
+	@Autowired
+    private MeetingGoodsColorImgsDao meetingGoodsColorImgsDao;
+
+    @Autowired
+    private SysMeetingOrderProductService sysMeetingOrderProductService;
+	
+	
+    /**
+     * 所有订货会列表
+     */
+    @Login
+    @GetMapping("meetingList")
+    @ApiOperation("所有订货会列表")
+    public R meetingList(@ApiIgnore @LoginUser BaseUserEntity loginUser) {
+    	try {
+    		if(!isFactoryUser(loginUser)) {
+    			return R.error("非工厂用户，权限不足");
+    		}
+    		
+    		List<Map<String, Object>> meetingList = new ArrayList<Map<String, Object>>();
+    		//查询所有年份
+    		List<Object> yearList = meetingService.getAllYear(loginUser.getCompanySeq());
+    		
+    		for(Object year : yearList) {
+    			Map<String, Object> map = new HashMap<String, Object>();
+    			map.put("year", year);
+    			List<MeetingEntity> meetingEntityList = meetingService.getMeetingListByCompanySeq(loginUser.getCompanySeq(), (Integer)year);
+    			map.put("meetingList", meetingEntityList);
+    			meetingList.add(map);
+    		}
+    		
+    		return R.ok(meetingList);
+    	} catch (Exception e) {
+			e.printStackTrace();
+			logger.error(e.getMessage(), e);
+			return R.error("服务器异常");
+		}
+
+    }
+    
+    
+    
+    
+    
+    
+    
+    
+	/**
+     * 已录入鞋子列表
+     */
+    @Login
+    @GetMapping("meetingGoodsList")
+    @ApiOperation("已录入鞋子列表")
+    public R meetingGoodsList(@ApiIgnore @LoginUser BaseUserEntity loginUser,
+			@ApiParam("订货会序号") @RequestParam("meetingSeq") Integer meetingSeq,
+			@ApiParam("起始条数") @RequestParam(value = "start",required = false) Integer start,
+    		@ApiParam("总条数") @RequestParam(value = "num",required = false) Integer num,
+		  	@ApiParam("查询参数") @RequestParam(value = "searchParam",required = false) String searchParam) {
+    	try {
+    		if(!isFactoryUser(loginUser)) {
+    			return R.error("非工厂用户，权限不足");
+    		}
+    		
+    		List<MeetingGoodsEntity> meetingGoodsList = meetingGoodsService.getMeetingGoodsList(meetingSeq, start, num, searchParam);
+    		for(MeetingGoodsEntity meetingGoodsEntity : meetingGoodsList) {
+    		    //判断鞋子是否被订过
+                Wrapper<MeetingOrderProductEntity> wrapper = new EntityWrapper<>();
+                wrapper.eq("MeetingGoods_Seq",meetingGoodsEntity.getSeq());
+                if(sysMeetingOrderProductService.selectList(wrapper).size() > 0) {
+                    meetingGoodsEntity.setIsOrder(1);
+                }else {
+                    meetingGoodsEntity.setIsOrder(0);
+                }
+    			//处理图片路径
+    			meetingGoodsEntity.setImg(getMeetingGoodsPictureUrl(meetingGoodsEntity.getGoodID()) + meetingGoodsEntity.getImg());
+    			//获取所有可选颜色中文名
+    			String optionalColorSeqs = meetingGoodsEntity.getOptionalColorSeqs();
+    			StringBuilder optionalColorNames = new StringBuilder();
+    			for(String colorSeq : optionalColorSeqs.split(",")) {
+    				GoodsColorEntity goodsColorEntity = goodsColorService.getGoodsColorBySeq(Integer.parseInt(colorSeq));
+    				if(goodsColorEntity == null) {
+    					continue;
+					}
+    				optionalColorNames.append(goodsColorEntity.getName()).append(",");
+    			}
+    			if(optionalColorNames.length()>0) {
+    				optionalColorNames.deleteCharAt(optionalColorNames.length() - 1);
+    			}
+    			meetingGoodsEntity.setOptionalColorNames(optionalColorNames.toString());
+    		}
+    		return R.ok(meetingGoodsList);
+    	} catch (Exception e) {
+			e.printStackTrace();
+			logger.error(e.getMessage(), e);
+			return R.error("服务器异常");
+		}
+
+    }
+    
+    
+    
+    
+    /**
+     * 查看订货会总的货品数量
+     */
+    @Login
+    @GetMapping("meetingGoodsNum")
+    @ApiOperation("查看订货会总的货品数量")
+    public R meetingGoodsNum(@ApiIgnore @LoginUser BaseUserEntity loginUser,
+    		@ApiParam("订货会序号") @RequestParam("meetingSeq") Integer meetingSeq) {
+    	try {
+    		if(!isFactoryUser(loginUser)) {
+    			return R.error("非工厂用户，权限不足");
+    		}
+    		
+    		Integer num = meetingGoodsService.getMeetingGoodsNum(meetingSeq);
+    		return R.ok(num);
+    	} catch (Exception e) {
+    		e.printStackTrace();
+    		logger.error(e.getMessage(), e);
+    		return R.error("服务器异常");
+    	}
+    	
+    }
+    
+    
+    
+    
+    
+	/**
+     * 获取公司所有颜色、常用颜色
+     */
+    @Login
+    @GetMapping("getAllSizeColor")
+    @ApiOperation("获取公司所有尺码、所有颜色、常用颜色")
+    public R getAllSizeColor(@ApiIgnore @LoginUser BaseUserEntity loginUser,
+			@ApiParam("订货会序号") @RequestParam("meetingSeq") Integer meetingSeq) {
+    	try {
+    		//查询所有颜色
+    		List<Map<String, Object>> allColorList = meetingGoodsService.getAllColorList(loginUser.getCompanySeq());
+    		
+    		//查询本次订货会常用颜色
+    		List<Map<String, Object>> oftenColorList = meetingGoodsService.getOftenColorList(meetingSeq);
+    		
+    		Map<String, Object> resultMap = new HashMap<String, Object>();
+    		resultMap.put("allColorList", allColorList);
+    		resultMap.put("oftenColorList", oftenColorList);
+    		
+    		return R.ok(resultMap);
+    	} catch (Exception e) {
+			e.printStackTrace();
+			logger.error(e.getMessage(), e);
+			return R.error("服务器异常");
+		}
+
+    }
+    
+    
+    
+    
+    /**
+     * 录入订货会鞋子
+     */
+	@Login
+	@PostMapping("addMeetingGoods")
+	@ApiOperation("录入订货会鞋子")
+	public R addMeetingGoods(@ApiIgnore @LoginUser BaseUserEntity loginUser,
+			@ApiParam("订货会序号") @RequestParam("meetingSeq") Integer meetingSeq,
+			@ApiParam("货号") @RequestParam("goodId") String goodId,
+			@ApiParam("图片") @RequestParam("img") MultipartFile img,
+			@ApiParam("可选颜色（Seq逗号分隔）") @RequestParam("optionalColorSeqs") String optionalColorSeqs,
+			@ApiParam("可选最小尺码") @RequestParam("minSize") Integer minSize,
+			@ApiParam("可选最大尺码") @RequestParam("maxSize") Integer maxSize,
+			@ApiParam("鞋面材质") @RequestParam(value = "surfaceMaterial",required = false) String surfaceMaterial,
+			@ApiParam("鞋里材质") @RequestParam(value = "innerMaterial",required = false) String innerMaterial,
+			@ApiParam("鞋底材质") @RequestParam(value = "soleMaterial",required = false) String soleMaterial,
+			@ApiParam("价格") @RequestParam(value = "price",required = false) BigDecimal price,
+			HttpServletRequest request) {
+		try {
+			
+    		if(!isFactoryUser(loginUser)) {
+    			return R.error("非工厂用户，权限不足");
+    		}
+    		
+			// 判断货号是否已存在
+			MeetingGoodsEntity meetingGoodsEntity = new MeetingGoodsEntity();
+			meetingGoodsEntity.setGoodID(goodId);
+			meetingGoodsEntity.setMeetingSeq(meetingSeq);
+			meetingGoodsEntity = meetingGoodsDao.selectOne(meetingGoodsEntity);
+			if(meetingGoodsEntity != null) {
+				return R.error("此货号已存在");
+			}
+			
+//			Seq				int	0	0	0	-1	0	0		0	0	0	0	序号(主键)		-1		
+			
+//			Meeting_Seq		int	0	0	-1	0	0	0		0	0	0	0	订货会序号		0			
+//			GoodID			varchar	50	0	-1	0	0	0		0	0	0	0	货号	Chinese_PRC_CI_AS	0			
+//			Img				varchar(MAX)	-1	0	-1	0	0	0		0	0	0	0	图片（主）	Chinese_PRC_CI_AS	0		
+			
+//			OptionalColorSeqs	varchar	250	0	-1	0	0	0		0	0	0	0	可选颜色（Seq逗号分隔）	Chinese_PRC_CI_AS	0			
+//			MinSize		int	0	0	-1	0	0	0		0	0	0	0	可选最小尺码		0			
+//			MaxSize		int	0	0	-1	0	0	0		0	0	0	0	可选最大尺码		0			
+			
+//			User_Seq		int	0	0	-1	0	0	0		0	0	0	0	录入人Seq		0			
+//			InputTime		datetime	0	0	-1	0	0	0	(getdate())	0	0	0	0	入库时间		0			
+//			Del				int	0	0	0	0	0	0	((0))	0	0	0	0	删除标识(0:未删除,1:已删除)		0			
+
+			
+			
+			meetingGoodsEntity = new MeetingGoodsEntity();
+			
+			meetingGoodsEntity.setMeetingSeq(meetingSeq);
+			meetingGoodsEntity.setGoodID(goodId);
+			String uploadUrl = getMeetingGoodsUploadUrl(request, goodId);
+			meetingGoodsEntity.setImg(upLoadFile(loginUser.getSeq(), uploadUrl, img));
+			
+			meetingGoodsEntity.setOptionalColorSeqs(optionalColorSeqs);
+			meetingGoodsEntity.setMinSize(minSize);
+			meetingGoodsEntity.setMaxSize(maxSize);
+			
+			meetingGoodsEntity.setUserSeq(loginUser.getSeq());
+			meetingGoodsEntity.setInputTime(new Date());
+			meetingGoodsEntity.setDel(0);
+			meetingGoodsEntity.setSurfaceMaterial(surfaceMaterial);
+			meetingGoodsEntity.setInnerMaterial(innerMaterial);
+			meetingGoodsEntity.setSoleMaterial(soleMaterial);
+			meetingGoodsEntity.setPrice(price);
+
+			Integer meetingGoodsSeq = meetingGoodsService.addMeetingGoods(meetingGoodsEntity);
+			
+			return R.ok("录入成功").put("meetingGoodsSeq", meetingGoodsSeq);
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.error(e.getMessage(), e);
+			return R.error("服务器异常");
+		}
+    }
+	
+	
+	
+    /**
+     * 各个颜色的图片上传
+     */
+	@Login
+	@PostMapping("uploadMeetingGoodsImgs")
+	@ApiOperation("各个颜色的图片上传")
+	public R uploadMeetingGoodsImgs(@ApiIgnore @LoginUser BaseUserEntity loginUser,
+			@ApiParam("货品Seq") @RequestParam("meetingGoodsSeq") Integer meetingGoodsSeq,
+			@ApiParam("货号") @RequestParam("goodId") String goodId,
+			@ApiParam("颜色Seq") @RequestParam("colorSeq") Integer colorSeq,
+			@ApiParam("图片列表") @RequestParam("imgList") List<MultipartFile> imgList,
+			HttpServletRequest request) {
+		try {
+			
+    		if(!isFactoryUser(loginUser)) {
+    			return R.error("非工厂用户，权限不足");
+    		}
+    		
+    		
+    		//上传图片路径
+			String uploadUrl = getMeetingGoodsColorImgsUploadUrl(request, goodId, colorSeq);
+    		
+			StringBuilder imgNames = new StringBuilder();
+    		for(MultipartFile img : imgList) {
+    			imgNames.append(upLoadFile(loginUser.getSeq(), uploadUrl, img)).append(",");
+    		}
+    		if(imgNames.length() > 0) {
+    			imgNames.deleteCharAt(imgNames.length() - 1);
+    		}
+    		
+//    		Seq					int	0	0	0	-1	0	0		0	0	0	0	序号(主键)		-1			
+//    		MeetingGoods_Seq	int	0	0	0	0	0	0		0	0	0	0	订货会鞋子序号		0			
+//    		ColorSeq			int	0	0	0	0	0	0		0	0	0	0	颜色seq		0			
+//    		Imgs				varchar(MAX)	-1	0	-1	0	0	0		0	0	0	0	图片（多个图片逗号分隔）	Chinese_PRC_CI_AS	0			
+//    		InputTime			datetime	0	0	-1	0	0	0	(getdate())	0	0	0	0	入库时间		0			
+//    		Del					int	0	0	0	0	0	0	((0))	0	0	0	0	删除标识(0:未删除,1:已删除)		0
+    		//判断此货品此颜色是否已经上传过
+    		MeetingGoodsColorImgsEntity meetingGoodsColorImgsEntity = new MeetingGoodsColorImgsEntity();
+    		meetingGoodsColorImgsEntity.setMeetingGoodsSeq(meetingGoodsSeq);
+    		meetingGoodsColorImgsEntity.setColorSeq(colorSeq);
+    		MeetingGoodsColorImgsEntity meetingGoodsColorImgsExist = meetingGoodsColorImgsDao.selectOne(meetingGoodsColorImgsEntity);
+    		if(meetingGoodsColorImgsExist != null) {
+    			meetingGoodsColorImgsEntity.setSeq(meetingGoodsColorImgsExist.getSeq());
+    		}
+			meetingGoodsColorImgsEntity.setImgs(imgNames.toString());
+			meetingGoodsColorImgsEntity.setInputTime(new Date());
+			meetingGoodsColorImgsEntity.setDel(0);
+			
+			meetingGoodsColorImgsService.insertOrUpdate(meetingGoodsColorImgsEntity);
+			
+			return R.ok("上传成功"); 
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.error(e.getMessage(), e);
+			return R.error("服务器异常");
+		}
+    }
+	
+	
+
+	
+	/**
+     * 编辑订货会鞋子
+     */
+    @Login
+    @GetMapping("getMeetingGoodsBySeq")
+    @ApiOperation("编辑订货会鞋子")
+    public R getMeetingGoodsBySeq(@ApiIgnore @LoginUser BaseUserEntity loginUser,
+    		@ApiParam("订货会鞋子序号") @RequestParam("meetingGoodsSeq") Integer meetingGoodsSeq) {
+    	try {
+    		if(!isFactoryUser(loginUser)) {
+    			return R.error("非工厂用户，权限不足");
+    		}
+    		
+    		MeetingGoodsEntity meetingGoodsEntity = meetingGoodsService.selectById(meetingGoodsSeq);
+    		//处理图片路径
+    		meetingGoodsEntity.setImg(getMeetingGoodsPictureUrl(meetingGoodsEntity.getGoodID()) + meetingGoodsEntity.getImg());
+    		//获取所有可选颜色中文名
+    		String optionalColorSeqs = meetingGoodsEntity.getOptionalColorSeqs();
+    		StringBuilder optionalColorNames = new StringBuilder();
+    		for(String colorSeq : optionalColorSeqs.split(",")) {
+    			GoodsColorEntity goodsColorEntity = goodsColorService.getGoodsColorBySeq(Integer.parseInt(colorSeq));
+    			if(goodsColorEntity == null) {
+    				continue;
+				}
+    			optionalColorNames.append(goodsColorEntity.getName()).append(",");
+    		}
+    		if(optionalColorNames.length()>0) {
+    			optionalColorNames.deleteCharAt(optionalColorNames.length() - 1);
+    		}
+    		meetingGoodsEntity.setOptionalColorNames(optionalColorNames.toString());
+    		
+    		
+    		
+    		//新增各个颜色多张图片：color：[  {Seq： name ： imgs：[]}, {Seq： name ： imgs：[]}   ]
+    		List<Map<String, Object>> optionalColorsImgList = new ArrayList<Map<String, Object>>();
+    		for(String colorSeq : optionalColorSeqs.split(",")) {
+    			Map<String, Object> map = new HashMap<String, Object>();
+    			map.put("seq", colorSeq);
+    			
+    			GoodsColorEntity goodsColorEntity = goodsColorService.getGoodsColorBySeq(Integer.parseInt(colorSeq));
+    			if(goodsColorEntity == null) {
+    				continue;
+				}
+    			map.put("name", goodsColorEntity.getName());
+    			
+    			MeetingGoodsColorImgsEntity meetingGoodsColorImgsEntity = meetingGoodsColorImgsService.getColorImgsEntityByMeetingGoodsAndColorSeq(meetingGoodsSeq, Integer.parseInt(colorSeq));
+    			List<String> imgList = new ArrayList<String>();
+    			if(meetingGoodsColorImgsEntity != null) {
+    				String imgs = meetingGoodsColorImgsEntity.getImgs();
+    				if(imgs != null) {
+	    				for(String img : imgs.split(",")) {
+	    					String imgUrl = getMeetingGoodsColorImgsPictureUrl(meetingGoodsEntity.getGoodID(), Integer.parseInt(colorSeq)) + img;
+	        				imgList.add(imgUrl);
+	    				}
+    				}
+
+    			}
+				map.put("imgs", imgList);
+				
+				optionalColorsImgList.add(map);
+    		}
+
+    		meetingGoodsEntity.setOptionalColorsImgs(optionalColorsImgList);
+    		
+    		return R.ok(meetingGoodsEntity);
+    	} catch (Exception e) {
+			e.printStackTrace();
+			logger.error(e.getMessage(), e);
+			return R.error("服务器异常");
+		}
+
+    }
+    
+    
+    
+	
+    /**
+     * 修改订货会鞋子
+     */
+	@Login
+	@PostMapping("updateMeetingGoods")
+	@ApiOperation("修改订货会鞋子")
+	public R updateMeetingGoods(@ApiIgnore @LoginUser BaseUserEntity loginUser,
+			@ApiParam("订货会鞋子序号") @RequestParam("meetingGoodsSeq") Integer meetingGoodsSeq,
+			@ApiParam("货号") @RequestParam(value = "goodId", required = false) String goodId,
+			@ApiParam("图片") @RequestParam(value = "img", required = false) MultipartFile img,
+			@ApiParam("可选颜色（Seq逗号分隔）") @RequestParam(value = "optionalColorSeqs", required = false) String optionalColorSeqs,
+			@ApiParam("可选最小尺码") @RequestParam(value = "minSize", required = false) Integer minSize,
+			@ApiParam("可选最大尺码") @RequestParam(value = "maxSize", required = false) Integer maxSize,
+			@ApiParam("鞋面材质") @RequestParam(value = "surfaceMaterial",required = false) String surfaceMaterial,
+			@ApiParam("鞋里材质") @RequestParam(value = "innerMaterial",required = false) String innerMaterial,
+			@ApiParam("鞋底材质") @RequestParam(value = "soleMaterial",required = false) String soleMaterial,
+			@ApiParam("价格") @RequestParam(value = "price",required = false) BigDecimal price,
+			HttpServletRequest request) {
+		try {
+			
+    		if(!isFactoryUser(loginUser)) {
+    			return R.error("非工厂用户，权限不足");
+    		}
+    		
+    		// 查询货品
+    		MeetingGoodsEntity meetingGoodsEntity = meetingGoodsDao.selectById(meetingGoodsSeq);
+    		Integer meetingSeq = meetingGoodsEntity.getMeetingSeq();
+    		
+    		// 判断是否修改了货号
+    		if(StringUtils.isNotBlank(goodId) && !meetingGoodsEntity.getGoodID().equals(goodId)) {
+				// 判断本次订货会，该货号是否已存在
+				meetingGoodsEntity = new MeetingGoodsEntity();
+				meetingGoodsEntity.setMeetingSeq(meetingSeq);
+				meetingGoodsEntity.setGoodID(goodId);
+				meetingGoodsEntity = meetingGoodsDao.selectOne(meetingGoodsEntity);
+				if(meetingGoodsEntity != null) {
+					return R.error("此货号已存在");
+				}
+				
+				//对货号做了修改  要同时修改，购物车和订单购物车两张表中的冗余货号字段
+				meetingGoodsService.updateCartMeetingGoodsId(meetingGoodsSeq, goodId);
+    		}
+			
+			meetingGoodsEntity = new MeetingGoodsEntity();
+			meetingGoodsEntity.setSeq(meetingGoodsSeq);
+			if(img != null) {
+				String uploadUrl = getMeetingGoodsUploadUrl(request, goodId);
+				meetingGoodsEntity.setImg(upLoadFile(loginUser.getSeq(), uploadUrl, img));
+			}
+			if(optionalColorSeqs != null) {
+				meetingGoodsEntity.setOptionalColorSeqs(optionalColorSeqs);
+			}
+			if(minSize != null) {
+				meetingGoodsEntity.setMinSize(minSize);
+			}
+			if(maxSize != null) {
+				meetingGoodsEntity.setMaxSize(maxSize);
+			}
+			
+			meetingGoodsEntity.setUserSeq(loginUser.getSeq());
+			meetingGoodsEntity.setSurfaceMaterial(surfaceMaterial);
+			meetingGoodsEntity.setInnerMaterial(innerMaterial);
+			meetingGoodsEntity.setSoleMaterial(soleMaterial);
+			meetingGoodsEntity.setPrice(price);
+			
+			meetingGoodsService.updateById(meetingGoodsEntity);
+			
+			return R.ok("修改成功");
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.error(e.getMessage(), e);
+			return R.error("服务器异常");
+		}
+    }
+	
+    
+
+    
+    
+	
+    /**
+     * 删除订货会鞋子
+     */
+	@Login
+	@PostMapping("deleteMeetingGoods")
+	@ApiOperation("删除订货会鞋子")
+	public R deleteMeetingGoods(@ApiIgnore @LoginUser BaseUserEntity loginUser,
+			@ApiParam("订货会鞋子序号(逗号分隔)") @RequestParam("meetingGoodsSeqs") List<Integer> meetingGoodsSeqs) {
+		try {
+			
+    		if(!isFactoryUser(loginUser)) {
+    			return R.error("非工厂用户，权限不足");
+    		}
+    		
+    		for(Integer meetingGoodsSeq : meetingGoodsSeqs) {
+    			MeetingGoodsEntity meetingGoodsEntity = meetingGoodsService.selectById(meetingGoodsSeq);
+    			// 判断鞋子是否已经加入过购物车
+    			boolean isInMeetingShoppingCart = meetingGoodsService.isInMeetingShoppingCart(meetingGoodsSeq);
+    			if(isInMeetingShoppingCart) {
+    				return R.error("货品"+meetingGoodsEntity.getGoodID()+"已加入购物车，无法删除，可到管理后台强制删除");
+    			}
+    			
+    			// 判断鞋子是否已经有提交订单
+    			boolean isInMeetingOrder = meetingGoodsService.isInMeetingOrder(meetingGoodsSeq);
+    			if(isInMeetingOrder) {
+    				return R.error("货品"+meetingGoodsEntity.getGoodID()+"已提交订单，无法删除");
+    			}
+    		}
+    		
+			meetingGoodsService.deleteMeetingGoods(meetingGoodsSeqs);
+			
+			return R.ok("删除成功");
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.error(e.getMessage(), e);
+			return R.error("服务器异常");
+		}
+    }
+
+    @Login
+    @ApiOperation("已订过的订货会货品（解密用）")
+    @GetMapping("/orderOfMeetingGoods")
+	public R orderOfMeetingGoods(@ApiIgnore @LoginUser BaseUserEntity userEntity,
+								 @ApiParam("订货会序号") @RequestParam(value = "meetingSeqs",required = false) Integer meetingSeq,
+								 @ApiParam("订货会年份") @RequestParam(value = "year",required = false) String year,
+								 @ApiParam("货品类型:1主推,2新品,不传查询全部") @RequestParam(value = "type",required = false) Integer type,
+								 @ApiParam("状态:1已订,不传查询全部") @RequestParam(value = "status",required = false) Integer status,
+								 @ApiParam("起始条数") @RequestParam(value = "start") Integer start,
+								 @ApiParam("总条数") @RequestParam(value = "num") Integer num) {
+		try {
+			Page<MeetingGoodsEntity> page = new Page<>(start / num + 1,num);
+			//所有订货会货品中已被订过货的货品
+			List<MeetingGoodsEntity> meetingGoodsEntities = meetingGoodsService.orderOfMeetingGoods(meetingSeq,year,type,status,userEntity,page);
+			//当前用户订过货的货品
+			List<MeetingGoodsEntity> orderGoods = meetingGoodsService.orderGoodsNum(meetingSeq,year,type,status,userEntity);
+			for(MeetingGoodsEntity meetingGoodsEntity : meetingGoodsEntities) {
+			    meetingGoodsEntity.setIsOrder(0);
+			    meetingGoodsEntity.setImg(getMeetingGoodsPictureUrl(meetingGoodsEntity.getGoodID()) + meetingGoodsEntity.getImg());
+			    for(MeetingGoodsEntity orderGood : orderGoods) {
+                    if(meetingGoodsEntity.getGoodID().equals(orderGood.getGoodID())) {
+                        meetingGoodsEntity.setIsOrder(1);
+                    }
+                }
+            }
+			Map<String,Object> result = new HashMap<>(10);
+			result.put("goodsList",meetingGoodsEntities);
+			result.put("total",page.getTotal());
+			result.put("orderGoodNum",orderGoods.size());
+			return R.ok().put("result",result);
+		}catch (Exception e) {
+			e.printStackTrace();
+			logger.error(e.getMessage(),e);
+		}
+		return R.error();
+	}
+
+    @Login
+    @ApiOperation("订货会货品解密")
+    @PostMapping("/decodeMeetingGoods")
+    public R decodeMeetingGoods(@ApiIgnore @LoginUser BaseUserEntity userEntity,
+                                @ApiParam("订货会鞋子序号(逗号分隔)") @RequestParam("meetingGoodsSeqs") List<Integer> meetingGoodsSeqs) {
+        try {
+            //循环解密货品
+            for(Integer meetingGoodsSeq : meetingGoodsSeqs) {
+                meetingGoodsService.decodeMeetingGoods(meetingGoodsSeq,userEntity);
+            }
+            return R.ok("解密成功");
+        }catch (Exception e) {
+            e.printStackTrace();
+            logger.error(e.getMessage(),e);
+        }
+        return R.error("解密失败");
+    }
+}

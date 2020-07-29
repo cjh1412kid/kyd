@@ -1,0 +1,562 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper
+	namespace="io.nuite.modules.order_platform_app.dao.MeetingGoodsDao">
+
+	<!-- 可根据自己的需求，是否要使用 -->
+	<resultMap
+		type="io.nuite.modules.order_platform_app.entity.MeetingGoodsEntity"
+		id="meetingGoodsMap">
+		<result property="seq" column="Seq" />
+		<result property="meetingSeq" column="Meeting_Seq" />
+		<result property="goodID" column="GoodID" />
+		<result property="img" column="Img" />
+		<result property="optionalColorSeqs" column="OptionalColorSeqs" />
+		<result property="minSize" column="MinSize" />
+		<result property="maxSize" column="MaxSize" />
+		<result property="inputTime" column="InputTime" />
+		<result property="userSeq" column="User_Seq" />
+		<result property="del" column="Del" />
+	</resultMap>
+
+
+	<!-- 定义全部鞋款列表的resultMap，type为HashMap -->
+	<resultMap id="meetingGoodsAreaRankMap"
+		type="java.util.HashMap">
+		<id column="rank" property="rank" jdbcType="INTEGER" />
+		<result column="areaName" property="areaName"
+			jdbcType="VARCHAR" />
+		<result column="num" property="num" jdbcType="INTEGER" />
+	</resultMap>
+
+
+	<!-- 查询区域总订货量的排行 （包括购物车量和订单中的量） -->
+	<select id="getMeetingGoodsAreaRank"
+		resultType="java.util.HashMap">
+		SELECT SUM (num) AS num, areaSeq, areaName,COUNT(areaSeq)
+		AS goodsCount FROM
+		(
+		SELECT
+		A.TotalSelectNum AS num, C.Seq AS areaSeq,
+		C.AreaName AS areaName
+		FROM
+		YHSROrderPlatform.[dbo].[YHSR_OP_MeetingShoppingCart] A
+		LEFT JOIN
+		YHSROrderPlatform.[dbo].[YHSR_OP_MeetintUserArea] B ON
+		A.User_Seq =
+		B.User_Seq
+		LEFT JOIN YHSROrderPlatform.[dbo].[YHSR_OP_MeetingArea] C ON
+		B.MeetingArea_Seq = C.Seq
+		WHERE A.Del = 0 AND B.Del = 0 AND C.Del = 0
+		AND A.MeetingGoods_Seq IN
+		(${meetingGoodsSeqs})
+		AND A.TotalSelectNum is
+		not NULL
+		UNION ALL
+
+		SELECT
+		B.Num AS num, D.Seq AS areaSeq, D.AreaName AS
+		areaName
+		FROM
+		YHSROrderPlatform.[dbo].[YHSR_OP_MeetingOrder] A
+		LEFT JOIN
+		(SELECT MeetingOrder_Seq,MeetingGoods_Seq,SUM(BuyCount) as Num
+		FROM
+		YHSROrderPlatform.[dbo].[YHSR_OP_MeetingOrderProduct] WHERE Del =
+		0 AND
+		Cancel = 0 GROUP BY MeetingOrder_Seq,MeetingGoods_Seq,InputTime)
+		B ON
+		A.Seq = B.MeetingOrder_Seq
+		LEFT JOIN
+		YHSROrderPlatform.[dbo].[YHSR_OP_MeetintUserArea] C ON
+		A.User_Seq =
+		C.User_Seq
+		LEFT JOIN YHSROrderPlatform.[dbo].[YHSR_OP_MeetingArea] D ON
+		C.MeetingArea_Seq = D.Seq
+
+		WHERE A.Del = 0 AND C.Del = 0 AND
+		B.MeetingGoods_Seq IN
+		(${meetingGoodsSeqs})
+		) t
+		GROUP BY areaSeq,
+		areaName ORDER BY num DESC
+	</select>
+
+
+	<!-- 查询货号总订货量的排行 （包括购物车量和订单中的量） -->
+	<select id="getMeetingGoodsIdRank"
+		resultType="java.util.HashMap">
+		SELECT meetingGoodsSeq, SUM (num) AS num
+		,count(meetingGoodsSeq) AS goodsCount FROM
+		(
+		SELECT
+		MeetingGoods_Seq AS
+		meetingGoodsSeq,isnull(TotalSelectNum,0) AS num
+		FROM
+		YHSROrderPlatform.[dbo].[YHSR_OP_MeetingShoppingCart]
+		WHERE
+		Meeting_Seq
+		= #{meetingSeq} AND Del = 0
+		UNION ALL
+
+		SELECT
+		B.MeetingGoods_Seq AS
+		meetingGoodsSeq, B.Num AS num
+		FROM
+		YHSROrderPlatform.[dbo].[YHSR_OP_MeetingOrder] A
+		LEFT JOIN(SELECT MeetingOrder_Seq,MeetingGoods_Seq,SUM(BuyCount) as Num,Cancel
+		FROM YHSROrderPlatform.[dbo].[YHSR_OP_MeetingOrderProduct] WHERE Del =
+		0 GROUP BY MeetingOrder_Seq,MeetingGoods_Seq,InputTime,Cancel)
+		B ON A.Seq = B.MeetingOrder_Seq
+		WHERE A.Del = 0 AND A.Meeting_Seq = #{meetingSeq} AND B.Cancel = 0
+		) t
+		GROUP BY meetingGoodsSeq ORDER BY SUM(num) DESC
+	</select>
+
+
+	<!-- 查询货号在某一区域内订货量的排行 （包括购物车量和订单中的量） -->
+	<select id="getAreaMeetingGoodsIdRank"
+		resultType="java.util.HashMap">
+		SELECT meetingGoodsSeq, SUM (num) AS num FROM
+		(
+		SELECT
+		A.MeetingGoods_Seq AS meetingGoodsSeq,isnull(A.TotalSelectNum,0) AS
+		num
+		FROM
+		YHSROrderPlatform.[dbo].[YHSR_OP_MeetingShoppingCart] A
+		LEFT
+		JOIN YHSROrderPlatform.[dbo].[YHSR_OP_MeetintUserArea] B ON
+		A.User_Seq
+		= B.User_Seq
+		LEFT JOIN YHSROrderPlatform.[dbo].[YHSR_OP_MeetingArea] C
+		ON
+		B.MeetingArea_Seq = C.Seq
+
+		WHERE
+		A.Del = 0 AND A.Meeting_Seq =
+		#{meetingSeq} AND B.Del = 0 AND C.Seq =
+		#{areaSeq}
+		UNION ALL
+
+		SELECT
+		B.MeetingGoods_Seq AS meetingGoodsSeq, B.BuyCount AS num
+		FROM
+		YHSROrderPlatform.[dbo].[YHSR_OP_MeetingOrder] A
+		LEFT JOIN
+		YHSROrderPlatform.[dbo].[YHSR_OP_MeetingOrderProduct] B ON A.Seq
+		=
+		B.MeetingOrder_Seq
+		LEFT JOIN
+		YHSROrderPlatform.[dbo].[YHSR_OP_MeetintUserArea] C ON
+		A.User_Seq =
+		C.User_Seq
+		LEFT JOIN YHSROrderPlatform.[dbo].[YHSR_OP_MeetingArea] D ON
+		C.MeetingArea_Seq = D.Seq
+
+		WHERE
+		A.Del = 0 AND A.Meeting_Seq =
+		#{meetingSeq} AND B.Del = 0 AND B.Cancel = 0
+		AND C.Del = 0 AND D.Seq =
+		#{areaSeq}
+		) t
+		GROUP BY meetingGoodsSeq ORDER BY SUM(num) DESC
+	</select>
+	<select id="getMeetingGoodsNumRank"
+		resultType="java.util.HashMap">
+		SELECT meetingGoodsSeq,count(meetingGoodsSeq) AS goodsCount
+		FROM (SELECT
+		MeetingGoods_Seq AS meetingGoodsSeq
+		FROM
+		YHSROrderPlatform.[dbo].[YHSR_OP_MeetingShoppingCart]
+		WHERE
+		Meeting_Seq
+		= #{meetingSeq} AND Del = 0
+
+		UNION ALL
+
+		SELECT
+		B.MeetingGoods_Seq AS
+		meetingGoodsSeq
+		FROM
+		YHSROrderPlatform.[dbo].[YHSR_OP_MeetingOrder] A
+		LEFT JOIN(SELECT MeetingOrder_Seq,MeetingGoods_Seq,Cancel FROM
+		YHSROrderPlatform.[dbo].[YHSR_OP_MeetingOrderProduct] WHERE Del = 0
+		 GROUP BY MeetingOrder_Seq,MeetingGoods_Seq,InputTime,Cancel) B
+		ON A.Seq = B.MeetingOrder_Seq
+		WHERE A.Del = 0 AND A.Meeting_Seq =
+		#{meetingSeq} AND Cancel = 0) t GROUP BY
+		meetingGoodsSeq ORDER BY
+		count(meetingGoodsSeq) DESC
+	</select>
+
+
+	<select id="selectGoodsList" resultMap="meetingGoodsMap">
+		SELECT
+		A.*
+		FROM
+		[YHSROrderPlatform].[dbo].[YHSR_OP_MeetingGoods] A
+		WHERE
+		A.Del = 0 AND A.Meeting_Seq IN (${meetingSeqs})
+		<if test="meetingGoodsId != null">
+			AND A.GoodID LIKE '%'+ #{meetingGoodsId}+'%'
+		</if>
+		order by A.Seq
+
+	</select>
+
+
+	<select id="selectMeetingGoodsList" resultMap="meetingGoodsMap">
+		SELECT
+		A.*
+		FROM
+		[YHSROrderPlatform].[dbo].[YHSR_OP_MeetingGoods] A
+		WHERE
+		A.Del = 0 AND A.Meeting_Seq IN (${meetingSeqs})
+		<if test="meetingGoodsId != null">
+			AND A.GoodID LIKE '%'+ #{meetingGoodsId}+'%'
+		</if>
+		order by A.Seq
+
+	</select>
+
+	<select id="getGoodsIdRank" resultType="java.util.HashMap">
+		SELECT TOP ${totalNum}
+		meetingGoodsSeq, SUM (num) AS sum
+		,count(meetingGoodsSeq) AS count FROM
+		(
+
+
+		SELECT
+		B.MeetingGoods_Seq AS
+		meetingGoodsSeq, B.Num AS num
+		FROM
+		YHSROrderPlatform.[dbo].[YHSR_OP_MeetingOrder] A
+		LEFT JOIN(SELECT
+		MeetingOrderSeq,MeetingGoods_Seq,TotalSelectNum as Num
+		FROM
+		YHSROrderPlatform.[dbo].[YHSR_OP_MeetingOrderCart] WHERE Del =
+		0 )
+		B ON
+		A.Seq = B.MeetingOrderSeq
+
+		WHERE A.Del = 0 AND A.Meeting_Seq =
+		#{meetingSeq}
+		) t
+		GROUP BY meetingGoodsSeq ORDER BY SUM(num) DESC
+	</select>
+	<select id="getGoodsAreaRank" resultType="java.util.HashMap">
+		SELECT TOP ${totalNum}
+		SUM (num) AS sum, areaSeq,
+		areaName,sum(count) AS count FROM
+		(
+		SELECT
+		B.Num AS num, D.Seq AS areaSeq, D.AreaName AS
+		areaName,1 AS count
+		FROM
+		YHSROrderPlatform.[dbo].[YHSR_OP_MeetingOrder] A
+		LEFT JOIN
+		(SELECT
+		MeetingOrderSeq,MeetingGoods_Seq,TotalSelectNum as Num
+		FROM
+		YHSROrderPlatform.[dbo].[YHSR_OP_MeetingOrderCart] WHERE Del =
+		0
+		)
+		B ON
+		A.Seq = B.MeetingOrderSeq
+		LEFT JOIN
+		YHSROrderPlatform.[dbo].[YHSR_OP_MeetintUserArea] C ON
+		A.User_Seq =
+		C.User_Seq
+		LEFT JOIN YHSROrderPlatform.[dbo].[YHSR_OP_MeetingArea] D ON
+		C.MeetingArea_Seq = D.Seq
+
+		WHERE A.Del = 0 AND C.Del = 0 AND
+		B.MeetingGoods_Seq IN
+		(${meetingGoodsSeqs})
+		) t
+		GROUP BY areaSeq,
+		areaName ORDER BY sum DESC
+	</select>
+	<select id="getUserRank" resultType="java.util.HashMap">
+		SELECT TOP ${totalNum} SUM
+		(num) AS
+		sum,userSeq,sum(count) AS count FROM
+		(
+		SELECT
+		A.User_Seq AS
+		userSeq, B.Num
+		AS num,1 AS count
+		FROM
+		YHSROrderPlatform.[dbo].[YHSR_OP_MeetingOrder] A
+		LEFT
+		JOIN(SELECT
+		MeetingOrderSeq,MeetingGoods_Seq,TotalSelectNum as Num
+		FROM
+		YHSROrderPlatform.[dbo].[YHSR_OP_MeetingOrderCart] WHERE Del =
+		0 )
+		B ON
+		A.Seq = B.MeetingOrderSeq
+		WHERE A.Del = 0 AND A.Meeting_Seq =
+		#{meetingSeq}
+		) t
+		GROUP BY userSeq ORDER BY SUM(num) DESC
+	</select>
+	<select id="getCategory" resultType="java.util.Map">
+		SELECT
+	F.Seq AS categorySeq,
+	SUM ( E.count ) AS count,
+	SUM ( E.num ) AS num 
+FROM
+	[YHSmartRetail].[dbo].[YHSR_Goods_Category] F
+	LEFT JOIN [YHSmartRetail].[dbo].[YHSR_Goods_Category] G ON G.parentSeq= F.Seq
+	LEFT JOIN [YHSmartRetail].[dbo].[YHSR_Goods_Category] H ON H.parentSeq= G.Seq
+	LEFT JOIN [YHSROrderPlatform].[dbo].[YHSR_OP_MeetingGoods] A ON ( F.Seq= A.Category_Seq OR G.Seq = A.Category_Seq OR H.Seq= A.Category_Seq )
+	LEFT JOIN (
+SELECT
+	C.MeetingGoods_Seq AS shoesSeq,
+	1 AS count,
+	C.TotalSelectNum AS num 
+FROM
+	[YHSROrderPlatform].[dbo].[YHSR_OP_MeetingShoppingCart] C WHERE C.Del=0 UNION ALL
+SELECT
+	D.MeetingGoods_Seq AS shoesSeq,
+	1 AS count,
+
+	sum(D.TotalSelectNum) AS num 
+FROM
+	[YHSROrderPlatform].[dbo].[YHSR_OP_MeetingOrderCart] D 
+	GROUP BY D.MeetingOrderSeq,D.MeetingGoods_Seq
+	) E ON E.shoesSeq= A.Seq 
+WHERE
+	A.Meeting_Seq=#{meetingSeq}
+	AND A.Del
+	= 0 
+	AND F.ParentSeq=#{categorySeq}
+	AND F.Company_Seq=#{companySeq}
+GROUP BY
+	F.Seq 
+HAVING
+	SUM ( E.count ) > 0 
+ORDER BY
+	SUM ( E.count ) DESC
+	</select>
+	<select id="getCategoryList" resultType="java.util.Map">
+		SELECT
+		t.seq,
+		COUNT (
+		t.seq ) as count
+		FROM
+		(
+		SELECT
+		A.Seq AS seq
+		FROM
+		YHSmartRetail.dbo.YHSR_Goods_Category A
+		LEFT JOIN
+		YHSmartRetail.dbo.YHSR_Goods_Category B ON A.Seq= B.ParentSeq
+		AND
+		B.Del=0
+		LEFT JOIN YHSmartRetail.dbo.YHSR_Goods_Category C ON B.Seq=
+		C.ParentSeq
+		AND C.Del=0
+		LEFT JOIN
+		YHSROrderPlatform.dbo.YHSR_OP_MeetingGoods D ON (
+		D.Category_Seq= A.Seq
+		OR D.Category_Seq= B.Seq OR D.Category_Seq=
+		C.Seq )
+		WHERE
+		A.ParentSeq=
+		#{categorySeq} AND A.Del=0 AND D.Del=0
+		AND A.Company_Seq= #{companySeq}
+		AND D.Meeting_Seq= #{meetingSeq}
+		) t
+		GROUP BY
+		t.seq
+	</select>
+	<select id="getRankByCategorySeq" resultType="java.util.Map">
+		SELECT
+		meetingGoodsSeq,
+		SUM ( num ) AS num,
+		COUNT ( meetingGoodsSeq ) AS
+		goodsCount
+		FROM
+		(
+		SELECT
+		A.MeetingGoods_Seq AS meetingGoodsSeq,
+		isnull(
+		A.TotalSelectNum, 0 ) AS num
+		FROM
+		YHSROrderPlatform.[dbo].[YHSR_OP_MeetingShoppingCart] A
+		LEFT JOIN
+		YHSROrderPlatform.[dbo].[YHSR_OP_MeetingGoods] B ON
+		A.MeetingGoods_Seq=B.Seq
+		WHERE
+		A.Meeting_Seq = #{meetingSeq}
+		AND A.Del = 0 AND B.Del=0 AND B.Category_Seq in (SELECT C.seq FROM
+		YHSmartRetail.[dbo].[YHSR_Goods_Category] C WHERE C.seq=#{categorySeq}
+		or C.ParentSeq=#{categorySeq})
+		UNION ALL
+		SELECT
+		B.MeetingGoods_Seq AS
+		meetingGoodsSeq,
+		B.Num AS num
+		FROM
+		YHSROrderPlatform.[dbo].[YHSR_OP_MeetingOrder] A
+		LEFT JOIN (
+		SELECT
+		A.MeetingOrder_Seq,
+		A.MeetingGoods_Seq,
+		A.Cancel,
+		SUM ( A.BuyCount ) AS Num
+		FROM
+		YHSROrderPlatform.[dbo].[YHSR_OP_MeetingOrderProduct] A
+		LEFT JOIN
+		YHSROrderPlatform.[dbo].[YHSR_OP_MeetingGoods] B ON
+		A.MeetingGoods_Seq=B.Seq
+		WHERE
+		A.Del = 0
+		 AND B.Del=0 AND
+		B.Category_Seq in(SELECT seq FROM
+		YHSmartRetail.[dbo].[YHSR_Goods_Category] C WHERE C.seq=#{categorySeq}
+		or ParentSeq=#{categorySeq})
+		GROUP BY
+		A.MeetingOrder_Seq,
+		A.MeetingGoods_Seq,
+		A.InputTime,
+		A.Cancel
+		) B ON A.Seq = B.MeetingOrder_Seq
+		WHERE
+		A.Del = 0
+		AND A.Meeting_Seq =#{meetingSeq} AND B.Cancel = 0
+		) t
+		GROUP BY
+		meetingGoodsSeq
+		ORDER BY
+		SUM ( num ) DESC
+	</select>
+	<select id="getNumRankByCategorySeq" resultType="java.util.Map">
+		SELECT
+		meetingGoodsSeq,
+		isnull(COUNT ( meetingGoodsSeq ),0) AS goodsCount
+		FROM
+		(
+		SELECT
+		MeetingGoods_Seq AS meetingGoodsSeq
+		FROM
+		YHSROrderPlatform.[dbo].[YHSR_OP_MeetingShoppingCart] A
+		LEFT JOIN YHSROrderPlatform.[dbo].[YHSR_OP_MeetingGoods] B ON
+		A.MeetingGoods_Seq= B.Seq
+		WHERE
+		A.Meeting_Seq
+		= #{ meetingSeq }
+		AND A.Del = 0
+		AND B.Del= 0
+		AND B.Category_Seq IN ( SELECT seq FROM
+		YHSmartRetail.[dbo].[YHSR_Goods_Category] C WHERE C.seq=#{ categorySeq
+		} OR ParentSeq =#{ categorySeq } ) UNION ALL
+		SELECT
+		B.MeetingGoods_Seq AS meetingGoodsSeq
+		FROM
+		YHSROrderPlatform.[dbo].[YHSR_OP_MeetingOrder] A
+		LEFT JOIN ( SELECT MeetingOrder_Seq, MeetingGoods_Seq FROM
+		YHSROrderPlatform.[dbo].[YHSR_OP_MeetingOrderProduct] WHERE Del = 0
+		AND Cancel = 0 GROUP BY MeetingOrder_Seq, MeetingGoods_Seq, InputTime
+		) B ON A.Seq = B.MeetingOrder_Seq
+		LEFT JOIN YHSROrderPlatform.[dbo].[YHSR_OP_MeetingGoods] C ON
+		B.MeetingGoods_Seq= C.Seq
+		WHERE
+		A.Del = 0
+		AND A.Meeting_Seq =
+		#{ meetingSeq }
+		AND C.Del= 0
+		AND C.Category_Seq IN ( SELECT seq FROM
+		YHSmartRetail.[dbo].[YHSR_Goods_Category] D WHERE D.seq=#{ categorySeq
+		} OR D.ParentSeq=#{ categorySeq } )
+		) t
+		GROUP BY
+		meetingGoodsSeq
+		ORDER BY
+		COUNT ( meetingGoodsSeq ) DESC
+	</select>
+	<select id="getColorSeqsByMeetingSeq" resultType="java.lang.String">
+	select OptionalColorSeqs from YHSROrderPlatform.[dbo].[YHSR_OP_MeetingGoods] where Meeting_Seq=#{meetingSeq} and Del=0
+	</select>
+
+	<select id="selectPickRank" parameterType="java.util.Map" resultType="java.lang.Integer">
+		SELECT sss.num FROM (SELECT Row_Number() OVER(ORDER BY ss.num DESC) AS num,ss.MeetingGoods_Seq FROM
+		(SELECT s.MeetingGoods_Seq,SUM(s.num) AS num FROM
+		(SELECT
+		MeetingGoods_Seq,
+		COUNT(Seq) AS num
+		FROM
+		[YHSROrderPlatform].[dbo].[YHSR_OP_MeetingOrderProduct]
+		WHERE Cancel = 0 AND Del = 0
+		GROUP BY MeetingGoods_Seq
+		UNION ALL
+		SELECT
+		MeetingGoods_Seq,
+		COUNT(Seq) AS num
+		FROM
+		[YHSROrderPlatform].[dbo].[YHSR_OP_MeetingShoppingCart]
+		WHERE Del = 0
+		GROUP BY MeetingGoods_Seq
+		)s GROUP BY s.MeetingGoods_Seq)ss)sss
+		WHERE sss.MeetingGoods_Seq = #{meetingGoodsSeq}
+	</select>
+
+	<select id="selectCategoryRank" parameterType="java.util.Map" resultType="java.lang.Integer">
+		SELECT sss.num FROM (SELECT Row_Number() OVER(ORDER BY ss.num DESC) AS num,ss.Category_Seq FROM
+		(SELECT s.Category_Seq,SUM(s.num) AS num FROM
+		(SELECT
+		mg.Category_Seq,
+		COUNT(moc.Seq) AS num
+		FROM
+		[YHSROrderPlatform].[dbo].[YHSR_OP_MeetingOrderProduct] moc
+		LEFT JOIN
+		[YHSROrderPlatform].[dbo].[YHSR_OP_MeetingGoods] mg
+		ON mg.Seq = moc.MeetingGoods_Seq
+		WHERE moc.Cancel = 0 AND moc.Del = 0
+		GROUP BY mg.Category_Seq
+		UNION ALL
+		SELECT
+		mg.Category_Seq,
+		COUNT(moc.Seq) AS num
+		FROM
+		[YHSROrderPlatform].[dbo].[YHSR_OP_MeetingShoppingCart] moc
+		LEFT JOIN
+		[YHSROrderPlatform].[dbo].[YHSR_OP_MeetingGoods] mg
+		ON mg.Seq = moc.MeetingGoods_Seq
+		WHERE moc.Del = 0
+		GROUP BY mg.Category_Seq
+		)s GROUP BY s.Category_Seq)ss)sss
+		WHERE sss.Category_Seq = #{categorySeq}
+	</select>
+
+	<select id="selectCategoryNumRank" parameterType="java.util.Map" resultType="java.lang.Integer">
+		SELECT sss.num FROM (SELECT Row_Number() OVER(ORDER BY ss.num DESC) AS num,ss.Category_Seq FROM
+		(SELECT s.Category_Seq,SUM(s.num) AS num FROM
+		(SELECT
+		mg.Category_Seq,
+		SUM(moc.BuyCount) AS num
+		FROM
+		[YHSROrderPlatform].[dbo].[YHSR_OP_MeetingOrderProduct] moc
+		LEFT JOIN
+		[YHSROrderPlatform].[dbo].[YHSR_OP_MeetingGoods] mg
+		ON mg.Seq = moc.MeetingGoods_Seq
+		WHERE moc.Cancel = 0 AND moc.Del = 0
+		GROUP BY mg.Category_Seq
+		UNION ALL
+		SELECT
+		mg.Category_Seq,
+		SUM(moc.TotalSelectNum) AS num
+		FROM
+		[YHSROrderPlatform].[dbo].[YHSR_OP_MeetingOrderCart] moc
+		LEFT JOIN
+		[YHSROrderPlatform].[dbo].[YHSR_OP_MeetingGoods] mg
+		ON mg.Seq = moc.MeetingGoods_Seq
+		WHERE moc.Del = 0
+		GROUP BY mg.Category_Seq
+		)s GROUP BY s.Category_Seq)ss) sss
+		WHERE sss.Category_Seq = #{categorySeq}
+	</select>
+</mapper>

@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="io.nuite.modules.order_platform_app.dao.MeetingRankDao">
+
+
+	<!-- 选款次数排行（购物车 + 订单购物车   count本货号数据条数） -->
+	<select id="getPickNumRankList" resultType="java.util.HashMap">
+		SELECT RANK() OVER(order by COUNT(1) desc) AS rank, meetingGoodsSeq, COUNT(1) AS pickNum FROM 
+			(
+			SELECT 
+				MeetingGoods_Seq AS meetingGoodsSeq
+			FROM 
+				YHSROrderPlatform.[dbo].[YHSR_OP_MeetingShoppingCart]
+			WHERE 
+				Del = 0 AND Meeting_Seq = #{meetingSeq}
+			
+			UNION ALL 
+			
+			SELECT
+				MeetingGoods_Seq AS meetingGoodsSeq
+			FROM
+				YHSROrderPlatform.[dbo].[YHSR_OP_MeetingOrderCart] 
+			WHERE 
+				Del = 0 AND Meeting_Seq = #{meetingSeq}
+			) t
+		GROUP BY meetingGoodsSeq
+	</select>
+	
+	
+	<!-- 订货量排行（购物车已配码 + 订单   sum订货数量） -->
+	<select id="getOrderNumRankList" resultType="java.util.HashMap">
+		SELECT RANK() OVER(ORDER BY SUM(num) DESC) AS rank, meetingGoodsSeq, SUM (num) AS num FROM 
+			(
+			SELECT 
+				MeetingGoods_Seq AS meetingGoodsSeq, TotalSelectNum AS num
+			FROM 
+				YHSROrderPlatform.[dbo].[YHSR_OP_MeetingShoppingCart]
+			WHERE 
+				Del = 0 AND Meeting_Seq = #{meetingSeq}
+			
+			UNION ALL 
+			
+			SELECT
+				B.MeetingGoods_Seq AS meetingGoodsSeq, B.BuyCount AS num
+			FROM
+				YHSROrderPlatform.[dbo].[YHSR_OP_MeetingOrder] A
+			LEFT JOIN YHSROrderPlatform.[dbo].[YHSR_OP_MeetingOrderProduct] B ON A.Seq = B.MeetingOrder_Seq
+			
+			WHERE 
+				A.Del = 0 AND A.Meeting_Seq = #{meetingSeq} AND B.Del = 0 AND B.Cancel = 0
+			) t
+		GROUP BY meetingGoodsSeq
+	</select>
+	
+	
+	
+	<!-- 货号在同品类所有货品中选款次数排行（购物车 + 订单购物车  count本货号数据条数） -->
+	<select id="getCategoryPickNumRankList" resultType="java.util.HashMap">
+		SELECT RANK() OVER(order by COUNT(1) desc) AS rank, meetingGoodsSeq, COUNT(1) AS pickNum FROM 
+			(
+			SELECT 
+				A.MeetingGoods_Seq AS meetingGoodsSeq
+			FROM 
+				YHSROrderPlatform.[dbo].[YHSR_OP_MeetingShoppingCart] A
+			LEFT JOIN YHSROrderPlatform.[dbo].[YHSR_OP_MeetingGoods] B ON A.MeetingGoods_Seq = B.Seq
+			WHERE 
+				A.Del = 0 AND A.Meeting_Seq = #{meetingSeq} AND B.Category_Seq = #{categorySeq}
+			
+			UNION ALL 
+			
+			SELECT
+				A.MeetingGoods_Seq AS meetingGoodsSeq
+			FROM
+				YHSROrderPlatform.[dbo].[YHSR_OP_MeetingOrderCart] A
+			LEFT JOIN YHSROrderPlatform.[dbo].[YHSR_OP_MeetingGoods] B ON A.MeetingGoods_Seq = B.Seq
+			WHERE 
+				A.Del = 0 AND A.Meeting_Seq = #{meetingSeq} AND B.Category_Seq = #{categorySeq}
+			) t
+		GROUP BY meetingGoodsSeq
+	</select>
+	
+	
+	
+	<!-- 货号在同品类所有货品中订货量排行（购物车已配码 + 订单   sum订货数量） -->
+	<select id="getCategoryOrderNumRankList" resultType="java.util.HashMap">
+		SELECT RANK() OVER(order by SUM(num) desc) AS rank, meetingGoodsSeq, SUM (num) AS num FROM 
+			(
+			SELECT 
+				A.MeetingGoods_Seq AS meetingGoodsSeq, A.TotalSelectNum AS num
+			FROM 
+				YHSROrderPlatform.[dbo].[YHSR_OP_MeetingShoppingCart] A
+			LEFT JOIN YHSROrderPlatform.[dbo].[YHSR_OP_MeetingGoods] B ON A.MeetingGoods_Seq = B.Seq
+			WHERE 
+				A.Del = 0 AND A.Meeting_Seq = #{meetingSeq} AND B.Category_Seq = #{categorySeq}
+			
+			UNION ALL 
+			
+			SELECT
+				B.MeetingGoods_Seq AS meetingGoodsSeq, B.BuyCount AS num
+			FROM
+				YHSROrderPlatform.[dbo].[YHSR_OP_MeetingOrder] A
+			LEFT JOIN YHSROrderPlatform.[dbo].[YHSR_OP_MeetingOrderProduct] B ON A.Seq = B.MeetingOrder_Seq
+			LEFT JOIN YHSROrderPlatform.[dbo].[YHSR_OP_MeetingGoods] C ON B.MeetingGoods_Seq = C.Seq
+
+			WHERE 
+				A.Del = 0 AND A.Meeting_Seq = #{meetingSeq} AND B.Del = 0 AND B.Cancel = 0 AND C.Category_Seq = #{categorySeq}
+			) t
+		GROUP BY meetingGoodsSeq
+	</select>
+	
+
+</mapper>

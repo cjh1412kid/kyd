@@ -1,0 +1,349 @@
+package io.nuite.modules.order_platform_app.service.impl;
+
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.baomidou.mybatisplus.mapper.EntityWrapper;
+import com.baomidou.mybatisplus.mapper.Wrapper;
+import com.baomidou.mybatisplus.service.impl.ServiceImpl;
+import com.google.common.base.Joiner;
+
+import io.nuite.modules.order_platform_app.dao.MeetingOrderCartDao;
+import io.nuite.modules.order_platform_app.dao.MeetingShoppingCartDao;
+import io.nuite.modules.order_platform_app.dao.MeetingShoppingCartDetailDao;
+import io.nuite.modules.order_platform_app.entity.MeetingOrderCartEntity;
+import io.nuite.modules.order_platform_app.entity.MeetingShoppingCartDetailEntity;
+import io.nuite.modules.order_platform_app.entity.MeetingShoppingCartEntity;
+import io.nuite.modules.order_platform_app.entity.ShoppingCartEntity;
+import io.nuite.modules.order_platform_app.service.MeetingShoppingCartService;
+import io.nuite.modules.system.dao.MeetingOrderDao;
+import io.nuite.modules.system.dao.MeetingOrderProductDao;
+import io.nuite.modules.system.entity.MeetingOrderEntity;
+import io.nuite.modules.system.entity.MeetingOrderProductEntity;
+import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
+
+
+@Service
+public class MeetingShoppingCartServiceImpl extends ServiceImpl<MeetingShoppingCartDao, MeetingShoppingCartEntity> implements MeetingShoppingCartService {
+
+	@Autowired
+	private MeetingShoppingCartDao meetingShoppingCartDao;
+	
+    @Autowired
+    private MeetingShoppingCartDetailDao meetingShoppingCartDetailDao;
+    
+    @Autowired
+    private MeetingOrderDao meetingOrderDao;
+    
+    @Autowired
+    private MeetingOrderProductDao meetingOrderProductDao;
+    
+    @Autowired
+    private MeetingOrderCartDao meetingOrderCartDao;
+	
+	
+	/**
+	 * 查询货号所有用户已加入购物车总量
+	 */
+	@Override
+	public List<Map<String, Object>> getAllUsersSelectNum(Integer meetingGoodsSeq) {
+		Wrapper<MeetingShoppingCartDetailEntity> wrapper = new EntityWrapper<MeetingShoppingCartDetailEntity>();
+		wrapper.setSqlSelect("Color_Seq AS colorSeq, SUM (SelectNum) AS num").where("MeetingGoods_Seq = {0}", meetingGoodsSeq).groupBy("Color_Seq");
+		return meetingShoppingCartDetailDao.selectMaps(wrapper);
+	}
+
+
+	/**
+	 * 查询货号所有用户已提交订单总量
+	 */
+	@Override
+	public List<Map<String, Object>> getAllUsersBuyNum(Integer meetingGoodsSeq) {
+		Wrapper<MeetingOrderProductEntity> wrapper = new EntityWrapper<MeetingOrderProductEntity>();
+		wrapper.setSqlSelect("Color_Seq AS colorSeq, SUM (BuyCount) AS num").where("MeetingGoods_Seq = {0} AND Cancel = 0", meetingGoodsSeq).groupBy("Color_Seq");
+		return meetingOrderProductDao.selectMaps(wrapper);
+	}
+
+
+	/**
+	 * 我的购物车中已选数量
+	 */
+	@Override
+	public Integer getMySelectNum(Integer userSeq, Integer meetingGoodsSeq) {
+		MeetingShoppingCartEntity meetingShoppingCartEntity = new MeetingShoppingCartEntity();
+		meetingShoppingCartEntity.setUserSeq(userSeq);
+		meetingShoppingCartEntity.setMeetingGoodsSeq(meetingGoodsSeq);
+		meetingShoppingCartEntity = meetingShoppingCartDao.selectOne(meetingShoppingCartEntity);
+		if(meetingShoppingCartEntity != null && meetingShoppingCartEntity.getTotalSelectNum() != null) {
+			return meetingShoppingCartEntity.getTotalSelectNum();
+		} else {
+			return 0;
+		}
+	}
+
+
+	/**
+	 * 我的订单中已定数量
+	 */
+	@Override
+	public Integer getMyBuyNum(Integer userSeq, Integer meetingSeq, Integer meetingGoodsSeq) {
+		
+		Wrapper<MeetingOrderEntity> wrapper = new EntityWrapper<MeetingOrderEntity>();
+		wrapper.setSqlSelect("Seq")
+		.where("Meeting_Seq = {0} AND User_Seq ={1}", meetingSeq, userSeq);
+		List<Object> orderSeqList = meetingOrderDao.selectObjs(wrapper);
+		
+		if(orderSeqList != null && orderSeqList.size() > 0) {
+			Wrapper<MeetingOrderProductEntity> productWrapper = new EntityWrapper<MeetingOrderProductEntity>();
+			productWrapper.setSqlSelect("SUM (BuyCount) AS num").in("MeetingOrder_Seq", orderSeqList)
+			.where("MeetingGoods_Seq = {0} AND Cancel = 0", meetingGoodsSeq);
+			List<Object> list = meetingOrderProductDao.selectObjs(productWrapper);
+			if(list != null && list.size() > 0 && list.get(0) != null) {
+				return (Integer) list.get(0);
+			} else {
+				return 0;
+			}
+		} else {
+			return 0;
+		}
+		
+	}
+
+	
+
+	/**
+	 * 查询用户是否加入此货号到购物车
+	 */
+	@Override
+	public MeetingShoppingCartEntity getUserMeetingShoppingCart(Integer userSeq, Integer meetingGoodsSeq) {
+		MeetingShoppingCartEntity meetingShoppingCartEntity = new MeetingShoppingCartEntity();
+		meetingShoppingCartEntity.setUserSeq(userSeq);
+		meetingShoppingCartEntity.setMeetingGoodsSeq(meetingGoodsSeq);
+		return meetingShoppingCartDao.selectOne(meetingShoppingCartEntity);
+	}
+
+
+	
+	/**
+	 * 查询用户购物车中某一货号某一颜色某一尺码的已选数量
+	 */
+	@Override
+	public Integer getUserShoppingCartSelectNum(Integer meetingShoppingCartSeq, Integer colorSeq, Integer size) {
+		MeetingShoppingCartDetailEntity meetingShoppingCartDetailEntity = new MeetingShoppingCartDetailEntity();
+		meetingShoppingCartDetailEntity.setMeetingShoppingCartSeq(meetingShoppingCartSeq);
+		meetingShoppingCartDetailEntity.setColorSeq(colorSeq);
+		meetingShoppingCartDetailEntity.setSize(size);
+		meetingShoppingCartDetailEntity = meetingShoppingCartDetailDao.selectOne(meetingShoppingCartDetailEntity);
+		if(meetingShoppingCartDetailEntity == null) {
+			return null;
+		} else {
+			return meetingShoppingCartDetailEntity.getSelectNum();
+		}
+	}
+
+	
+	
+
+	/**
+	 * 加入购物车
+	 */
+	@Override
+    @Transactional(propagation = Propagation.REQUIRED)
+	public void addToMeetingShoppingCart(Integer meetingSeq, Integer userSeq, Integer meetingGoodsSeq, String colorSizeAndNum) {
+		
+		
+		//1.新增或修改购物车
+		//查询购物车列表，看是否已经存在此商品
+		MeetingShoppingCartEntity shoppingCartEntity = this.getUserMeetingShoppingCart(userSeq, meetingGoodsSeq);
+		//购物车不存在，新增
+		if(shoppingCartEntity == null) {
+			shoppingCartEntity = new MeetingShoppingCartEntity();
+//			Seq					int	0	0	0	-1	0	0		0	0	0	0	序号(主键)		-1			
+//			Meeting_Seq			int	0	0	0	0	0	0		0	0	0	0	订货会序号		0			
+//			User_Seq			int	0	0	0	0	0	0		0	0	0	0	用户Seq(外键:YHSR_Base_User表)		0			
+//			MeetingGoods_Seq	int	0	0	0	0	0	0		0	0	0	0	订货会鞋子序号		0			
+//			TotalSelectNum		int	0	0	-1	0	0	0		0	0	0	0	总选款数量		0			
+//			IsChecked			int	0	0	0	0	0	0	((1))	0	0	0	0	是否勾选，0不勾选 1勾选		0			
+//			InputTime			datetime	0	0	-1	0	0	0		0	0	0	0	插入时间		0			
+//			Del					int	0	0	0	0	0	0	((0))	0	0	0	0	删除标识(0:未删除,1:已删除)		0			
+
+			shoppingCartEntity.setMeetingSeq(meetingSeq);
+			shoppingCartEntity.setUserSeq(userSeq);
+			shoppingCartEntity.setMeetingGoodsSeq(meetingGoodsSeq);
+			shoppingCartEntity.setIsChecked(1);
+			shoppingCartEntity.setInputTime(new Date());
+			shoppingCartEntity.setDel(0);
+			meetingShoppingCartDao.insert(shoppingCartEntity);
+			
+		} else { //已存在则修改
+			shoppingCartEntity.setInputTime(new Date());
+			meetingShoppingCartDao.updateById(shoppingCartEntity);
+			
+			//删除原有的购物车详情
+			Wrapper<MeetingShoppingCartDetailEntity> wrapper = new EntityWrapper<MeetingShoppingCartDetailEntity>();
+			wrapper.where("MeetingShoppingCart_Seq = {0}", shoppingCartEntity.getSeq());
+			meetingShoppingCartDetailDao.delete(wrapper);
+		}
+		
+		//2.新增购物车详情
+//		[{colorSeq:5,sizeAndNum:[{size:32,num:100},{size:33,num:200}]}
+//			,{colorSeq:6,sizeAndNum:[{size:34,num:50},{size:35,num:60}]}]
+        JSONArray jsonArray = JSONArray.fromObject(colorSizeAndNum);
+        Integer totalSelectNum = 0;
+        for (int i = 0; i < jsonArray.size(); i++) {
+        	JSONObject jsonObject = jsonArray.getJSONObject(i);  //{colorSeq:5,sizeAndNum:[{size:32,num:100},{size:33,num:200}]}
+            int colorSeq = jsonObject.getInt("colorSeq");
+            JSONArray sizeAndNum = jsonObject.getJSONArray("sizeAndNum"); //[{size:32,num:100},{size:33,num:200}]
+            for(int j = 0; j < sizeAndNum.size(); j++) {
+            	JSONObject sizeNum = sizeAndNum.getJSONObject(j);  //{size:32,num:100}
+            	int size = sizeNum.getInt("size");
+            	int num = sizeNum.getInt("num");
+            	totalSelectNum += num;
+            	
+//            	Seq						int	0	0	0	-1	0	0		0	0	0	0	序号(主键)		-1			
+//            	MeetingShoppingCart_Seq	int	0	0	0	0	0	0		0	0	0	0	订货会鞋子序号		0			
+//            	MeetingGoods_Seq		int	0	0	0	0	0	0		0	0	0	0	订货会鞋子序号(冗余字段)		0			
+//            	Color_Seq				int	0	0	0	0	0	0		0	0	0	0	颜色seq		0			
+//            	Size_Seq				int	0	0	0	0	0	0		0	0	0	0	尺码seq		0			
+//            	SelectNum				int	0	0	-1	0	0	0		0	0	0	0	选款数量		0			
+//            	InputTime				datetime	0	0	-1	0	0	0		0	0	0	0	插入时间		0			
+//            	Del						int	0	0	0	0	0	0	((0))	0	0	0	0	删除标识(0:未删除,1:已删除)		0			
+
+        		MeetingShoppingCartDetailEntity meetingShoppingCartDetailEntity = new MeetingShoppingCartDetailEntity();
+        		meetingShoppingCartDetailEntity.setMeetingShoppingCartSeq(shoppingCartEntity.getSeq());
+        		meetingShoppingCartDetailEntity.setMeetingGoodsSeq(meetingGoodsSeq);
+        		meetingShoppingCartDetailEntity.setColorSeq(colorSeq);
+        		meetingShoppingCartDetailEntity.setSize(size);
+        		meetingShoppingCartDetailEntity.setSelectNum(num);
+        		meetingShoppingCartDetailEntity.setInputTime(new Date());
+        		meetingShoppingCartDetailDao.insert(meetingShoppingCartDetailEntity);
+            }
+            
+		
+            //3.修改购物车实体中总选款数量totalSelectNum
+			shoppingCartEntity.setTotalSelectNum(totalSelectNum);
+			meetingShoppingCartDao.updateById(shoppingCartEntity);
+        }
+	}
+
+
+	
+	/**
+	 * 购物车列表
+	 */
+	@Override
+	public List<MeetingShoppingCartEntity> getMeetingShoppingCartList(Integer userSeq, Integer meetingSeq) {
+		Wrapper<MeetingShoppingCartEntity> wrapper = new EntityWrapper<MeetingShoppingCartEntity>();
+		wrapper.where("Meeting_Seq = {0} AND User_Seq = {1}", meetingSeq, userSeq).orderBy("IsAllocated ASC");
+		return meetingShoppingCartDao.selectList(wrapper);
+	}
+
+
+	/**
+	 * 购物车全选、全不选
+	 */
+	@Override
+	public void checkAllShoppingCart(Integer meetingSeq, Integer userSeq, Integer isChecked) {
+		MeetingShoppingCartEntity meetingShoppingCartEntity = new MeetingShoppingCartEntity();
+		meetingShoppingCartEntity.setIsChecked(isChecked);
+		
+		Wrapper<MeetingShoppingCartEntity> wrapper = new EntityWrapper<MeetingShoppingCartEntity>();
+		wrapper.where("Meeting_Seq = {0} AND User_Seq = {1} ", meetingSeq, userSeq);
+		meetingShoppingCartDao.update(meetingShoppingCartEntity, wrapper);
+		
+	}
+
+
+	/**
+	 * 批量删除购物车
+	 */
+	@Override
+	public void deleteMeetingShoppingCart(List<Integer> meetingShoppingCartSeqs) {
+		//1.删除购物车
+		meetingShoppingCartDao.deleteBatchIds(meetingShoppingCartSeqs);
+		//2.删除对应购物车详情
+		Wrapper<MeetingShoppingCartDetailEntity> wrapper = new EntityWrapper<MeetingShoppingCartDetailEntity>();
+		wrapper.in("MeetingShoppingCart_Seq", meetingShoppingCartSeqs);
+		meetingShoppingCartDetailDao.delete(wrapper);
+	}
+
+
+	@Override
+	public Integer getTotalCount(Integer userSeq, Integer meetingGoodsSeq) {
+		Wrapper<MeetingShoppingCartEntity> wrapper = new EntityWrapper<MeetingShoppingCartEntity>();
+		wrapper.where("MeetingGoods_Seq = {0} AND User_Seq = {1} AND Del=0", meetingGoodsSeq, userSeq);
+		return meetingShoppingCartDao.selectCount(wrapper);
+	}
+
+
+	@Override
+	public Integer buyCount(Integer userSeq, Integer meetingSeq, Integer meetingGoodsSeq) {
+		Wrapper<MeetingOrderEntity> wrapper = new EntityWrapper<MeetingOrderEntity>();
+		wrapper.setSqlSelect("Seq")
+		.where("Meeting_Seq = {0} AND User_Seq ={1}", meetingSeq, userSeq);
+		List<Object> orderSeqList = meetingOrderDao.selectObjs(wrapper);
+		if(orderSeqList != null && orderSeqList.size() > 0) {
+			Wrapper<MeetingOrderProductEntity> productWrapper = new EntityWrapper<MeetingOrderProductEntity>();
+			productWrapper.setSqlSelect("MeetingGoods_Seq").in("MeetingOrder_Seq", orderSeqList)
+			.where("MeetingGoods_Seq = {0} AND Cancel = 0 AND Del=0", meetingGoodsSeq).groupBy("MeetingOrder_Seq,MeetingGoods_Seq,InputTime");
+			return meetingOrderProductDao.selectList(productWrapper).size();
+		} else {
+			return 0;
+		}
+	}
+
+
+	@Override
+	public List<Map<String, Object>> getGoodsRank(Integer meetingSeq) {
+		return meetingShoppingCartDao.getMeetingGoodsIdRank(meetingSeq);
+	}
+
+
+	@Override
+	public List<Map<String, Object>> getAreaRank(List<Object> meetingGoodsSeqList) {
+		String meetingGoodsSeqs = Joiner.on(",").join(meetingGoodsSeqList);
+		return meetingShoppingCartDao.getMeetingGoodsAreaRank(meetingGoodsSeqs);
+	}
+
+
+	@Override
+	public List<Map<String, Object>> getUserRank(Integer meetingSeq) {
+		return meetingShoppingCartDao.getUserRank(meetingSeq);
+	}
+
+
+	@Override
+	public Integer getMeetingGoodsNum(Integer meetingSeq) {
+		Wrapper<MeetingShoppingCartEntity> wrapper = new EntityWrapper<MeetingShoppingCartEntity>();
+		wrapper.setSqlSelect("MeetingGoods_Seq").where("Meeting_Seq = {0}", meetingSeq).groupBy("MeetingGoods_Seq");
+		List<Map<String, Object>> list=meetingShoppingCartDao.selectMaps(wrapper);
+		return list.size();
+	}
+
+
+	@Override
+	public Integer getMeetingGoodsCount(Integer meetingSeq) {
+		Wrapper<MeetingOrderCartEntity> wrapper = new EntityWrapper<MeetingOrderCartEntity>();
+		wrapper.setSqlSelect("MeetingGoods_Seq").where("Meeting_Seq = {0}", meetingSeq).groupBy("MeetingGoods_Seq");
+		List<Map<String, Object>> list=meetingOrderCartDao.selectMaps(wrapper);
+		return list.size();
+	}
+
+	@Override
+	public Integer selectPickNum(Integer companySeq, Integer meetingSeq, Integer userSeq, String keywords) throws Exception {
+		Map<String,Object> map = new HashMap<>(10);
+		map.put("companySeq",companySeq);
+		map.put("meetingSeq",meetingSeq);
+		map.put("userSeq",userSeq);
+		map.put("keywords",keywords);
+		return meetingShoppingCartDao.selectPickNum(map);
+	}
+
+}

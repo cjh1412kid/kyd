@@ -1,0 +1,17 @@
+/**app.wxss**/
+@import "assets/icon/iconfont.wxss";
+@import "component/loadMore/loadmore.wxss";
+
+page {
+  background-color: #eaeff3;
+}
+
+.container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
+  position: absolute;
+}

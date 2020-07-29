@@ -1,0 +1,58 @@
+package io.nuite.modules.order_platform_app.service;
+
+import java.util.List;
+import java.util.Map;
+
+import com.baomidou.mybatisplus.service.IService;
+
+import io.nuite.modules.order_platform_app.entity.MeetingShoppingCartEntity;
+
+
+public interface MeetingShoppingCartService extends IService<MeetingShoppingCartEntity> {
+
+	List<Map<String, Object>> getAllUsersSelectNum(Integer meetingGoodsSeq);
+
+	List<Map<String, Object>> getAllUsersBuyNum(Integer meetingGoodsSeq);
+
+	Integer getMySelectNum(Integer userSeq, Integer meetingGoodsSeq);
+
+	Integer getMyBuyNum(Integer userSeq, Integer meetingSeq, Integer meetingGoodsSeq);
+
+	MeetingShoppingCartEntity getUserMeetingShoppingCart(Integer userSeq, Integer meetingGoodsSeq);
+
+	Integer getUserShoppingCartSelectNum(Integer meetingShoppingCartSeq, Integer colorSeq, Integer size);
+
+	void addToMeetingShoppingCart(Integer meetingSeq, Integer userSeq, Integer meetingGoodsSeq, String colorSizeAndNum);
+
+	List<MeetingShoppingCartEntity> getMeetingShoppingCartList(Integer userSeq, Integer meetingSeq);
+
+	void checkAllShoppingCart(Integer meetingSeq, Integer userSeq, Integer isChecked);
+
+	void deleteMeetingShoppingCart(List<Integer> meetingShoppingCartSeqs);
+
+	Integer getTotalCount(Integer userSeq, Integer meetingGoodsSeq);
+	
+	Integer buyCount(Integer userSeq, Integer meetingSeq, Integer meetingGoodsSeq);
+	
+	List<Map<String, Object>> getGoodsRank(Integer meetingSeq);
+	
+	List<Map<String, Object>> getAreaRank(List<Object> meetingGoodsSeqs);
+	
+	List<Map<String, Object>> getUserRank(Integer meetingSeq);
+	
+	Integer getMeetingGoodsNum(Integer meetingSeq);
+	
+	Integer getMeetingGoodsCount(Integer meetingSeq);
+
+	/**
+	 * 获取选款数量
+	 * @param companySeq
+	 * @param meetingSeq
+	 * @param userSeq
+	 * @param keywords
+	 * @return
+	 * @throws Exception
+	 */
+	Integer selectPickNum(Integer companySeq,Integer meetingSeq,Integer userSeq,String keywords) throws Exception;
+}
+

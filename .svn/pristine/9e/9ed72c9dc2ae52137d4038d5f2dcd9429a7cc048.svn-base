@@ -1,0 +1,107 @@
+<view class='dialog_seat' bindtap='dialogTap' catchtouchmove='catchDialogEvent'>
+  <view class='select_dialog {{dialogShow?"nochoosed":""}}' catchtap='catchDialogEvent'>
+    <view class='select_content'>
+      <view class='title_line'>
+        <view class='image'>
+          <image src='{{goodsDetail.images[0]}}'></image>
+        </view>
+        <view class='content'>
+          <view class='name'>{{goodsDetail.introduce}}</view>
+          <view class='prices'>￥{{goodsDetail.salePrice||0}}元</view>
+        </view>
+      </view>
+      <!-- <view class='color_line'>
+        <view class='title'>颜色</view>
+        <view class='select'>
+          <block wx:for='{{goodsColorArray}}' wx:key='*this'>
+            <view class='select_one {{chooseDetail.colorSeq==item.seq?"choose":""}}' bindtap='colorClick' data-color-seq='{{item.seq}}'>{{item.name}}</view>
+          </block>
+
+        </view>
+      </view> -->
+      <!-- <view class='size_line'>
+        <view class='title'>尺码</view>
+        <view class='select'>
+          <block wx:for='{{goodsSizeArray}}' wx:key='*this'>
+            <view class='select_one {{chooseDetail.size==item?"choose":""}}' bindtap='sizeClick' data-size='{{item}}'>{{item}}</view>
+          </block>
+        </view>
+      </view> -->
+      <!-- <view class='number_line'>
+        <view class='buy_number'>购买数量
+          <text wx:if='{{chooseDetail.stock}}'>(库存{{chooseDetail.stock}})</text>
+          <text wx:else>(库存{{goodsDetail.stock||"-"}})</text>
+        </view>
+        <view class='count'>
+          <view class='icon iconfont icon-add' bindtap='chooseDetailNumChange' data-num='1'></view>
+          <text>{{chooseDetail.num}}</text>
+          <view class='icon iconfont icon-minus' bindtap='chooseDetailNumChange' data-num='-1'></view>
+        </view>
+      </view> -->
+      <!-- <view class='prices_line'>￥{{goodsDetail.salePrice*chooseDetail.num||0}}</view> -->
+    </view>
+
+      <view class='userId'>客户型号:</view>
+      <input placeholder="选填" class='userGoodId' name="userGoodId" bindblur="userGoodId" value='{{userGoodId}}'/>
+      <view class='isCart'>配码方式:</view>
+      <view style=" display: inline-block;">
+        <radio-group class="radio-group" bindchange="radioChange" name="isCart" >
+          <label class="radio" wx:for="{{items}}" wx:key="{{item}}">
+            <radio value="{{item.value}}" checked="{{item.checked}}" color='#ff9059' />{{item.name}}
+          </label>
+        </radio-group>
+      </view>
+
+      <block wx:if="{{isChart==1}}">
+        <view style='margin-top:30rpx'>
+          <view class='cartNum'>配件数量:</view>
+          <input placeholder="必填" class='PerBoxNum' name="PerBoxNum" bindblur='perBoxNum' value='{{perBoxNum}}' type='number'/>
+        </view>
+      </block>
+      <scroll-view scroll-x="true">
+        <view class='row' style='width:{{width}}rpx;margin-left:20rpx'>
+          <view class="placeholder">操作</view>
+          <view class="placeholder">颜色</view>
+          <view class="placeholder">数量</view>
+          <block wx:if="{{isChart==1}}">
+            <view class="placeholder">件数</view>
+          </block>
+          <block wx:for='{{goodsSizeArray}}' wx:key='*this'>
+            <view class="placeholder">{{item}}#</view>
+          </block>
+        </view>
+        <block wx:for='{{colorArray}}' wx:key='*this' wx:for-index="groupindex">
+          <view class='row' style='width:{{width}}rpx;margin-left:20rpx'>
+              <view class="placeholder"><view class='del' data-index='{{groupindex}}' bindtap='del'>删除</view></view>
+            <view class="placeholder">{{item.name}}</view>
+            <view class="placeholder">
+              <input class='ColorTotalNum' value='{{item.colorTotalNum}}' data-index='{{groupindex}}'  bindblur='colorTotalNum' type='number'/>
+            </view>
+            <block wx:if="{{isChart==1}}">
+              <view class="placeholder">{{item.boxCount}}</view>
+            </block>
+            <block wx:for='{{item.goodsSizeArray}}' wx:key='*this' wx:for-item="itemName">
+              <view class="placeholder">
+                <input class='SelectNum' value='{{itemName.num}}' bindblur='selectNum' data-color='{{item.seq}}' data-size='{{itemName.name}}' data-index='{{groupindex}}'  type='number'/>
+              </view>
+            </block>
+          </view>
+        </block>
+
+        <picker bindchange="bindPickerChange" value="{{index}}" range="{{array}}">
+          <view class='add'>添加</view>
+        </picker>
+
+      </scroll-view>
+
+    <!-- <view class='select_btn_group'>
+      <view class='make_sure_btn btn' wx:if='{{selectFrom==1}}' bindtap='putIntoCart'>确定</view>
+      <view class='next_step_btn btn' wx:if='{{selectFrom==2}}' bindtap='generateOrder'>下一步</view>
+      <view class='put_into_cart btn' wx:if='{{selectFrom==0}}' bindtap='putIntoCart'>加入购物车</view>
+      <view class='buy_btn btn' wx:if='{{selectFrom==0}}' bindtap='generateOrder'>购买</view>
+    </view> -->
+    <view class='select_btn_group'>
+ <button class='make_sure_btn btn' bindtap='submit' disabled='{{disabled}}'>确定</button>
+      </view>
+  </view>
+</view>

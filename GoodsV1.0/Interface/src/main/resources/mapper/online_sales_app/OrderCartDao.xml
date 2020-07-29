@@ -1,0 +1,235 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="io.nuite.modules.online_sales_app.dao.OrderCartDao">
+
+	<!-- 可根据自己的需求，是否要使用 -->
+    <resultMap type="io.nuite.modules.online_sales_app.entity.OrderCartEntity" id="OrderCartMap">
+        <result property="seq" column="Seq"/>
+        <result property="goodsPeriodSeq" column="Goods_Period_Seq"/>
+        <result property="userSeq" column="User_Seq"/>
+        <result property="shoesSeq" column="Shoes_Seq"/>
+        <result property="totalSelectNum" column="TotalSelectNum"/>
+        <result property="perBoxNum" column="PerBoxNum"/>
+        <result property="isAllocated" column="IsAllocated"/>
+        <result property="isChecked" column="IsChecked"/>
+        <result property="inputTime" column="InputTime"/>
+        <result property="del" column="Del"/>
+        <result property="goodsID" column="GoodsID"/>
+        <result property="userGoodID" column="UserGoodID"/>
+        <result property="orderSeq" column="OrderSeq"/>
+    </resultMap>
+
+    <select id="selectOrderCart" parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT * FROM (SELECT
+        oc.Seq AS orderCartSeq,oc.Shoes_Seq AS shoesSeq,oc.GoodsID AS goodID,s.Img1 AS imgSrc,SUM(oc.TotalSelectNum) AS total,si.TagPrice AS tagPrice
+        FROM
+        [YHSROnlineSales].[dbo].[YHSR_OLS_OrderCart] oc
+        LEFT JOIN
+        [YHSmartRetail].[dbo].[YHSR_Goods_Shoes] s
+        ON s.Seq = oc.Shoes_Seq
+        LEFT JOIN
+        [YHSROnlineSales].[dbo].[YHSR_OLS_ShoesInfo] si
+        ON si.Shoes_Seq = oc.Shoes_Seq
+        WHERE oc.Del = 0 AND oc.OrderSeq = #{orderSeq}
+        GROUP BY oc.Seq,oc.Shoes_Seq,oc.GoodsID,s.Img1,si.TagPrice)s
+        ORDER BY s.total DESC
+    </select>
+
+    <select id="selectColor" parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT * FROM (SELECT
+        ocdb.Seq AS orderCartBoxSeq,ocdb.Color_Seq AS colorSeq,c.Name AS color,oc.Shoes_Seq AS goodSeq,SUM(ocdb.ColorTotalNum) AS colorTotal
+        FROM
+        [YHSROnlineSales].[dbo].[YHSR_OLS_OrderCart] oc
+        LEFT JOIN
+        [YHSROnlineSales].[dbo].[YHSR_OLS_OrderCartDistributeBox] ocdb
+        ON oc.Seq = ocdb.OrderShoppingCart_Seq
+        LEFT JOIN
+        [YHSmartRetail].[dbo].[YHSR_Goods_Color] c
+        ON c.Seq = ocdb.Color_Seq
+        WHERE oc.Shoes_Seq = #{shoesSeq}
+        <if test="orderCartSeq != null">
+            AND oc.Seq = #{orderCartSeq}
+        </if>
+        GROUP BY ocdb.Seq,ocdb.Color_Seq,c.Name,oc.Shoes_Seq)s
+        ORDER BY s.colorTotal DESC
+    </select>
+
+    <select id="selectSize" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT
+        s.SizeName AS title
+        FROM
+        [YHSROnlineSales].[dbo].[YHSR_OLS_OrderCartDetail] ocd
+        LEFT JOIN
+        [YHSROnlineSales].[dbo].[YHSR_OLS_ShoesData] sd
+        ON sd.Seq = ocd.ShoeData_Seq
+        LEFT JOIN
+        [YHSmartRetail].[dbo].[YHSR_Goods_Size] s
+        ON s.Seq = sd.Size_Seq
+        WHERE sd.Shoes_Seq = #{shoesSeq}
+        GROUP BY s.SizeName
+        ORDER BY s.SizeName ASC
+    </select>
+
+    <select id="selectGoodsColorNum" parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT * FROM (SELECT
+        s.SizeName AS sizeName,
+        CASE ocdb.AllocatedType WHEN 1 THEN ocdb.BoxCount*ocd.SelectNum ELSE ocd.SelectNum END AS num
+        FROM
+        [YHSROnlineSales].[dbo].[YHSR_OLS_OrderCartDetail] ocd
+        LEFT JOIN
+        [YHSROnlineSales].[dbo].[YHSR_OLS_OrderCartDistributeBox] ocdb
+        ON ocdb.Seq = ocd.OrderShoppingCartDistributeBox_Seq
+        LEFT JOIN
+        [YHSROnlineSales].[dbo].[YHSR_OLS_ShoesData] sd
+        ON sd.Seq = ocd.ShoeData_Seq
+        LEFT JOIN
+        [YHSmartRetail].[dbo].[YHSR_Goods_Size] s
+        ON s.Seq = sd.Size_Seq
+        WHERE sd.Shoes_Seq = #{shoesSeq}
+        <if test="orderCartBoxSeq != null">
+            AND ocdb.Seq = #{orderCartBoxSeq}
+        </if>)s
+        ORDER BY s.num DESC
+    </select>
+
+    <select id="selectOrderByGood" parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT * FROM (SELECT
+        oc.Shoes_Seq AS shoesSeq,oc.GoodsID AS goodID,s.Img1 AS imgSrc,SUM(oc.TotalSelectNum) AS total,si.TagPrice AS tagPrice
+        FROM
+        [YHSROnlineSales].[dbo].[YHSR_OLS_OrderCart] oc
+        LEFT JOIN
+        [YHSROnlineSales].[dbo].[YHSR_OLS_Order] o
+        ON o.Seq = oc.OrderSeq
+        LEFT JOIN
+        [YHSmartRetail].[dbo].[YHSR_Goods_Shoes] s
+        ON s.Seq = oc.Shoes_Seq
+        LEFT JOIN
+        [YHSROnlineSales].[dbo].[YHSR_OLS_ShoesInfo] si
+        ON si.Shoes_Seq = oc.Shoes_Seq
+        WHERE oc.Del = 0 AND o.Company_Seq = #{companySeq}
+        <if test="periodSeq != null and periodSeq != -1">
+            AND s.Period_Seq = #{periodSeq}
+        </if>
+        GROUP BY oc.Shoes_Seq,oc.GoodsID,s.Img1,si.TagPrice)s
+        ORDER BY s.total DESC
+    </select>
+
+    <select id="selectFactory" parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT * FROM (SELECT
+        si.Factory AS factoryName,SUM(oc.TotalSelectNum) AS factoryTotal
+        FROM
+        [YHSROnlineSales].[dbo].[YHSR_OLS_OrderCart] oc
+        LEFT JOIN
+        [YHSROnlineSales].[dbo].[YHSR_OLS_Order] o
+        ON o.Seq = oc.OrderSeq
+        LEFT JOIN
+        [YHSmartRetail].[dbo].[YHSR_Goods_Shoes] s
+        ON s.Seq = oc.Shoes_Seq
+        LEFT JOIN
+        [YHSROnlineSales].[dbo].[YHSR_OLS_ShoesInfo] si
+        ON si.Shoes_Seq = oc.Shoes_Seq
+        WHERE oc.Del = 0 AND o.Company_Seq = #{companySeq}
+        <if test="periodSeq != null and periodSeq != -1">
+            AND s.Period_Seq = #{periodSeq}
+        </if>
+        GROUP BY si.Factory)s
+        ORDER BY s.factoryTotal DESC
+    </select>
+
+    <select id="selectOrderByFactory" parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT * FROM (SELECT
+        oc.Shoes_Seq AS shoesSeq,oc.GoodsID AS goodID,s.Img1 AS imgSrc,SUM(oc.TotalSelectNum) AS total,si.TagPrice AS tagPrice
+        FROM
+        [YHSROnlineSales].[dbo].[YHSR_OLS_OrderCart] oc
+        LEFT JOIN
+        [YHSmartRetail].[dbo].[YHSR_Goods_Shoes] s
+        ON s.Seq = oc.Shoes_Seq
+        LEFT JOIN
+        [YHSROnlineSales].[dbo].[YHSR_OLS_ShoesInfo] si
+        ON si.Shoes_Seq = oc.Shoes_Seq
+        WHERE oc.Del = 0 AND si.Factory = #{factory}
+        GROUP BY oc.Shoes_Seq,oc.GoodsID,s.Img1,si.TagPrice)s
+        ORDER BY s.total DESC
+    </select>
+
+    <select id="selectCategory" parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT * FROM (SELECT
+        gc.Seq AS categorySeq,gc.Name AS categoryName,SUM(oc.TotalSelectNum) AS categoryTotal
+        FROM
+        [YHSROnlineSales].[dbo].[YHSR_OLS_OrderCart] oc
+        LEFT JOIN
+        [YHSROnlineSales].[dbo].[YHSR_OLS_Order] o
+        ON o.Seq = oc.OrderSeq
+        LEFT JOIN
+        [YHSmartRetail].[dbo].[YHSR_Goods_Shoes] s
+        ON s.Seq = oc.Shoes_Seq
+        LEFT JOIN
+        [YHSmartRetail].[dbo].[YHSR_Goods_Category] gc
+        ON gc.Seq = s.Category_Seq
+        WHERE oc.Del = 0 AND o.Company_Seq = #{companySeq}
+        <if test="periodSeq != null and periodSeq != -1">
+            AND s.Period_Seq = #{periodSeq}
+        </if>
+        <if test="categorySeq != null and categorySeq != -1">
+            AND gc.Seq = #{categorySeq}
+        </if>
+        GROUP BY gc.Seq,gc.Name)s
+        ORDER BY s.categoryTotal DESC
+    </select>
+
+    <select id="selectOrderByCategory" parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT * FROM (SELECT
+        oc.Shoes_Seq AS shoesSeq,oc.GoodsID AS goodID,s.Img1 AS imgSrc,SUM(oc.TotalSelectNum) AS total,si.TagPrice AS tagPrice
+        FROM
+        [YHSROnlineSales].[dbo].[YHSR_OLS_OrderCart] oc
+        LEFT JOIN
+        [YHSmartRetail].[dbo].[YHSR_Goods_Shoes] s
+        ON s.Seq = oc.Shoes_Seq
+        LEFT JOIN
+        [YHSROnlineSales].[dbo].[YHSR_OLS_ShoesInfo] si
+        ON si.Shoes_Seq = oc.Shoes_Seq
+        WHERE oc.Del = 0 AND s.Category_Seq = #{categorySeq}
+        GROUP BY oc.Shoes_Seq,oc.GoodsID,s.Img1,si.TagPrice)s
+        ORDER BY s.total DESC
+    </select>
+
+    <select id="selectOrderCartByPeriod" parameterType="java.util.Map" resultType="io.nuite.modules.online_sales_app.entity.OrderCartEntity">
+        SELECT
+        oc.Seq
+        FROM
+        [YHSROnlineSales].[dbo].[YHSR_OLS_OrderCart] oc
+        LEFT JOIN
+        [YHSmartRetail].[dbo].[YHSR_Goods_Shoes] s
+        ON s.Seq = oc.Shoes_Seq
+        WHERE oc.Del = 0 AND s.Period_Seq = #{periodSeq}
+    </select>
+
+    <select id="selectMinSizeByPeriod" parameterType="java.util.Map" resultType="java.lang.String">
+        SELECT
+        MIN(si.SizeName)
+        FROM
+        [YHSmartRetail].[dbo].[YHSR_Goods_Shoes] s
+        LEFT JOIN
+        [YHSROnlineSales].[dbo].[YHSR_OLS_ShoesData] sd
+        ON sd.Shoes_Seq = s.Seq
+        LEFT JOIN
+        [YHSmartRetail].[dbo].[YHSR_Goods_Size] si
+        ON si.Seq = sd.Size_Seq
+        WHERE s.Period_Seq = #{periodSeq}
+    </select>
+
+    <select id="selectMaxSizeByPeriod" parameterType="java.util.Map" resultType="java.lang.String">
+        SELECT
+        MAX(si.SizeName)
+        FROM
+        [YHSmartRetail].[dbo].[YHSR_Goods_Shoes] s
+        LEFT JOIN
+        [YHSROnlineSales].[dbo].[YHSR_OLS_ShoesData] sd
+        ON sd.Shoes_Seq = s.Seq
+        LEFT JOIN
+        [YHSmartRetail].[dbo].[YHSR_Goods_Size] si
+        ON si.Seq = sd.Size_Seq
+        WHERE s.Period_Seq = #{periodSeq}
+    </select>
+</mapper>

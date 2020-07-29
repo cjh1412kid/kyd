@@ -1,0 +1,50 @@
+<view class='dialog_seat' bindtap='dialogTap' catchtouchmove='catchDialogEvent'>
+  <view class='select_dialog {{dialogShow?"nochoosed":""}}' catchtap='catchDialogEvent'>
+    <view class='select_content'>
+      <view class='title_line'>
+        <view class='image'>
+          <image src='{{goodsDetail.images[0]}}'></image>
+        </view>
+        <view class='content'>
+          <view class='name'>{{goodsDetail.introduce}}</view>
+          <view class='prices'>￥{{goodsDetail.salePrice||0}}</view>
+        </view>
+      </view>
+      <view class='color_line'>
+        <view class='title'>颜色</view>
+        <view class='select'>
+          <block wx:for='{{goodsColorArray}}' wx:key='*this'>
+            <view class='select_one {{chooseDetail.colorSeq==item.seq?"choose":""}}' bindtap='colorClick' data-color-seq='{{item.seq}}'>{{item.name}}</view>
+          </block>
+          <!-- <view class='select_one'>白色</view> -->
+        </view>
+      </view>
+      <view class='size_line'>
+        <view class='title'>尺码</view>
+        <view class='select'>
+          <block wx:for='{{goodsSizeArray}}' wx:key='*this'>
+            <view class='select_one {{chooseDetail.size==item?"choose":""}}' bindtap='sizeClick' data-size='{{item}}'>{{item}}</view>
+          </block>
+        </view>
+      </view>
+      <view class='number_line'>
+        <view class='buy_number'>购买数量
+          <text wx:if='{{chooseDetail.stock}}'>(库存{{chooseDetail.stock}})</text>
+          <text wx:else>(库存{{goodsDetail.stock||"-"}})</text>
+        </view>
+        <view class='count'>
+          <view class='icon iconfont icon-add' bindtap='chooseDetailNumChange' data-num='1'></view>
+          <text>{{chooseDetail.num}}</text>
+          <view class='icon iconfont icon-minus' bindtap='chooseDetailNumChange' data-num='-1'></view>
+        </view>
+      </view>
+      <view class='prices_line'>￥{{goodsDetail.salePrice*chooseDetail.num||0}}</view>
+    </view>
+    <view class='select_btn_group'>
+      <view class='make_sure_btn btn' wx:if='{{selectFrom==1}}' bindtap='putIntoCart'>确定</view>
+      <view class='next_step_btn btn' wx:if='{{selectFrom==2}}' bindtap='generateOrder'>下一步</view>
+      <view class='put_into_cart btn' wx:if='{{selectFrom==0}}' bindtap='putIntoCart'>加入购物车</view>
+      <view class='buy_btn btn' wx:if='{{selectFrom==0}}' bindtap='generateOrder'>购买</view>
+    </view>
+  </view>
+</view>

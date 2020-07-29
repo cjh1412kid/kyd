@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="io.nuite.modules.online_sales_app.dao.OnlineSalesOrderDao">
+
+	<!-- 可根据自己的需求，是否要使用 -->
+    <resultMap type="io.nuite.modules.online_sales_app.entity.OrderEntity" id="orderMap">
+        <result property="seq" column="Seq"/>
+        <result property="userSeq" column="User_Seq"/>
+        <result property="orderNum" column="OrderNum"/>
+        <result property="orderPrice" column="OrderPrice"/>
+        <result property="paid" column="Paid"/>
+        <result property="orderStatus" column="OrderStatus"/>
+        <result property="companySeq" column="Company_Seq"/>
+        <result property="shopSeq" column="Shop_Seq"/>
+        <result property="expressCompanySeq" column="ExpressCompany_Seq"/>
+        <result property="expressNo" column="ExpressNo"/>
+        <result property="receiverName" column="ReceiverName"/>
+        <result property="telephone" column="Telephone"/>
+        <result property="fullAddress" column="FullAddress"/>
+        <result property="inputTime" column="InputTime"/>
+        <result property="paymentTime" column="PaymentTime"/>
+        <result property="deliverTime" column="DeliverTime"/>
+        <result property="receiveTime" column="ReceiveTime"/>
+        <result property="remark" column="Remark"/>
+        <result property="suggestion" column="Suggestion"/>
+        <result property="del" column="Del"/>
+       <result property="expectedTime" column="ExpectedTime"/>
+        <result property="isOem" column="IsOem"/>
+         <result property="oemUrl" column="OemUrl"/>
+    </resultMap>
+
+
+
+	<!-- 定义订单购买商品的resultMap，type为HashMap -->
+	<resultMap id="orderProductsMap" type="java.util.HashMap">
+	    <id column="Seq" property="orderProductsSeq" jdbcType="INTEGER" />
+	    <result column="GoodID" property="goodID" jdbcType="VARCHAR" />
+	    <result column="Img1" property="img" jdbcType="VARCHAR" />
+	    <result column="Introduce" property="introduce" jdbcType="VARCHAR" />
+	    <result column="ColorCode" property="colorCode" jdbcType="VARCHAR" />
+        <result column="ColorName" property="color" jdbcType="VARCHAR" />
+        <result column="SizeCode" property="sizeCode" jdbcType="VARCHAR" />
+	    <result column="SizeName" property="Size" jdbcType="VARCHAR" />
+	    <result column="BuyCount" property="BuyCount" jdbcType="INTEGER" />
+	    <result column="SalePrice" property="SalePrice" jdbcType="DECIMAL" />
+	</resultMap>
+
+
+
+	<!-- 订单购买商品详细 -->
+	<select id="getOrderProductsDetail" resultMap="orderProductsMap">
+		SELECT
+			A.Seq, C.GoodID, C.Img1, C.Introduce, E.Code AS ColorCode, E.Name AS colorName, F.SizeCode, F.SizeName, A.BuyCount, D.SalePrice
+		FROM
+			YHSROnlineSales.dbo.YHSR_OLS_OrderProducts A
+		LEFT JOIN YHSROnlineSales.dbo.YHSR_OLS_ShoesData B ON A.ShoesData_Seq = B.Seq
+		LEFT JOIN YHSmartRetail.dbo.YHSR_Goods_Color E ON B.Color_Seq = E.Seq
+		LEFT JOIN YHSmartRetail.dbo.YHSR_Goods_Size F ON B.Size_Seq = F.Seq
+		LEFT JOIN YHSmartRetail.dbo.YHSR_Goods_Shoes C ON B.Shoes_Seq = C.Seq
+		LEFT JOIN YHSROnlineSales.dbo.YHSR_OLS_ShoesInfo D ON D.Shoes_Seq = C.Seq
+		WHERE
+			A.Del = 0
+		AND A.Order_Seq = #{0}
+	</select>
+
+	<select id="selectOrder" parameterType="java.util.Map" resultType="io.nuite.modules.online_sales_app.entity.OrderEntity">
+		SELECT * FROM (SELECT
+		o.Seq,o.OrderNum,SUM(oc.TotalSelectNum) AS totalSelectNum,cu.NickName AS customUser,o.ReceiverName,o.Telephone,o.FullAddress,
+		o.InputTime,o.OrderPrice,o.Paid,(o.OrderPrice * 0.3) AS mustPay,o.IsOem,o.OemUrl
+		FROM
+		[YHSROnlineSales].[dbo].[YHSR_OLS_CustomUserInfo] cu
+		LEFT JOIN
+		[YHSROnlineSales].[dbo].[YHSR_OLS_Order] o
+		ON cu.Seq = o.User_Seq AND o.Company_Seq = #{companySeq}
+		LEFT JOIN
+		[YHSROnlineSales].[dbo].[YHSR_OLS_OrderCart] oc
+		ON oc.OrderSeq = o.Seq
+		LEFT JOIN
+		[YHSmartRetail].[dbo].[YHSR_Goods_Shoes] s
+		ON s.Seq = oc.Shoes_Seq
+		LEFT JOIN
+		[YHSmartRetail].[dbo].[YHSR_Goods_Period] p
+		ON p.Seq = s.Period_Seq
+		WHERE cu.Del = 0 AND cu.Company_Seq = #{companySeq} AND o.Del = 0
+		<if test="customSeq != null and customSeq != -1">
+			AND cu.Seq = #{customSeq}
+		</if>
+		<if test="periodSeq != null and periodSeq != -1">
+			AND p.Seq = #{periodSeq}
+		</if>
+		<if test="year != null and year != -1">
+			AND p.Year = #{year}
+		</if>
+		GROUP BY o.Seq,o.OrderNum,cu.NickName,o.ReceiverName,o.Telephone,o.FullAddress,o.InputTime,o.OrderPrice,o.Paid,o.IsOem,o.OemUrl) s
+		ORDER BY s.InputTime DESC
+	</select>
+
+	<select id="selectYear" parameterType="java.util.Map" resultType="java.lang.Integer">
+		SELECT
+		p.Year
+		FROM
+		[YHSmartRetail].[dbo].[YHSR_Goods_Period] p
+		WHERE p.Del = 0 AND p.Brand_Seq = #{brandSeq}
+		GROUP BY p.Year
+	</select>
+
+	<select id="selectPeriod" parameterType="java.util.Map" resultType="io.nuite.modules.sr_base.entity.GoodsPeriodEntity">
+		SELECT
+		p.Seq,p.Name
+		FROM
+		[YHSmartRetail].[dbo].[YHSR_Goods_Period] p
+		WHERE p.Del = 0 AND p.Brand_Seq = #{brandSeq} AND p.Year = #{year}
+	</select>
+
+	<select id="selectCustom" parameterType="java.util.Map" resultType="io.nuite.modules.online_sales_app.entity.CustomerUserInfo">
+		SELECT
+		cu.Seq,cu.NickName
+		FROM
+		[YHSROnlineSales].[dbo].[YHSR_OLS_CustomUserInfo] cu
+		LEFT JOIN
+		[YHSROnlineSales].[dbo].[YHSR_OLS_Order] o
+		ON cu.Seq = o.User_Seq
+		LEFT JOIN
+		[YHSROnlineSales].[dbo].[YHSR_OLS_OrderCart] oc
+		ON oc.OrderSeq = o.Seq
+		LEFT JOIN
+		[YHSmartRetail].[dbo].[YHSR_Goods_Shoes] s
+		ON s.Seq = oc.Shoes_Seq
+		LEFT JOIN
+		[YHSmartRetail].[dbo].[YHSR_Goods_Period] p
+		ON p.Seq = s.Period_Seq
+		WHERE cu.Del = 0 AND cu.Company_Seq = #{companySeq} AND p.Seq = #{periodSeq}
+		GROUP BY cu.Seq,cu.NickName
+	</select>
+
+	<select id="selectOrderDetail" parameterType="java.util.Map" resultType="io.nuite.modules.online_sales_app.entity.OrderEntity">
+		SELECT * FROM (SELECT
+		o.Seq,p.Name AS periodName,o.OrderNum,o.InputTime,o.FullAddress,o.ReceiverName,cu.NickName AS customUser,o.Telephone,o.ExpressNo,
+		ec.Name AS expressName,o.IsOem,SUM(oc.TotalSelectNum) AS totalSelectNum,
+		CASE oc.IsAllocated WHEN 1 THEN oc.PerBoxNum ELSE NULL END AS perBoxNum,
+		o.ExpectedTime,o.Remark
+		FROM
+		[YHSROnlineSales].[dbo].[YHSR_OLS_Order] o
+		LEFT JOIN
+		[YHSROnlineSales].[dbo].[YHSR_OLS_CustomUserInfo] cu
+		ON cu.Seq = o.User_Seq
+		LEFT JOIN
+		[YHSROnlineSales].[dbo].[YHSR_OLS_OrderCart] oc
+		ON oc.OrderSeq = o.Seq
+		LEFT JOIN
+		[YHSmartRetail].[dbo].[YHSR_Goods_Shoes] s
+		ON s.Seq = oc.Shoes_Seq
+		LEFT JOIN
+		[YHSmartRetail].[dbo].[YHSR_Goods_Period] p
+		ON p.Seq = s.Period_Seq
+		LEFT JOIN
+		[YHSROnlineSales].[dbo].[YHSR_OLS_ExpressCompany] ec
+		ON ec.Seq = o.ExpressCompany_Seq
+		WHERE cu.Del = 0 AND cu.Company_Seq = #{companySeq} AND o.Del = 0 AND o.Company_Seq = #{companySeq}
+		<if test="customSeq != null and customSeq != -1">
+			AND cu.Seq = #{customSeq}
+		</if>
+		<if test="periodSeq != null and periodSeq != -1">
+			AND p.Seq = #{periodSeq}
+		</if>
+		GROUP BY o.Seq,p.Name,o.OrderNum,o.InputTime,o.FullAddress,o.ReceiverName,cu.NickName,o.Telephone,o.ExpressNo,ec.Name,
+		o.IsOem,oc.IsAllocated,oc.PerBoxNum,o.ExpectedTime,o.Remark)s
+		ORDER BY s.totalSelectNum
+	</select>
+
+	<select id="selectTotalOrderNum" parameterType="java.util.Map" resultType="java.lang.Integer">
+		SELECT
+		SUM(oc.TotalSelectNum)
+		FROM
+		[YHSROnlineSales].[dbo].[YHSR_OLS_CustomUserInfo] cu
+		LEFT JOIN
+		[YHSROnlineSales].[dbo].[YHSR_OLS_Order] o
+		ON cu.Seq = o.User_Seq AND o.Company_Seq = #{companySeq}
+		LEFT JOIN
+		[YHSROnlineSales].[dbo].[YHSR_OLS_OrderCart] oc
+		ON oc.OrderSeq = o.Seq
+		LEFT JOIN
+		[YHSmartRetail].[dbo].[YHSR_Goods_Shoes] s
+		ON s.Seq = oc.Shoes_Seq
+		LEFT JOIN
+		[YHSmartRetail].[dbo].[YHSR_Goods_Period] p
+		ON p.Seq = s.Period_Seq
+		WHERE cu.Del = 0 AND cu.Company_Seq = #{companySeq} AND o.Del = 0
+		<if test="customSeq != null and customSeq != -1">
+			AND cu.Seq = #{customSeq}
+		</if>
+		<if test="periodSeq != null and periodSeq != -1">
+			AND p.Seq = #{periodSeq}
+		</if>
+	</select>
+
+	<select id="selectOrderAllColumn" parameterType="java.util.Map" resultType="io.nuite.modules.online_sales_app.entity.OrderEntity">
+		SELECT
+		o.*
+		FROM
+		[YHSROnlineSales].[dbo].[YHSR_OLS_Order] o
+		LEFT JOIN
+		[YHSROnlineSales].[dbo].[YHSR_OLS_OrderCart] oc
+		ON oc.OrderSeq = o.Seq
+		LEFT JOIN
+		[YHSmartRetail].[dbo].[YHSR_Goods_Shoes] s
+		ON s.Seq = oc.Shoes_Seq
+		LEFT JOIN
+		[YHSmartRetail].[dbo].[YHSR_Goods_Period] p
+		ON p.Seq = s.Period_Seq
+		WHERE o.Del = 0 AND o.Company_Seq = #{companySeq} AND p.Seq = #{periodSeq}
+	</select>
+</mapper>

@@ -1,0 +1,115 @@
+package io.nuite.modules.system.service;
+
+import com.baomidou.mybatisplus.service.IService;
+import io.nuite.modules.system.entity.MeetingOrderProductEntity;
+
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Map;
+
+public interface SysMeetingOrderProductService extends IService<MeetingOrderProductEntity> {
+    
+    /**
+     * 修改指定货品的取消状态
+     *
+     * @param meetingOrderSeq
+     * @param goodSeq
+     * @param colorSeq
+     * @param isCancel        是否取消：1取消 0恢复
+     */
+    void modifyCancel(Integer meetingOrderSeq, Integer goodSeq, Integer colorSeq, Integer isCancel);
+    
+    /**
+     * 修改指定货品的取消状态
+     *
+     * @param goodSeq
+     * @param colorSeq
+     * @param isCancel 是否取消：1取消 0恢复
+     */
+    void modifyGoodColorCancel(Integer companySeq,Integer goodSeq, Integer colorSeq, Integer isCancel);
+    
+    /**
+     * 修改指定货品的取消状态
+     *
+     * @param goodSeq
+     * @param isCancel 是否取消：1取消 0恢复
+     */
+    void modifyGoodCancel(Integer companySeq,Integer goodSeq,Integer isCancel);
+    
+    /**
+     * 根据meetingOrderSeq,meetingGoods_Seq,Color_Seq,Size 修改BuyCount
+     * @param meetingOrderProductEntity
+     */
+    void updateBySize(MeetingOrderProductEntity meetingOrderProductEntity);
+
+    /**
+     * 根据订单序号获取取消金额
+     * @param meetingOrderSeq
+     * @return
+     * @throws Exception
+     */
+    BigDecimal selectCancelMoneyByOrderSeq(Integer meetingOrderSeq) throws Exception;
+
+    /**
+     * 获取取消双数
+     * @param companySeq
+     * @param meetingSeq
+     * @param userSeq
+     * @param keywords
+     * @param areaSeq
+     * @return
+     * @throws Exception
+     */
+    Integer selectCancelTotal(Integer companySeq,Integer meetingSeq,Integer userSeq,String keywords,Integer areaSeq) throws Exception;
+
+    /**
+     * 获取取消金额
+     * @param companySeq
+     * @param meetingSeq
+     * @param userSeq
+     * @param keywords
+     * @param areaSeq
+     * @return
+     * @throws Exception
+     */
+    BigDecimal selectCancelMoney(Integer companySeq,Integer meetingSeq,Integer userSeq,String keywords,Integer areaSeq) throws Exception;
+
+    /**
+     * 获取所有订单订单号和是否取消去重列表
+     * @param meetingOrderSeq
+     * @return
+     * @throws Exception
+     */
+    List<MeetingOrderProductEntity> selectCancelOrder(Integer meetingOrderSeq) throws Exception;
+
+    /**
+     * 获取取消款数
+     * @param companySeq
+     * @param meetingSeq
+     * @param userSeq
+     * @param keywords
+     * @param areaSeq
+     * @return
+     * @throws Exception
+     */
+    Integer selectCancelGoodNum(Integer companySeq,Integer meetingSeq,Integer userSeq,String keywords,Integer areaSeq) throws Exception;
+
+    /**
+     * 获取取消sku数
+     * @param companySeq
+     * @param meetingSeq
+     * @param userSeq
+     * @param keywords
+     * @return
+     * @throws Exception
+     */
+    Integer selectCancelSku(Integer companySeq,Integer meetingSeq,Integer userSeq,String keywords) throws Exception;
+
+    
+    
+    //判断此订单 此货品 此颜色 是否有任意一个已取消的尺码 （理论一个尺码取消所有尺码均已取消）
+	boolean isOrderGoodsColorCancel(Integer c_orderSeq, Integer c_meetingGoodsSeq, Integer c_colorSeq);
+
+    Integer selectCancelTotalByOrderSeq(Integer orderSeq) throws Exception;
+}
+

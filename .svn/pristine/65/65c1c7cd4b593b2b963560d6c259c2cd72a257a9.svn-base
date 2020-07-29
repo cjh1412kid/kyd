@@ -1,0 +1,54 @@
+.goods_list {
+  overflow: hidden;
+  margin-bottom: 4rpx;
+}
+
+.goods_list .goods {
+  background-color: #fff;
+  width: 371rpx;
+  height: 460rpx;
+  float: left;
+  margin-top: 4rpx;
+  margin-bottom: 4rpx;
+}
+
+.goods_list .goods:nth-child(odd) {
+  margin-right: 4rpx;
+}
+
+.goods_list .goods:nth-child(even) {
+  margin-left: 4rpx;
+}
+
+.goods_list .goods .face {
+  width: 371rpx;
+  height: 371rpx;
+}
+
+.goods_list .goods .face image {
+  width: 371rpx;
+  height: 371rpx;
+}
+
+.goods_list .goods .title {
+  width: 334rpx;
+  margin: -4rpx auto;
+}
+
+.goods_list .goods .title .name {
+ font-size:24rpx;
+font-family:PingFangSC-Regular;
+font-weight:400;
+color:rgba(89,89,89,1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.goods_list .goods .title .price {
+ font-size:24rpx;
+font-family:PingFangSC-Regular;
+font-weight:400;
+color:rgba(205,81,85,1);
+  text-align: center;
+}

@@ -1,0 +1,109 @@
+<!--pages/goods/detail/detail.wxml-->
+<view class='container'>
+  <swiper duration='500' autoplay='true' interval='3000' circular='true' class='detail_swiper' indicator-dots='true' indicator-color='#dcdcdc' indicator-active-color='#ff6f71'>
+    <block wx:if='{{goodsDetail.video}}'>
+      <swiper-item>
+        <video src='{{goodsDetail.video}}' objectFit='fill' wx:if='{{!dialogShow}}'></video>
+      </swiper-item>
+    </block>
+    <block wx:for='{{goodsDetail.images}}' wx:key='{{index}}'>
+      <swiper-item>
+        <image src='{{item}}'></image>
+      </swiper-item>
+    </block>
+  </swiper>
+
+  <!-- 标题栏 -->
+  <view class='detail_title detail_margin'>
+    <view class='name'>{{goodsDetail.introduce}}</view>
+    <view class='price'>￥{{goodsDetail.salePrice||0}}
+      <text>(免运费)</text>
+    </view>
+    <view class='numbers'>
+      <view class='sale'>销量：
+        <text wx:if='{{goodsDetail.number && goodsDetail.stock}}'>{{goodsDetail.number - goodsDetail.stock + goodsSetStock}}</text>
+        <text wx:else>-</text>
+      </view>
+      <view class='stock'>库存：
+        <text>{{goodsDetail.stock||"-"}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class='detail_select detail_margin' bindtap='chooseGoods' data-from='0'>
+    <view class='text'>选择尺码颜色</view>
+    <view class='icon iconfont icon-gengduo'></view>
+  </view>
+
+  <view class='detail_params detail_margin'>
+    <view class='text'>商品参数</view>
+    <view class='grids'>
+      <view class='grid'>
+        <view class='name'>货号：</view>
+        <view class='value'>{{goodsDetail.goodID}}</view>
+      </view>
+      <view class='grid'>
+        <view class='name'>帮面材质：</view>
+        <view class='value'>{{goodsDetail.surfaceMaterial}}</view>
+      </view>
+      <view class='grid'>
+        <view class='name'>内里材质：</view>
+        <view class='value'>{{goodsDetail.innerMaterial}}</view>
+      </view>
+      <view class='grid'>
+        <view class='name'>鞋底材质：</view>
+        <view class='value'>{{goodsDetail.soleMaterial}}</view>
+      </view>
+      <view class='grid'>
+        <view class='name'>闭合方式：</view>
+        <view class='value'>{{goodsDetail.closeForm}}</view>
+      </view>
+      <view class='grid'>
+        <view class='name'>后跟高：</view>
+        <view class='value'>{{goodsDetail.heelHeight}}</view>
+      </view>
+      <view class='grid'>
+        <view class='name'>鞋头款式：</view>
+        <view class='value'>{{goodsDetail.heelShape}}</view>
+      </view>
+      <view class='grid'>
+        <view class='name'>流行元素：</view>
+        <view class='value'>{{goodsDetail.popularElement}}</view>
+      </view>
+      <view class='grid'>
+        <view class='name'>款式：</view>
+        <view class='value'>{{goodsDetail.toeStyle}}</view>
+      </view>
+    </view>
+  </view>
+
+  <view class='detail_content detail_margin'>
+    <view class='text'>商品详情</view>
+  </view>
+  <view class='detail_content_images'>
+    <view wx:for='{{goodsDetail.description}}' wx:key='{{index}}'>
+      <image src='{{item}}' mode='aspectFill' lazy-load='true'></image>
+    </view>
+  </view>
+
+  <view class='detail_bottom_groups'>
+    <view class='flex1 icon_text'>
+      <view class='icon'>
+        <view class='iconfont icon-xiaoxizhongxin' style='font-size: 35rpx;'></view>
+      </view>
+      <view class='text'>客服</view>
+    </view>
+    <view class='flex1 icon_text' bindtap='toCartPage'>
+      <view class='icon'>
+        <view class='iconfont icon-gouwuche' style='font-size: 35rpx;'></view>
+      </view>
+      <view class='text'>购物车</view>
+    </view>
+    <view class='flex3 cart' bindtap='chooseGoods' data-from='1'>加入购物车</view>
+    <view class='flex3 buy' bindtap='chooseGoods' data-from='2'>购 买</view>
+  </view>
+
+  <view class='detail_select_page {{dialogShow?"nochoosed":""}}'>
+    <include src="detail_select.wxml" />
+  </view>
+</view>

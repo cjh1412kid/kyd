@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>订货会管理</title>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
+  <link rel="stylesheet" href="../../../css/bootstrap.min.css">
+  <link rel="stylesheet" href="../../../css/font-awesome.min.css">
+  <link rel="stylesheet" href="../../../plugins/jqgrid/ui.jqgrid-bootstrap.css">
+  <link rel="stylesheet" href="../../../plugins/daterangepicker/daterangepicker.css">
+  <link rel="stylesheet" href="../../../css/main.css">
+
+  <style>
+
+  </style>
+</head>
+<body>
+<div id="rrapp" v-cloak>
+
+  <div v-show="showList">
+    <div class="grid-btn">
+      <a class="btn btn-primary" style="margin-left: 10px;" @click="add">
+        <i class="fa fa-plus"></i>&nbsp;新增
+      </a>
+
+      <a class="btn btn-link" @click="exportQRCode">下载二维码</a>
+      <form id="exportQRCode" method="POST" style="display: none">
+        <input type="hidden" name="token">
+      </form>
+    </div>
+    <table id="jqGrid"></table>
+    <div id="jqGridPager"></div>
+  </div>
+
+  <div v-show="!showList" class="panel panel-default">
+    <div class="panel-heading" v-text="title"></div>
+    <form class="form-horizontal">
+      <div class="form-group">
+        <div class="col-sm-2 control-label">订货会名称</div>
+        <div class="col-sm-10">
+          <input type="text" class="form-control" v-model.trim="meeting.name" placeholder="订货会名称"/>
+        </div>
+      </div>
+      <div class="form-group">
+        <div class="col-sm-2 control-label">开始时间</div>
+        <div class="col-sm-10">
+          <input type="text" class="form-control" v-model="meeting.startTime" id="startTimePicker" placeholder="开始时间"
+                 readonly/>
+        </div>
+      </div>
+      <div class="form-group">
+        <div class="col-sm-2 control-label">结束时间</div>
+        <div class="col-sm-10">
+          <input type="text" class="form-control" v-model="meeting.endTime" id="endTimePicker" placeholder="结束时间"
+                 readonly/>
+        </div>
+      </div>
+      <div class="form-group">
+        <div class="col-sm-2 control-label">年份</div>
+        <div class="col-sm-10">
+          <label class="radio-inline" v-for="item in yearOpts">
+            <input type="radio" v-model="meeting.year" name="year" :value="item">{{item}}
+          </label>
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <div class="col-sm-2 control-label">订货会场地址</div>
+        <div class="col-sm-8">
+	    	<input type="text" class="form-control" v-model="meeting.address" placeholder="订货会场地址"/>
+	    </div>
+	    <div class="col-sm-1">
+	    	<button type="button" class="btn btn-default btn-sm" @click="initMap">
+          		<span class="glyphicon glyphicon-map-marker"></span> 定 位
+        	</button>
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <div class="col-sm-2 control-label">经度</div>
+        <div class="col-sm-3">
+	    	<input type="text" class="form-control" v-model="meeting.lng" placeholder="经度"/>
+	    </div>
+	    <div class="col-sm-2 control-label">纬度</div>
+        <div class="col-sm-3">
+	    	<input type="text" class="form-control" v-model="meeting.lat" placeholder="纬度"/>
+	    </div>
+      </div>
+      
+      <div class="form-group">
+        <div class="col-sm-2 control-label">范围半径（米）</div>
+        <div class="col-sm-8">
+          <input type="text" class="form-control" v-model="meeting.radius" placeholder="范围半径（米）"/>
+        </div>
+      </div>
+      
+      
+      <div class="form-group">
+        <div class="col-sm-1 control-label"></div>
+        <div class="col-sm-2 control-label">
+          <input type="button" class="btn btn-primary" @click="saveOrUpdate" value="确定"/>
+        </div>
+        <div class="col-sm-2 control-label">
+          <input type="button" class="btn btn-warning" @click="goBack" value="返回"/>
+        </div>
+      </div>
+    </form>
+  </div>
+
+</div>
+
+
+<!-- 百度地图窗口 -->
+<div id="BMapLayer" style="display: none;padding:10px;">
+    <div id="allmap" style="width: 790px;height: 400px;overflow: hidden;margin:0;font-family:"微软雅黑";"></div>
+</div>
+
+
+</body>
+<script src="../../../libs/jquery.min.js"></script>
+<script src="../../../plugins/layer/layer.js"></script>
+<script src="../../../libs/bootstrap.min.js"></script>
+<script src="../../../libs/vue.min.js"></script>
+<script src="../../../plugins/jqgrid/grid.locale-cn.js"></script>
+<script src="../../../plugins/jqgrid/jquery.jqGrid.min.js"></script>
+<script src="../../../plugins/daterangepicker/moment.min.js"></script>
+<script src="../../../plugins/daterangepicker/daterangepicker.js"></script>
+<script src="../../../js/common.js"></script>
+<script src="../../../js/modules/system/order_meeting/meeting_manager.js"></script>
+
+<script type="text/javascript" src="http://api.map.baidu.com/api?v=2.0&ak=f1yhniOlzp6esabFkWMeOEii5LrdcbCS"></script>
+<script type="text/javascript" src="https://webapi.amap.com/maps?v=1.4.15&key=a4e1e21ddd9f2a9c63494dbc4d7e3281"></script> 
+</html>

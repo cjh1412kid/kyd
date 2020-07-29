@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="io.nuite.modules.online_sales_app.dao.SalesShoppingCartDetailDao">
+
+	<!-- 可根据自己的需求，是否要使用 -->
+    <resultMap type="io.nuite.modules.online_sales_app.entity.SalesShoppingCartDetailEntity" id="SalesShoppingCartDetailMap">
+        <result property="seq" column="Seq"/>
+        <result property="salesShoppingCartSeq" column="SalesShoppingCart_Seq"/>
+        <result property="shoeDataSeq" column="ShoeData_Seq"/>
+        <result property="selectNum" column="SelectNum"/>
+        <result property="inputTime" column="InputTime"/>
+        <result property="salesShoppingCartDistributeBoxSeq" column="SalesShoppingCartDistributeBox_Seq"/>
+    </resultMap>
+	<select id="getSalesDetailBySalesShoppingCartSeq" resultMap="SalesShoppingCartDetailMap">
+	select * from YHSROnlineSales.dbo.YHSR_OLS_SalesShoppingCartDetail where SalesShoppingCartDistributeBox_Seq =#{salesShoppingCartDistributeBoxSeq}
+		AND ShoeData_Seq=#{shoeDataSeq} 
+	</select>
+
+</mapper>

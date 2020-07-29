@@ -1,0 +1,18 @@
+package io.nuite.modules.sr_base.service;
+
+import com.baomidou.mybatisplus.service.IService;
+import io.nuite.modules.sr_base.entity.GoodsShoesEntity;
+
+public interface GoodsShoesService extends IService<GoodsShoesEntity> {
+
+    GoodsShoesEntity getGoodsByGoodId(Integer companySeq, String goodid);
+    /**
+     * 查找属性选项是否与商品有关联
+     * @param companySeq
+     * @param sxid 属性列名
+     * @param optCode 属性选项编码
+     * @return 关系属性选项的商品数
+     */
+    int getCountBySXAndOption(Integer companySeq, String sxid, String optCode);
+
+}

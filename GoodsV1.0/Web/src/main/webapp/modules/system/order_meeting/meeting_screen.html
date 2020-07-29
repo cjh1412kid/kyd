@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>订货会管理</title>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
+  <link rel="stylesheet" href="../../../css/bootstrap.min.css">
+  <link rel="stylesheet" href="../../../css/font-awesome.min.css">
+  <link rel="stylesheet" href="../../../plugins/jqgrid/ui.jqgrid-bootstrap.css">
+  <link rel="stylesheet" href="../../../plugins/ztree/css/metroStyle/metroStyle.css">
+  <link rel="stylesheet" href="../../../plugins/select2/select2.min.css">
+  <link rel="stylesheet" href="../../../plugins/daterangepicker/daterangepicker.css">
+  <link rel="stylesheet" href="../../../css/main.css">
+
+  <style>
+  a{text-decoration:none} 
+  	#show{
+  		background-color: white;
+  	}
+  	#left{
+  	}
+	#scan{
+	background-color: rgba(255,81,0,1);
+	text-align: center;
+	border-radius: 6px;
+	width:34px;
+	height:111px;
+	font-size:18px;
+	font-family:Arial-Black;
+	font-weight:900;
+	color:rgba(255,255,255,1);
+	line-height:27px;
+	position: absolute;
+	top:958px;
+	left: 364px;
+	}
+	#meetingName{
+	width:229px;
+	height:57px;
+	line-height:59px;
+	font-weight:600;
+	font-family:PingFangSC-Semibold;
+	color: #FF5100;
+	text-align: center;
+	font-size: 42px;
+	border-radius: 5px;
+	position: absolute;
+	top:964px;
+	left: 27px;
+	}
+	#meetingName a{
+		color: #FF5100;
+	}
+	#meetingName ul li a{
+		color:black;
+		letter-spacing: initial;
+	}
+	#qRcode{
+		margin-top: -40px;
+		margin-left: 10px;
+	}
+	#buyCount{
+	font-size: 16px;
+	font-weight: bold;
+	position: absolute;
+	top:1015px;
+	left: 550px;
+	color: #7d7b7b;
+	line-height: 22px;
+	}
+	.chartmain {
+		  	width:1886px;
+		   height: 850px;
+		   
+	}
+	#myCarousel{
+	    box-shadow: darkgrey 0px 0px 5px 5px;
+		  	width:1886px;
+		   height: 900px;
+		   left:17px;
+		   top:22px;
+		   position: absolute; 
+		   	border-radius:10px;
+	}
+	.carousel-inner .active{
+		width:1886px;
+		height: 850px;
+		
+	}
+	#title{
+	position: absolute;
+	top:958px;;
+	left: 816px;
+	font-size: 18px;
+	font-weight: 600;
+	font-family:PingFangSC-Semibold;
+	font-weight:600;
+	width:34px;
+	line-height:25px;
+	height:111px;
+	text-align: center;
+	display: inline-block;
+	color: white;
+	background:rgba(255,81,0,1);
+	}
+	#code{
+		position: absolute;
+		top:960px;
+		left:412px;
+		height: 107px;
+		width: 121px;
+	}
+	#times{
+		position: absolute;
+		top: 1024px;
+		left: 77px;
+		width: 234px;
+		height: 35px;
+		text-align: center;
+		color:rgba(255,81,0,1);
+		font-size: 26px;
+		font-family:Arial-Black;
+		font-weight:900;
+		text-align: center;
+    	line-height:37px;
+	}
+
+	#noData{
+		position: absolute;
+		width:1886px;
+		height: 900px;
+		left:17px;
+		top:22px;
+		text-align: center;
+		line-height: 620px;
+		font-size: 40px;
+		font-weight: bold;
+		box-shadow:0px 0px 19px -7px rgba(60,60,60,0.5);
+		border: white 1px solid;
+		border-radius:10px;
+	}
+	
+	.list{
+	display: inline-block;
+	margin-left: 10px;
+	position: absolute;
+	top:955px;
+	left: 869px;
+	}
+	.rank{
+		display: inline-block;
+		width: 340px;
+	}
+	.rank .img{
+		display: inline-block;
+		width: 60px;
+		height: 111px;
+		vertical-align: initial;
+	}
+	.rank .code{
+		width: 102px;
+		height: 87px;
+		margin-left: 9px;
+		position: relative;
+		top: -11px;
+	}
+	.buyNum{
+		text-align: center;
+		font-size: 20px;
+		width: 100%;
+		margin-left: 20px;
+		color: #7d7b7b;
+	}
+	.code{
+	display: inline-block;
+	width: 75px;
+	}
+	.carousel-indicators li{
+		background-color:#ECECEC;
+		width: 16px;
+		height: 16px;
+		margin-left: 10px;
+	}
+	.carousel-indicators .active{
+		background-color: #F5A623;
+		width: 16px;
+	   height: 16px;
+	   	margin-left: 10px;
+	}
+	.dropdown-menu{
+		top: -44%;
+   		 left: 222px;
+	}
+  </style>
+</head>
+<body >
+<div id="show">
+
+
+<div id="middle">
+	<div  :style="{display:noData?'none':'inline'}">
+		<div id="myCarousel" class="carousel slide">
+		<!-- 轮播（Carousel）指标 -->
+		<ol class="carousel-indicators">
+			<li data-target="#myCarousel" data-slide-to="0" class="active"></li>
+			<li data-target="#myCarousel" data-slide-to="1"></li>
+		</ol>   
+		<!-- 轮播（Carousel）项目 -->
+		<div class="carousel-inner">
+			<div class="item active">
+				<div  id="chartmain1" class="chartmain" :style="{display:noData?'none':'inline'}"></div>
+			</div>
+			<div class="item">
+				<div  id="chartmain2" class="chartmain"></div>
+			</div>
+		</div>
+	</div> 
+	</div>
+	<div :style="{display:noData?'inline':'none'}" id="noData">暂无数据</div>
+</div>
+<div id="left">
+	<div id="meeting">
+		<div id="meetingName">
+			<div class="dropdown" style="z-index: 100">
+					<a role="button" data-toggle="dropdown" class="dropdown">{{selectPeriodName
+						|| '订货会选择'}} 
+					</a>
+					<ul class="dropdown-menu multi-level" role="menu"
+						aria-labelledby="dropdownMenu">
+						<li class="dropdown-submenu"><a tabindex="-1"
+							@click="periodSelect(-1)">所有订货会</a></li>
+						<li class="dropdown-submenu" v-for="(values,key) in meetings">
+							<a tabindex="-1">{{key}}</a>
+							<ul class="dropdown-menu">
+								<li v-for="item in values"><a tabindex="-1"
+									@click="periodSelect(item)">{{item.name}}</a></li>
+							</ul>
+						</li>
+					</ul>
+				</div>
+		</div>
+	</div>
+	<img  src="../../../media/ytgz_1.png" style="width: 98px;height: 40px;position: absolute;left:246px;top:973px;" @click="requestFullScreen">
+	<div id="times">
+		<div id="time">{{startTime}}——{{endTime}}</div>
+	</div>
+	<div id="qRcode">
+	<div id="scan">
+		进场扫码
+	</div>
+	<div id=code>
+	<div id="qrcode"></div>
+	</div>
+	</div>
+	<!-- <div id="buyCount">当前订货量：<label style="font-size: 30px">{{buyCount}}</label></div> -->
+</div>
+<div id="footer">
+	<div id="title">单品排行</div>
+	<div class="list"  class="carousel slide">
+
+		<!-- 轮播（Carousel）项目 -->
+		<div class="carousel-inner">
+			
+		</div>
+</div>
+</div>
+
+
+</div>
+</body>
+
+<script src="../../../libs/jquery.min.js"></script>
+<script src="../../../plugins/layer/layer.js"></script>
+<script src="../../../libs/bootstrap.min.js"></script>
+<script src="../../../libs/vue.min.js"></script>
+<script src="../../../plugins/daterangepicker/moment.min.js"></script>
+<script src="../../../plugins/daterangepicker/daterangepicker.js"></script>
+<script src="../../../plugins/datepicker/bootstrap-datepicker.js"></script>
+<script
+	src="../../../plugins/datepicker/locales/bootstrap-datepicker.zh-CN.js"></script>
+<script src="../../../js/common.js"></script>
+<script src="../../../plugins/echart/echarts.js"></script>
+<script src="../../../plugins/qrcode/qrcode.js"></script>
+<script src="../../../plugins/qrcode/qrcode.min.js"></script>
+<script src="../../../js/modules/system/order_meeting/meeting_screen.js"></script>
+
+<script type="text/javascript">
+//指定图标的配置和数据
+
+</script>
+</html>

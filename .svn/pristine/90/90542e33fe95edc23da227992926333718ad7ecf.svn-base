@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="io.nuite.modules.order_platform_app.dao.MeetingPlanDao">
+
+	<!-- 可根据自己的需求，是否要使用 -->
+    <resultMap type="io.nuite.modules.order_platform_app.entity.MeetingPlanEntity" id="meetingPlanMap">
+        <result property="seq" column="Seq"/>
+        <result property="companySeq" column="Company_Seq"/>
+        <result property="periodSeq" column="Period_Seq"/>
+        <result property="userSeq" column="User_Seq"/>
+        <result property="categorySeq" column="Category_Seq"/>
+        <result property="SX2" column="SX2"/>
+        <result property="SX3" column="SX3"/>
+        <result property="planNum" column="PlanNum"/>
+        <result property="planMoney" column="PlanMoney"/>
+        <result property="planGoodsIDs" column="PlanGoodsIDs"/>
+        <result property="actualNum" column="ActualNum"/>
+        <result property="actualMoney" column="ActualMoney"/>
+        <result property="actualGoodsIDs" column="ActualGoodsIDs"/>
+        <result property="actualGoodsIDSArr" column="ActualGoodsIDSArr"/>
+        <result property="inputTime" column="InputTime"/>
+        <result property="updateTime" column="UpdateTime"/>
+        <result property="del" column="Del"/>
+    </resultMap>
+
+
+
+
+	<resultMap id="userMeetingPlanMap" type="java.util.HashMap">
+		<id column="Seq" property="seq" jdbcType="INTEGER"/>
+	    <result column="AccountName" property="accountName" jdbcType="VARCHAR"/>
+	    <result column="UserName" property="userName" jdbcType="VARCHAR"/>
+	    <result column="AttachType" property="attachType" jdbcType="INTEGER"/>
+	    <result column="Attach_Seq" property="attachSeq" jdbcType="BIGINT"/>
+	    <result column="SaleType" property="saleType" jdbcType="INTEGER"/>
+	   	<result column="User_Seq" property="userSeq" jdbcType="INTEGER" />
+	</resultMap>
+	
+	<select id="getUserMeetingPlanList" resultMap="userMeetingPlanMap">
+		SELECT 
+			A.Seq, A.AccountName, A.UserName, A.AttachType, A.Attach_Seq, A.SaleType, C.User_Seq 
+		FROM 
+			[YHSmartRetail].[dbo].[YHSR_Base_User] A
+		LEFT JOIN [YHSROrderPlatform].[dbo].[YHSR_OP_UserJurisdiction] B ON A.Seq = B.User_Seq
+		LEFT JOIN (SELECT DISTINCT User_Seq FROM [YHSROrderPlatform].[dbo].[YHSR_OP_MeetingPlan] WHERE Del = 0 AND Period_Seq = #{periodSeq}) C ON A.Seq = C.User_Seq   
+		WHERE 
+			A.Del = 0 AND B.Del = 0 AND A.Company_Seq = #{companySeq} AND A.SaleType = #{saleType} 
+			<if test="uploadState==1">
+				AND C.User_Seq IS NOT NULL
+			</if>
+			<if test="uploadState==2">
+				AND C.User_Seq IS NULL
+			</if>
+	</select>
+	
+
+</mapper>
