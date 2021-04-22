@@ -31,7 +31,7 @@
     <commons.configuration.version>1.10</commons.configuration.version>
 
     <quartz.version>2.3.0</quartz.version>
-    <shiro.version>1.3.2</shiro.version>
+    <shiro.version>1.7.1</shiro.version>
     <jwt.version>0.7.0</jwt.version>
     <kaptcha.version>0.0.9</kaptcha.version>
     <swagger.version>2.7.0</swagger.version>
