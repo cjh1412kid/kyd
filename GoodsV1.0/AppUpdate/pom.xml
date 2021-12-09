@@ -19,7 +19,7 @@
     <net.json.version>2.4</net.json.version>
     <proxool.version>0.9.1</proxool.version>
     <poi.version>3.0.2-FINAL</poi.version>
-    <jackson.version>2.9.5</jackson.version>
+    <jackson.version>2.9.10.8</jackson.version>
   </properties>
 
   <dependencies>
